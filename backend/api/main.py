@@ -1,0 +1,180 @@
+import logging
+import time
+import subprocess
+from contextlib import asynccontextmanager
+
+import sentry_sdk
+from fastapi import FastAPI, Request
+
+logger = logging.getLogger(__name__)
+from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from sqlalchemy.exc import SQLAlchemyError
+
+from api.v1.endpoints.admin import router as admin_router
+from api.v1.endpoints.analytics import router as analytics_router
+from api.v1.endpoints.auth import router as auth_router
+from api.v1.endpoints.user_auth import router as user_auth_router
+from api.v1.endpoints.demo import router as demo_router
+from api.v1.endpoints.health import router as health_router
+from api.v1.endpoints.history import router as history_router
+from api.v1.endpoints.intake import router as intake_router
+from api.v1.endpoints.jobs import router as jobs_router
+from api.v1.endpoints.comparison import router as comparison_router
+from api.v1.endpoints.knowledge_graph import router as kg_router
+from api.v1.endpoints.metrics import router as metrics_router
+from api.v1.endpoints.reports import router as reports_router
+from api.v1.endpoints.setup import router as setup_router
+from api.v1.endpoints.training import router as training_router
+from api.v1.endpoints.metrics import HTTP_REQUESTS_TOTAL, HTTP_REQUEST_DURATION
+from api.v2.main import router as v2_router
+from core.audit import AuditLog
+from core.auth import seed_demo_workshop
+from core.config import settings
+from core.database import SessionLocal
+from core.db_exceptions import db_error_handler
+from core.limiter import limiter
+
+if settings.sentry_dsn:
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.environment,
+        traces_sample_rate=0.25,
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    subprocess.run(["alembic", "upgrade", "head"], check=True)
+    db = SessionLocal()
+    try:
+        seed_demo_workshop(db)
+        from seed_data.seed_oem import seed_oem_data
+        seed_oem_data(db)
+        from ai.classification.seed_clip import seed_clip_embeddings
+        seed_clip_embeddings(db)
+    finally:
+        db.close()
+    if settings.admin_api_key:
+        import logging
+        logging.getLogger(__name__).info(
+            "Admin API key: %s", settings.admin_api_key
+        )
+    from core.feature_flags import FeatureFlagStore
+    FeatureFlagStore.init()
+    yield
+
+
+app = FastAPI(
+    title="RetroMind AI API",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(SQLAlchemyError, db_error_handler)
+
+@app.middleware("http")
+async def version_middleware(request: Request, call_next):
+    accept_version = request.headers.get("Accept-Version", "")
+    if accept_version == "2.0" and not request.url.path.startswith("/api/v2/"):
+        logger.warning(
+            "Client requested Accept-Version: 2.0 but hit v1 endpoint '%s'",
+            request.url.path,
+        )
+    response = await call_next(request)
+    if accept_version:
+        response.headers["X-API-Version"] = accept_version
+        response.headers["X-API-Latest"] = "/api/v2/"
+    return response
+
+
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration = time.time() - start
+    route = request.url.path
+    HTTP_REQUESTS_TOTAL.labels(method=request.method, endpoint=route, status=response.status_code).inc()
+    HTTP_REQUEST_DURATION.labels(method=request.method, endpoint=route).observe(duration)
+    return response
+
+
+@app.middleware("http")
+async def audit_middleware(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration_ms = int((time.time() - start) * 1000)
+    api_key = request.headers.get("X-API-Key", "")
+    try:
+        from core.auth import hash_api_key
+        from core.models import Workshop
+        db = SessionLocal()
+        workshop_id = None
+        if api_key:
+            key_hash = hash_api_key(api_key)
+            workshop = (
+                db.query(Workshop)
+                .filter(Workshop.api_key_hash == key_hash, Workshop.is_active.is_(True))
+                .first()
+            )
+            if workshop:
+                workshop_id = workshop.id
+        log = AuditLog(
+            workshop_id=workshop_id,
+            method=request.method,
+            path=request.url.path,
+            status_code=str(response.status_code),
+            duration_ms=str(duration_ms),
+            ip_address=request.client.host if request.client else None,
+        )
+        db.add(log)
+        db.commit()
+    except Exception:
+        pass
+    finally:
+        db.close()
+    return response
+
+
+app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.frontend_url, "http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(admin_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(user_auth_router, prefix="/api/v1")
+app.include_router(demo_router, prefix="/api/v1")
+app.include_router(health_router, prefix="/api/v1")
+app.include_router(metrics_router, prefix="/api/v1")
+app.include_router(history_router, prefix="/api/v1")
+app.include_router(intake_router, prefix="/api/v1")
+app.include_router(jobs_router, prefix="/api/v1")
+app.include_router(comparison_router, prefix="/api/v1")
+app.include_router(kg_router, prefix="/api/v1")
+app.include_router(reports_router, prefix="/api/v1")
+app.include_router(setup_router, prefix="/api/v1")
+app.include_router(training_router, prefix="/api/v1")
+
+from optimization.hyperparameter.admin_endpoints import router as optimization_router
+app.include_router(optimization_router, prefix="/api/v1")
+
+from ai.recommendations.admin_endpoints import router as rl_admin_router
+app.include_router(rl_admin_router, prefix="/api/v1")
+
+from api.v1.endpoints.cad_export import router as cad_router
+app.include_router(cad_router, prefix="/api/v1")
+
+from api.v1.endpoints.oem import router as oem_router
+app.include_router(oem_router, prefix="/api/v1")
+
+app.include_router(v2_router, prefix="/api/v2")

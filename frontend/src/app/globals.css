@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --surface: 255 255 255;
+  --surface-muted: 248 250 252;
+  --surface-card: 255 255 255;
+  --surface-hover: 241 245 249;
+  --surface-elevated: 255 255 255;
+  --text-primary: 15 23 42;
+  --text-secondary: 71 85 105;
+  --text-tertiary: 148 163 184;
+  --border: 226 232 240;
+  --border-light: 241 245 249;
+}
+
+.dark {
+  --surface: 10 15 26;
+  --surface-muted: 18 26 42;
+  --surface-card: 23 33 54;
+  --surface-hover: 31 42 66;
+  --surface-elevated: 31 42 66;
+  --text-primary: 241 245 249;
+  --text-secondary: 148 163 184;
+  --text-tertiary: 100 116 139;
+  --border: 42 54 78;
+  --border-light: 30 41 59;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-surface: rgb(var(--surface));
+  --color-surface-muted: rgb(var(--surface-muted));
+  --color-surface-card: rgb(var(--surface-card));
+  --color-surface-hover: rgb(var(--surface-hover));
+  --color-surface-elevated: rgb(var(--surface-elevated));
+  --color-text-primary: rgb(var(--text-primary));
+  --color-text-secondary: rgb(var(--text-secondary));
+  --color-text-tertiary: rgb(var(--text-tertiary));
+  --color-border: rgb(var(--border));
+  --color-border-light: rgb(var(--border-light));
+  --color-brand: #0d9488;
+  --color-brand-light: #14b8a6;
+  --color-brand-dark: #0f766e;
+  --color-brand-muted: #ccfbf1;
+  --color-accent: #d97706;
+  --color-accent-light: #f59e0b;
+  --color-accent-muted: #fef3c7;
+  --color-success: #059669;
+  --color-success-light: #a7f3d0;
+  --color-danger: #dc2626;
+  --color-danger-light: #fecaca;
+  --color-info: #0284c7;
+  --color-info-light: #bae6fd;
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+body {
+  background-color: rgb(var(--surface));
+  color: rgb(var(--text-primary));
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@media print {
+  .no-print { display: none; }
+  body { background: white; color: black; }
+}
+
+*:focus-visible {
+  outline: 2px solid #0d9488;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background-color: #0d9488;
+  color: white;
+}

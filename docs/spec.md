@@ -1,0 +1,900 @@
+# RetroMind AI — Technical Specification
+
+## 1. Overview
+
+### 1.1 Product
+RetroMind AI: a self-learning EV retrofit intelligence network for imperfect real-world vehicles.
+
+### 1.2 Launch Wedge
+- Primary customer: Independent EV retrofit workshops (India Tier 1/Tier 2)
+- Initial vehicle anchor: ICE auto-rickshaw (3-wheeler) -> EV conversion
+- Demo mode: Single-tenant (implicit `demo-workshop` context)
+
+### 1.3 Guiding Principles
+- Production-grade architecture, not throwaway prototype
+- Human-in-the-loop for critical decisions
+- Graceful degradation over hard failure
+- Confidence-aware outputs with explicit reason codes
+- Progressive insight delivery (staged results)
+- Explainability at every output boundary
+
+### 1.4 Timing SLAs
+| Metric | Target | Hard Max |
+|--------|:-----:|:--------:|
+| First feasibility result (normal) | 60s | 120s |
+| Soft timeout warning | 90s | — |
+| Hard timeout (terminate + salvage) | — | 120s |
+| Auto-retry (one attempt) | — | +120s |
+
+---
+
+## 2. Architecture
+
+### 2.1 Stack
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+<<<<<<< HEAD
+<<<<<<< HEAD
+| Frontend | Next.js 16 + Tailwind CSS 4 | Workshop UI, progressive insight, confirmation modals |
+| Visualization | Three.js / React Three Fiber | Digital twin, risk overlays, battery placement zones |
+| Backend API | FastAPI | REST endpoints under `/api/v1/...`, job orchestration |
+| Worker | RQ + Redis | Background inference tasks, queue management |
+| AI Runtime | ONNX Runtime + OpenCV + CLIP (transformers) | Classification, geometry extraction, deviation detection |
+| Optimization | Template-based | Battery placement, wiring guidance |
+| Primary DB | PostgreSQL 16 | Jobs, assessments, risks, compliance reports, entity state |
+| Knowledge Graph | Neo4j (AuraDB Free Tier) | Retrofit DNA, cross-retrofit similarity, pattern learning |
+| Object Storage | OCI Object Storage (S3-compatible) | Vehicle images, assessment artifacts, report exports |
+| Reverse Proxy | Caddy | Let's Encrypt auto TLS, frontend + API routing |
+=======
+=======
+>>>>>>> origin/main
+| Frontend | Next.js + TailwindCSS | Workshop UI, progressive insight, confirmation modals |
+| Visualization | Three.js / React Three Fiber | Digital twin, risk overlays, battery placement zones |
+| Backend API | FastAPI | REST endpoints under `/api/v1/...`, job orchestration |
+| Worker | RQ + Redis | Background inference tasks, queue management |
+| AI Runtime | PyTorch + ONNX + OpenCV | Classification, geometry extraction, deviation detection |
+| Optimization | SciPy / Optuna | Battery placement multi-objective optimization |
+| CAD Path | FreeCAD / OpenSCAD scripting | CAD-ready output generation (v1 stub) |
+| Primary DB | PostgreSQL | Jobs, assessments, risks, compliance reports, entity state |
+| Knowledge Graph | Neo4j | Retrofit DNA, cross-retrofit similarity, pattern learning |
+| Object Storage | Cloudflare R2 (S3-compatible) | Vehicle images, assessment artifacts, report exports |
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> origin/main
+
+### 2.2 Deployment Topology
+
+```mermaid
+graph TB
+<<<<<<< HEAD
+<<<<<<< HEAD
+    subgraph OCI["Oracle Cloud Always Free Tier"]
+        subgraph VM["Ampere A1 Flex (4 OCPU, 24 GB)"]
+            subgraph RP["Caddy Reverse Proxy"]
+                CADDY["Caddy :80 / :443<br/>Auto Let's Encrypt TLS"]
+            end
+            subgraph DC["Docker Compose Services"]
+                FE["Next.js Frontend<br/>:3000"]
+                API["FastAPI API<br/>:8000"]
+                WK["RQ Worker<br/>Background jobs"]
+                FC["FreeCAD Worker<br/>:8100 (STEP/STL)"]
+
+                PG[("PostgreSQL 16<br/>:5432")]
+                RD[("Redis 7<br/>:6379")]
+            end
+            UV["Local Upload Cache<br/>/app/uploads/"]
+        end
+
+        subgraph Aura["AuraDB Free Tier"]
+            N4J[("Neo4j<br/>200k nodes")]
+        end
+
+        subgraph OCIStorage["OCI Object Storage"]
+            OS[("Uploads + Backups<br/>10 GB free")]
+        end
+    end
+
+    User["Workshop User"] -->|HTTPS :443| CADDY
+    CADDY -->|/api/*| API
+    CADDY -->|/*| FE
+    API -->|read/write| PG
+    API -->|enqueue / cache| RD
+    API -->|presigned URL| OS
+    API -->|STEP/STL export| FC
+    FC -->|assessment data| API
+    WK -->|poll| RD
+    WK -->|read/write| PG
+    WK -->|graph queries| N4J
+    WK -->|store| OS
+    WK -->|CV / ONNX / CLIP| AI["In-process AI"]
+    FE -->|HTTPS| CADDY
+=======
+=======
+>>>>>>> origin/main
+    subgraph Cloud["Cloud (Vercel + Railway + Aura)"]
+        FE["Next.js Frontend<br/>Vercel"]
+        API["FastAPI API<br/>Railway: backend-api"]
+        WK["RQ Worker<br/>Railway: backend-worker"]
+        PG[("PostgreSQL<br/>Railway")]
+        RD[("Redis<br/>Railway")]
+        N4J[("Neo4j AuraDB")]
+        R2[("Cloudflare R2")]
+    end
+
+    FE -->|"/api/v1/*"| API
+    API -->|"enqueue"| RD
+    WK -->|"poll"| RD
+    WK -->|"read/write"| PG
+    WK -->|"graph queries"| N4J
+    WK -->|"store/retrieve"| R2
+    WK -->|"inference"| AI["PyTorch/ONNX/OpenCV<br/>local to Worker"]
+    API -->|"read"| PG
+    API -->|"serve"| R2
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> origin/main
+```
+
+### 2.3 Monorepo Structure
+
+```
+retromind-ai/
+<<<<<<< HEAD
+<<<<<<< HEAD
+├── frontend/                 # Next.js 16 + Tailwind CSS 4
+│   ├── src/
+│   │   ├── app/              # App router pages
+│   │   ├── components/       # Shared components
+│   │   └── hooks/            # Custom React hooks
+│   └── package.json
+├── backend/                  # FastAPI + Workers
+│   ├── api/v1/endpoints/     # Route handlers
+│   ├── ai/                   # AI/ML modules
+│   │   ├── classification/   # Heuristic + CLIP classifiers
+=======
+=======
+>>>>>>> origin/main
+├── frontend/                 # Next.js + Tailwind (Vercel-deployed)
+│   ├── src/
+│   │   ├── app/              # App router pages
+│   │   ├── components/       # Shared components
+│   │   ├── lib/              # API client, types, utilities
+│   │   └── hooks/            # Custom React hooks
+│   ├── public/
+│   └── package.json
+├── backend/                  # FastAPI + Workers (Railway-deployed)
+│   ├── api/                  # FastAPI application
+│   │   ├── v1/
+│   │   │   ├── endpoints/    # Route handlers
+│   │   │   ├── models/       # Pydantic schemas (request/response)
+│   │   │   └── deps/         # Dependency injection
+│   │   └── main.py
+│   ├── ai/                   # AI/ML modules
+│   │   ├── classification/   # Vehicle classifier
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> origin/main
+│   │   ├── geometry/         # Geometry extraction
+│   │   ├── deviation/        # Deviation detection
+│   │   └── models/           # ONNX runtime wrappers
+│   ├── workers/              # RQ task definitions
+│   ├── optimization/         # Battery placement, wiring
+<<<<<<< HEAD
+<<<<<<< HEAD
+│   ├── core/                 # Config, auth, confidence, models
+│   ├── tests/                # 401 unit + integration tests
+│   └── alembic/              # Migrations (001-008)
+├── freecad-worker/           # FreeCAD CAD export container
+├── infrastructure/
+│   └── terraform/            # OCI provisioning
+├── docs/                     # Architecture, user guide, specs
+├── Caddyfile                 # TLS reverse proxy config
+├── docker-compose.yml        # Dev orchestration
+├── docker-compose.prod.yml   # Production orchestration
+└── .env.prod.template        # Production secrets
+=======
+=======
+>>>>>>> origin/main
+│   ├── graph/                # Neo4j client + queries
+│   ├── cad/                  # FreeCAD/OpenSCAD stubs
+│   ├── core/                 # Shared domain logic
+│   │   ├── confidence.py     # Confidence score engine
+│   │   ├── risk.py           # Risk model + escalation
+│   │   ├── compliance.py     # Compliance state machine
+│   │   └── states.py         # Enums, state tables
+│   ├── tests/
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   └── docker-compose.yml
+├── docs/
+│   ├── prd.md
+│   ├── spec.md
+│   ├── failure_modes.md
+│   ├── scope.md
+│   └── learner-profile.md
+├── docker-compose.yml        # Root orchestration
+└── README.md
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> origin/main
+```
+
+**API boundary rule**: `frontend/` and `backend/` MUST NOT share runtime business logic. Communication only via REST at `/api/v1/...`. Independent deployability SHALL be maintained throughout v1.
+
+<<<<<<< HEAD
+<<<<<<< HEAD
+**Local development** (`docker-compose.yml`): frontend (Next.js dev), backend-api (FastAPI uvicorn), backend-worker (RQ worker), postgres, redis, neo4j (community).
+=======
+**Local development** (`docker-compose.yml`): frontend (Next.js dev), backend-api (FastAPI uvicorn), backend-worker (RQ worker), postgres, redis, neo4j (community), minio (optional R2 substitute).
+>>>>>>> origin/main
+=======
+**Local development** (`docker-compose.yml`): frontend (Next.js dev), backend-api (FastAPI uvicorn), backend-worker (RQ worker), postgres, redis, neo4j (community), minio (optional R2 substitute).
+>>>>>>> origin/main
+
+---
+
+## 3. Bounded Contexts
+
+### 3.1 Context Map (v1)
+
+| Context | Responsibility | Top-Level |
+|---------|---------------|:---------:|
+| `intake` | Evidence upload, validation, slot management | Yes |
+| `jobs` | Async job lifecycle, polling, timeout, retry | Yes |
+| `assessments` | Confidence scoring, deviation detection, risk analysis | Yes |
+<<<<<<< HEAD
+<<<<<<< HEAD
+| `recommendations` | Battery placement, wiring guidance | Yes |
+=======
+| `recommendations` | Battery placement, wiring guidance, CAD stub | Yes |
+>>>>>>> origin/main
+=======
+| `recommendations` | Battery placement, wiring guidance, CAD stub | Yes |
+>>>>>>> origin/main
+| `reports` | Compliance report generation (13-section canonical) | Yes |
+| `intelligence_graph` | Retrofit DNA, similarity queries, pattern learning | Yes |
+| `shared` | Common enums, base models, utilities | Yes |
+| `risks` | Risk record management (subdomain of `assessments`) | No |
+| `compliance` | Compliance state tracking (subdomain of `assessments`) | No |
+| `retrofits` | Retrofit lifecycle management (deferred to v2) | No |
+
+Workflow composition for v1: `intake -> assessment -> recommendation -> report`
+
+---
+
+## 4. Workflow States and Enums
+
+### 4.1 Assessment Confidence States
+
+| State | Range | Behavior | Recommendations |
+|-------|:-----:|----------|:--------------:|
+| `full_confidence` | 85-100 | Full output; all recommendations enabled | All |
+| `reduced_confidence` | 70-84 | Full output with caution labels; confidence reasons visible | All, with caveats |
+| `partial_assessment` | 50-69 | Limited output; preliminary feasibility only | Preliminary only; strong blocked |
+| `unsafe_to_assess` | 0-49 | No recommendation; required actions to proceed | None blocked |
+
+### 4.2 Confidence Score Weights
+
+| Factor | Weight | Source |
+|--------|:-----:|--------|
+| Completeness | 30% | Mandatory view satisfaction ratio |
+| Quality | 20% | Image quality (blur, exposure, occlusion) |
+| Visibility | 20% | Structural coverage adequacy |
+| Classification | 10% | Model confidence in vehicle class |
+| Geometry | 10% | Geometry extraction consistency |
+| Deviation Certainty | 10% | Confidence in detected deviation signals |
+
+### 4.3 Safety Override Rules
+
+Safety overrides SHALL force state downgrade regardless of aggregate score:
+
+- **Forced `partial_assessment`**: missing 1 of 3 mandatory views after 3 retry attempts; moderate geometry conflict unresolved.
+- **Forced `unsafe_to_assess`**: missing >=2 mandatory views; severe contradiction (classifier < 40 AND geometry < 40 AND weak mandatory views); repeated timeout without meaningful partial result.
+
+### 4.4 Job States
+
+```
+queued -> running -> completed
+                   -> partial_complete
+                   -> failed
+                   -> timed_out
+       -> retrying -> running (second attempt)
+                    -> partial_complete
+                    -> timed_out
+                    -> failed
+queued -> cancelled
+```
+
+**Enum**: `queued`, `running`, `retrying`, `completed`, `partial_complete`, `failed`, `timed_out`, `cancelled`
+
+### 4.5 Assessment Stages (Progressive Disclosure)
+
+```
+upload_validation -> image_quality_check -> vehicle_classification -> geometry_extraction -> deviation_detection -> feasibility_scoring -> risk_analysis -> battery_optimization -> wiring_generation -> digital_twin -> finalizing
+```
+
+### 4.6 Recommendation Status
+
+| Status | Meaning |
+|--------|---------|
+| `feasible` | Safe conversion recommended under standard constraints |
+| `feasible_with_adaptation` | Conversion feasible with deviation-aware modifications |
+| `limited_feasibility` | Partial recommendation; insufficient evidence for full confidence |
+| `unsafe_to_recommend` | Cannot recommend safely; blocking conditions met |
+
+### 4.7 Risk Severity
+
+| Severity | Meaning | Blocks? |
+|----------|---------|:-------:|
+| `low` | Minor observation; no material impact | No |
+| `medium` | Notable finding; requires consideration | No |
+| `high` | Significant risk; mitigation required | Only if >=3 escalate |
+| `critical` | Safety-critical; blocks recommendation | Yes |
+
+**Escalation rule**: 3 or more `high` risks SHALL escalate to critical system risk state and block all recommendations.
+
+### 4.8 Compliance State Vocabulary
+
+| State | Meaning |
+|-------|---------|
+| `not_assessed` | Compliance verification not yet run |
+| `pass` | All mandatory compliance checks passed |
+| `pass_with_caveats` | Passed with advisory observations |
+| `fail` | One or more mandatory checks failed |
+| `insufficient_evidence` | Cannot determine compliance from available data |
+
+---
+
+## 5. PRD-to-Component Mapping
+
+| PRD Epic | Spec Component | Deliverable |
+|----------|---------------|-------------|
+| Guided First-Run Retrofit Intake | `intake` context + `frontend/` | Upload UI, slot validation, guidance cards |
+| Vehicle Intelligence & Deviation Detection | `ai/*` modules + `assessments` context | Classification, geometry, deviation engines |
+| Feasibility & Risk Decisioning | `assessments` context + confidence engine | Feasibility scoring, risk records, state machine |
+| Adaptive Retrofit Recommendations | `recommendations` context + `optimization/*` | Battery placement, wiring guidance |
+| Progressive Insight & Explainability | `jobs` context + frontend polling | Stage progression, digital twin, overlays |
+| Graceful Degradation & Guided Recovery | `core/` failure logic + frontend | Degradation logic, fallback UX, recovery prompts |
+| Retrofit Intelligence Continuity | `intelligence_graph` context | Neo4j Retrofit DNA records, similarity queries |
+
+---
+
+## 6. Async Job Contract
+
+### 6.1 Transport
+<<<<<<< HEAD
+<<<<<<< HEAD
+- v1: polling (`GET /api/v1/jobs/{job_id}`)
+=======
+- v1: polling only (`GET /api/v1/jobs/{job_id}`)
+>>>>>>> origin/main
+=======
+- v1: polling only (`GET /api/v1/jobs/{job_id}`)
+>>>>>>> origin/main
+- v1.5: SSE upgrade via transport abstraction
+- v2+: WebSockets (deferred)
+
+### 6.2 Polling Backoff
+
+| Interval | Cadence |
+|----------|:-------:|
+| 0-15s | Every 2s |
+| 15-60s | Every 5s |
+| 60-120s | Every 10s |
+| >120s | Stop (timed out) |
+
+### 6.3 Job Response Shape
+
+```json
+{
+  "job_id": "uuid",
+  "status": "running",
+  "current_stage": "deviation_detection",
+  "progress_pct": 45,
+  "assessment_state": null,
+  "timed_out": false,
+  "completed_stages": ["vehicle_classification", "geometry_extraction"],
+  "missing_stages": [],
+  "infrastructure_degradation": [],
+  "retry_available": false,
+  "created_at": "2026-05-24T10:00:00Z",
+  "updated_at": "2026-05-24T10:00:45Z"
+}
+```
+
+### 6.4 Async Flow
+
+```mermaid
+sequenceDiagram
+    participant F as Frontend
+    participant A as API
+    participant R as Redis
+    participant W as Worker
+    participant P as PostgreSQL
+
+    F->>A: POST /api/v1/intake (images)
+    A->>P: store evidence records
+    A-->>F: { intake_id }
+
+<<<<<<< HEAD
+<<<<<<< HEAD
+    F->>A: POST /api/v1/intake/{id}/analyze
+=======
+    F->>A: POST /api/v1/jobs { intake_id }
+>>>>>>> origin/main
+=======
+    F->>A: POST /api/v1/jobs { intake_id }
+>>>>>>> origin/main
+    A->>R: enqueue assessment job
+    A->>P: create job record (queued)
+    A-->>F: { job_id, status: queued }
+
+    loop Poll every 2-10s
+        F->>A: GET /api/v1/jobs/{job_id}
+        A->>P: read job state
+        A-->>F: { status, current_stage, progress_pct }
+    end
+
+    W->>R: dequeue job
+    W->>P: update job -> running
+    W->>W: upload_validation
+    W->>W: image_quality_check
+    W->>W: vehicle_classification
+    alt ambiguity detected
+        W->>P: set needs_confirmation
+        F->>A: POST /api/v1/jobs/{id}/confirm { choice }
+        W->>W: resume with human_confirmed
+    end
+    W->>W: geometry_extraction
+    W->>W: deviation_detection
+    W->>W: feasibility_scoring
+    W->>W: risk_analysis
+    W->>W: battery_optimization
+    W->>W: wiring_generation
+    W->>W: digital_twin
+    W->>P: update job -> completed
+    W->>P: store assessment results
+
+    F->>A: GET /api/v1/assessments/{id}
+    A-->>F: { confidence, feasibility, risks, ... }
+```
+
+---
+
+## 7. API Contracts
+
+### 7.1 Intake API
+
+```
+POST /api/v1/intake
+Content-Type: multipart/form-data
+
+{
+  "workshop_id": "demo-workshop",
+  "left_side_profile": <file>,
+  "right_side_profile": <file>,
+  "rear_view": <file>,
+  "front_view": <file?> (optional),
+  "engine_bay": <file?> (optional),
+  "underbody": <file?> (optional)
+}
+
+-> 201
+{
+  "intake_id": "uuid",
+  "status": "validating",
+  "missing_views": [],
+  "low_quality_views": []
+}
+```
+
+**Mandatory views**: `left_side_profile`, `right_side_profile`, `rear_view`
+<<<<<<< HEAD
+<<<<<<< HEAD
+- if 3/3 valid -> eligible to score; 2/3 -> `partial_assessment`; <2 -> `unsafe_to_assess`
+=======
+-if 3/3 valid -> eligible to score; 2/3 -> `partial_assessment`; <2 -> `unsafe_to_assess`
+>>>>>>> origin/main
+=======
+-if 3/3 valid -> eligible to score; 2/3 -> `partial_assessment`; <2 -> `unsafe_to_assess`
+>>>>>>> origin/main
+
+```
+PUT /api/v1/intake/{intake_id}/views/{view_slot}
+Content-Type: multipart/form-data
+
+{ "file": <file> }
+
+-> 200 { "intake_id": "...", "view_slot": "left_side_profile", "status": "received" }
+```
+
+### 7.2 Job API
+
+```
+<<<<<<< HEAD
+<<<<<<< HEAD
+POST /api/v1/intake/{intake_id}/analyze
+=======
+=======
+>>>>>>> origin/main
+POST /api/v1/jobs
+{
+  "intake_id": "uuid"
+}
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> origin/main
+
+-> 201 { "job_id": "uuid", "status": "queued" }
+
+GET /api/v1/jobs/{job_id}
+-> 200 { /* job response shape from 6.3 */ }
+
+POST /api/v1/jobs/{job_id}/confirm
+{
+  "confirmation_type": "vehicle_classification",
+  "selection": "three_wheeler"
+}
+
+-> 200 { "job_id": "...", "status": "running" }
+```
+
+### 7.3 Assessment API
+
+```
+GET /api/v1/assessments/{assessment_id}
+-> 200
+{
+  "assessment_id": "uuid",
+  "job_id": "uuid",
+  "intake_id": "uuid",
+  "assessment_state": "reduced_confidence",
+  "confidence_score": 78,
+<<<<<<< HEAD
+<<<<<<< HEAD
+  "confidence_factors": { ... },
+=======
+=======
+>>>>>>> origin/main
+  "confidence_factors": {
+    "completeness": 90,
+    "quality": 75,
+    "visibility": 80,
+    "classification": 85,
+    "geometry": 70,
+    "deviation_certainty": 65
+  },
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> origin/main
+  "safety_overrides": [],
+  "vehicle_classification": {
+    "type": "three_wheeler",
+    "confidence": 0.85,
+    "human_confirmed": true,
+<<<<<<< HEAD
+<<<<<<< HEAD
+    "alternatives": [...]
+  },
+  "deviation_summary": { ... },
+  "feasibility_score": 72,
+  "feasibility_label": "feasible_with_adaptation",
+  "risk_summary": { ... },
+  "risks": [...],
+  "infrastructure_degradation": [...],
+=======
+=======
+>>>>>>> origin/main
+    "alternatives": [
+      { "type": "motorcycle", "confidence": 0.12 }
+    ]
+  },
+  "deviation_summary": {
+    "anomalies_detected": 3,
+    "severity": "medium",
+    "top_issues": [
+      {
+        "type": "asymmetry",
+        "location": "frame_left_rail",
+        "severity": "medium",
+        "confidence": 0.78
+      }
+    ]
+  },
+  "feasibility_score": 72,
+  "feasibility_label": "feasible_with_adaptation",
+  "risk_summary": {
+    "system_risk_state": "elevated",
+    "critical_count": 0,
+    "high_count": 2,
+    "medium_count": 4,
+    "low_count": 3
+  },
+  "risks": [
+    {
+      "id": "uuid",
+      "category": "structural",
+      "severity": "high",
+      "message": "Frame asymmetry detected in left rail",
+      "recommendation": "Inspect and reinforce left frame rail",
+      "blocking": false,
+      "confidence": 0.78
+    }
+  ],
+  "infrastructure_degradation": [
+    {
+      "service": "neo4j",
+      "severity": "medium",
+      "fallback": "heuristic_recommendation_engine"
+    }
+  ],
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> origin/main
+  "needs_confirmation": false,
+  "compliance_state": "pass_with_caveats"
+}
+```
+
+### 7.4 Needs Confirmation Response
+
+```json
+{
+  "status": "needs_confirmation",
+  "reason": "vehicle_classification_conflict",
+  "options": [
+    { "vehicle_type": "three_wheeler", "confidence": 0.58 },
+    { "vehicle_type": "motorcycle", "confidence": 0.31 }
+  ]
+}
+```
+
+### 7.5 Recommendation API
+
+```
+GET /api/v1/recommendations/{assessment_id}
+-> 200
+{
+  "recommendation_status": "feasible_with_adaptation",
+  "battery_placement": {
+<<<<<<< HEAD
+<<<<<<< HEAD
+    "zones": [{ "id": "A", "priority": 1, "position": "under_seat_forward", "constraints": [...] }],
+=======
+=======
+>>>>>>> origin/main
+    "zones": [
+      {
+        "id": "A",
+        "priority": 1,
+        "position": "under_seat_forward",
+        "constraints": ["max_width_420mm", "max_height_180mm"]
+      }
+    ],
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> origin/main
+    "adapted": true,
+    "adaptation_reason": "Frame asymmetry required 15mm left offset compensation",
+    "risk_if_standard": "Battery would contact frame rail under load"
+  },
+  "wiring_guidance": {
+    "routing_path": "chassis_rail_right",
+    "caution_zones": ["engine_bay_left_corner", "wheel_well_rear"],
+    "confidence": "partial",
+    "confidence_reason": "Structural visibility limited in engine bay"
+<<<<<<< HEAD
+<<<<<<< HEAD
+  }
+=======
+  },
+  "cad_output_available": false,
+  "human_confirmed": true
+>>>>>>> origin/main
+=======
+  },
+  "cad_output_available": false,
+  "human_confirmed": true
+>>>>>>> origin/main
+}
+```
+
+### 7.6 Report API
+
+```
+GET /api/v1/reports/{assessment_id}
+-> 200 { /* 13-section compliance report */ }
+```
+
+---
+
+## 8. Compliance Report Schema (13 Mandatory Sections)
+
+1. **Assessment Metadata** — assessment_id, intake_id, workshop, vehicle, timestamps
+2. **Vehicle Classification** — detected type, confidence, `human_confirmed` flag, alternatives
+3. **Evidence Summary** — views submitted, quality per view, missing, occluded, enhanced flags
+4. **Structural Findings** — geometry quality, anomaly regions, asymmetry detections
+5. **Deviation Analysis** — detected deviations, severity, location, confidence per finding
+6. **Confidence Report** — aggregate score, per-factor breakdown, reason codes, safety overrides
+7. **Feasibility Decision** — score, label, supporting rationale, blocking conditions, adapted recommendations
+8. **Risk Register** — all risks with category, severity, message, recommendation, blocking flag, confidence
+9. **Battery Placement Recommendation** — primary zone, alternates, adaptation notes, constraint diagram
+10. **Wiring Guidance** — primary routing path, caution zones, confidence, limitation reasons
+11. **Compliance Status** — state, mandatory check results, advisory observations
+12. **Infrastructure Degradation** — services degraded, fallback used, impact on output quality
+13. **Recommendation Summary** — recommendation status, key actions for workshop, safety constraints, next steps
+
+---
+
+## 9. Confidence Engine
+
+### 9.1 Score Calculation
+
+```
+confidence_score = Sigma(weight_i x score_i)
+
+weight_completeness   = 0.30
+weight_quality        = 0.20
+weight_visibility     = 0.20
+weight_class          = 0.10
+weight_geometry       = 0.10
+weight_deviation      = 0.10
+```
+
+### 9.2 Score Modifiers
+
+- **Human confirmation**: raw_classification_confidence -> effective_confidence (e.g., 58 -> 75)
+- **Safety overrides**: force state change regardless of aggregate score
+- **Infrastructure degradation**: subtract up to 15 points per active Tier 1 degradation
+
+### 9.3 State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> queued
+    queued --> running
+    running --> needs_confirmation
+    needs_confirmation --> running
+    needs_confirmation --> partial_assessment
+    running --> full_confidence
+    running --> reduced_confidence
+    running --> partial_assessment
+    running --> unsafe_to_assess
+    partial_assessment --> full_confidence
+    partial_assessment --> reduced_confidence
+    unsafe_to_assess --> [*]
+    full_confidence --> [*]
+    reduced_confidence --> [*]
+    partial_assessment --> [*]
+```
+
+---
+
+## 10. AI Conflict Resolution
+
+### 10.1 Priority
+1. Human confirmation (recoverable ambiguity)
+2. Auto-correction (if obvious, e.g., left/right swap)
+3. Partial downgrade (`partial_assessment`)
+4. Unsafe refusal (`unsafe_to_assess`)
+
+### 10.2 Case Table
+
+| Condition | Classification Conf | Geometry | Views | Action | Result State |
+|-----------|:------------------:|:--------:|:-----:|--------|:------------:|
+| Recoverable ambiguity | 50-84 | moderate conflict | >=2/3 mandatory valid | Human confirmation prompt | `reduced_confidence` or `full_confidence` |
+| Unresolved conflict | any | any | any | Auto-downgrade after timeout | `partial_assessment` |
+| Severe contradiction | < 40 | < 40 | < 2/3 mandatory | Safety override | `unsafe_to_assess` |
+
+### 10.3 Human Confirmation Pattern
+
+UX: Modal / inline decision card with constrained selection (radio buttons). Never free-text.
+
+```text
+Vehicle classification uncertain
+
+RetroMind detected conflicting signals.
+
+Detected possibilities:
+  1. Three-Wheeler (58%)
+  2. Modified Motorcycle (31%)
+
+Potential cause:
+  - Structural modification
+  - Image inconsistency
+  - Non-standard geometry
+
+Please confirm vehicle type:
+
+( ) Three-Wheeler
+( ) Motorcycle
+( ) Re-upload Photos
+```
+
+After confirmation, `effective_confidence` is boosted (e.g., 58 -> 75) and tagged `human_confirmed: true` for explainability. Report line: "Vehicle classification was manually confirmed due to model ambiguity."
+
+---
+
+## 11. Failure Mode Integration
+
+Failure behavior is defined fully in `docs/failure_modes.md`. Summary by category:
+
+| Category | Primary Fallback | Hard Limit |
+|----------|-----------------|:----------:|
+| Input failures | Re-upload prompt, continue with reduced confidence | 3 attempts per view -> `unsafe_to_assess` |
+| AI inference failures | Human confirmation prompt | -> `partial_assessment` -> `unsafe_to_assess` |
+| Async job timeouts | Partial results (if meaningful); auto-retry once | 120s hard timeout |
+| Infrastructure failures | Tiered: graceful degrade (T1) / hard fail (T0) | Per Tier 0-3 policy |
+| Safety/recommendation failures | Only `critical` blocks; >=3 `high` escalate | -> `unsafe_to_recommend` |
+| UX edge cases | Latest upload wins; server-side continuation | 30-min resume TTL |
+| Concurrency | Block concurrent; allow same-intake edits | 1 active job per workshop |
+
+---
+
+## 12. UX Design Decisions
+
+### 12.1 First-Run Experience
+- Guided engineering workspace (not analytics dashboard)
+- Single dominant CTA to start a retrofit
+- Clear statement of workflow outcomes
+- First-run guidance for empty state
+
+### 12.2 Upload Workflow
+- Requested views: front, left, right, rear, engine/battery bay
+- **Mandatory**: left_side_profile, right_side_profile, rear_view
+- **Optional**: front_view, engine_bay, underbody
+- Each view has capture guidance (angle/coverage)
+- Missing mandatory views -> recovery guidance + continue-with-limited-analysis path
+- Up to 3 re-upload attempts per mandatory view before `unsafe_to_assess`
+
+### 12.3 Progressive Insight
+- Milestones: vehicle identified -> structural scan -> feasibility -> adaptive recommendation -> twin view
+- Each milestone renders as available
+- Prior completed stages remain visible if later stage fails
+
+### 12.4 Confirmation Pattern
+- Modal/inline decision card with constrained selection
+- Never free-text ("What vehicle is this?")
+- Example: "Auto Rickshaw (58%) / Motorcycle (31%) / Re-upload Photos"
+- 60s timeout if operator does not respond -> `partial_assessment`
+
+### 12.5 Timeout UX
+- 90s soft: "Analysis is taking longer than expected. Continuing..."
+- 120s hard: "RetroMind is retrying automatically..." or partial results card
+- Failed retry: specific missing stages listed with retry button for advanced analysis
+
+### 12.6 Infrastructure Degradation UX
+- Explain degradation in plain language: "Retrofit intelligence memory temporarily unavailable. Assessment completed using local engineering rules."
+- Never say "something failed"
+
+### 12.7 Concurrent Assessment UX
+- If active job exists: "An assessment is already running. Current: 3-Wheeler Intake #12 — Progress: 62%. [ View Current ] [ Cancel & Start New ]"
+
+---
+
+## 13. System-Level Acceptance Criteria
+
+1. **Intake validation** SHALL require 3/3 mandatory views for eligibility; 2/3 -> `partial_assessment`; <2 -> `unsafe_to_assess`
+2. **Confidence scoring** SHALL compute weighted aggregate with explicit factor breakdown
+3. **Safety overrides** SHALL force state downgrade when conditions are met
+4. **Human confirmation** SHALL be prompted for recoverable model disagreement
+5. **Unresolved conflict** SHALL downgrade to `partial_assessment` with reason code `unresolved_model_conflict`
+6. **Severe contradiction** SHALL trigger `unsafe_to_assess` without human prompt
+7. **Async jobs** SHALL complete within 120s hard timeout with stage-aware recovery
+8. **Partial results** SHALL be returned when meaningful completed stages exist (minimum: classification + geometry + deviation)
+9. **Infrastructure degradation** SHALL follow Tier 0-3 per-service policy
+10. **Concurrent assessments** SHALL be blocked; same-intake re-analysis SHALL be allowed
+11. **Re-uploads** SHALL replace previous slot; re-analysis SHALL trigger automatically
+12. **Tab close** SHALL NOT cancel jobs; 30-min resume window SHALL apply
+13. **Recommendations** SHALL be blocked only by `critical` severity or >=3 `high` escalated
+14. **Compliance reports** SHALL contain all 13 mandatory sections
+15. **API** SHALL use `/api/v1/...` routes with polling-only async transport

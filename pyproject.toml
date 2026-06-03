@@ -1,0 +1,15 @@
+[project]
+name = "retromind-ai"
+version = "1.0.0"
+description = "EV Retrofit Intelligence Network"
+requires-python = ">=3.12"
+
+[project.optional-dependencies]
+optuna = ["optuna>=4.0"]
+torch = ["torch>=2.1", "torchvision>=0.16"]
+rllib = ["ray[rllib]>=2.9"]
+freecad = ["cadquery>=2.4"]
+genai = ["openai>=1.0"]
+all = [
+    "retromind[optuna,torch,rllib,freecad,genai]",
+]

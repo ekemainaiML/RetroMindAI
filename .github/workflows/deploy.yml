@@ -1,0 +1,75 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+<<<<<<< HEAD
+<<<<<<< HEAD
+
+=======
+>>>>>>> origin/main
+=======
+>>>>>>> origin/main
+      - name: Deploy to Oracle Cloud VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ${{ secrets.ORACLE_USER }}
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            set -e
+<<<<<<< HEAD
+<<<<<<< HEAD
+            cd /app/retromind
+
+            # Pull latest code
+            git pull origin main
+
+            # Copy env file from secure location
+            cp /app/.env.prod .env.prod
+
+            # Build and restart (ARM64 native on Ampere)
+            docker compose -f docker-compose.prod.yml build --pull
+            docker compose -f docker-compose.prod.yml up -d
+
+            # Clean up old images
+            docker system prune -af --filter "until=24h"
+
+            # Verify services are up
+            sleep 10
+            docker compose -f docker-compose.prod.yml ps
+
+  smoke-test:
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Smoke test frontend
+        run: curl -sfI https://${{ secrets.DOMAIN }} 2>&1 | head -5
+      - name: Smoke test API
+        run: curl -sf https://api.${{ secrets.DOMAIN }}/api/v1/health 2>&1 | head -5
+=======
+=======
+>>>>>>> origin/main
+            cd ${{ secrets.ORACLE_DEPLOY_PATH }}
+            git pull origin main
+            docker compose -f docker-compose.prod.yml build --pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker system prune -f
+<<<<<<< HEAD
+>>>>>>> origin/main
+=======
+>>>>>>> origin/main

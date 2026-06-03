@@ -1,0 +1,12 @@
+{
+    "status": "ok",
+    "services": {
+        "postgres": "connected",
+        "redis": "connected",
+        "neo4j": "connected"
+    },
+    "degradation_tier": 0,
+    "degradations": [],
+    "version": "0.1.0",
+    "timestamp": "2026-06-02T20:15:12.859328+00:00"
+}
