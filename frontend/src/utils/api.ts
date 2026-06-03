@@ -23,6 +23,40 @@ export async function ensureApiKey(): Promise<string> {
   const existing = getApiKey();
   if (existing) return existing;
 
+  if (!_keyPromise) {
+    _keyPromise = fetchDemoKey();
+  }
+  const key = await _keyPromise;
+  if (key) {
+    setApiKey(key);
+  } else {
+    _keyPromise = null;
+  }
+  return key || "";
+}
+
+async function headers(hasBody?: boolean): Promise<HeadersInit> {
+  const h: Record<string, string> = {};
+  const key = getApiKey();
+  if (key) {
+    h["X-API-Key"] = key;
+  }
+  if (hasBody) {
+    h["Content-Type"] = "application/json";
+  }
+  return h;
+}
+
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  let res = await fetch(`${API_BASE}${path}`, options);
+
+  if (res.status === 401) {
+    const demoKey = await recoverWithDemoKey();
+    if (demoKey) {
+      const h = { ...(options.headers as Record<string, string> || {}), "X-API-Key": demoKey };
       res = await fetch(`${API_BASE}${path}`, { ...options, headers: h });
     }
   }
