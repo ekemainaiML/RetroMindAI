@@ -1,3 +1,4 @@
+import subprocess
 import uuid
 
 import pytest
@@ -22,6 +23,13 @@ def pytest_collection_modifyitems(config, items):
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
 
+
+@pytest.fixture(scope="session", autouse=True)
+def run_migrations():
+    subprocess.run(["alembic", "upgrade", "head"], check=True)
+    yield
+
+
 from api.main import app  # noqa: E402
 from core.auth import hash_api_key  # noqa: E402
 from core.database import SessionLocal  # noqa: E402
@@ -32,7 +40,7 @@ TEST_API_KEY_HASH = hash_api_key(TEST_API_KEY)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def seed_test_workshop():
+def seed_test_workshop(run_migrations):
     db = SessionLocal()
     try:
         existing = db.query(Workshop).filter(Workshop.name == "Test Workshop").first()
