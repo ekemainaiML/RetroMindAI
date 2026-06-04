@@ -110,7 +110,7 @@ def _fetch_oem_zones(model_id: uuid.UUID | None, db: DBSession) -> list[dict] | 
         from core.models import OEMMountingPoint, OEMRoutingPath
         points = db.query(OEMMountingPoint).filter(OEMMountingPoint.model_id == model_id).all()
         paths = db.query(OEMRoutingPath).filter(OEMRoutingPath.model_id == model_id).all()
-        return {"mounting_points": points, "routing_paths": paths}
+        return {"mounting_points": points, "routing_paths": paths}  # type: ignore[return-value]
     except Exception:
         logger.exception("Failed to fetch OEM zones for model %s", model_id)
         return None

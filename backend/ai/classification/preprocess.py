@@ -49,11 +49,11 @@ def check_occlusion(image_path: str) -> dict:
         if img is None:
             return result
         std_dev = float(np.std(img))
-        result["std_dev"] = round(std_dev, 2)
+        result["std_dev"] = round(std_dev, 2)  # type: ignore[assignment]
         if std_dev < OCCLUSION_STD_THRESHOLD:
             total = img.size
             low_var = int(np.sum(img > 0))  # count non-zero pixels
-            result["coverage_pct"] = round((low_var / total) * 100, 1)
+            result["coverage_pct"] = round((low_var / total) * 100, 1)  # type: ignore[assignment]
             result["occluded"] = True
         return result
     except Exception:

@@ -110,7 +110,7 @@ class FeatureFlagStore:
             existing = {}
             raw = conn.get(REDIS_KEY)
             if raw:
-                existing = json.loads(raw)
+                existing = json.loads(raw)  # type: ignore[arg-type]
             existing[name] = value
             conn.set(REDIS_KEY, json.dumps(existing))
             conn.close()

@@ -180,13 +180,13 @@ class CLIPVehicleClassifier:
 
         texts = [p["text"] for p in prompts]
         with torch.no_grad():
-            text_inputs = self._processor(
+            text_inputs = self._processor(  # type: ignore[misc]
                 text=texts,
                 return_tensors="pt",
                 padding=True,
                 truncation=True,
             )
-            text_embeds = self._model.get_text_features(**text_inputs).pooler_output
+            text_embeds = self._model.get_text_features(**text_inputs).pooler_output  # type: ignore[attr-defined]
             text_embeds = text_embeds / text_embeds.norm(dim=-1, keepdim=True)
 
         self._text_cache[ckey] = {
@@ -215,11 +215,11 @@ class CLIPVehicleClassifier:
             return {"top_prediction": None, "all_scores": [], "top_k": [], "threshold": confidence_threshold}
 
         with torch.no_grad():
-            image_inputs = self._processor(
+            image_inputs = self._processor(  # type: ignore[misc]
                 images=[image],
                 return_tensors="pt",
             )
-            image_embeds = self._model.get_image_features(**image_inputs).pooler_output
+            image_embeds = self._model.get_image_features(**image_inputs).pooler_output  # type: ignore[attr-defined]
             image_embeds = image_embeds / image_embeds.norm(dim=-1, keepdim=True)
 
             logits = (image_embeds @ text_embeds.T) * 100.0

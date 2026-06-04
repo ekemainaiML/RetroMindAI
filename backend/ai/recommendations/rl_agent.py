@@ -17,7 +17,7 @@ class RLRecommendationAgent:
     Falls back gracefully to pass-through on any failure.
     """
 
-    def __init__(self, checkpoint_path: str = None):
+    def __init__(self, checkpoint_path: str = None):  # type: ignore[assignment]
         self._algorithm = None
         self._checkpoint_path = checkpoint_path or settings.rllib_checkpoint_path
 

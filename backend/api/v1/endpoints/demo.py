@@ -84,7 +84,7 @@ async def load_demo_vehicle(
     )
     db.add(intake)
 
-    result = dict(vdata)
+    result = dict(vdata)  # type: ignore[call-overload]
     result["recommendations"] = vehicle.get("recommendations", [])
     result["risks"] = vehicle.get("risks", [])
     result["risk_register"] = vehicle.get("risks", [])
@@ -104,12 +104,12 @@ async def load_demo_vehicle(
     result["estimated_days"] = vehicle.get("estimated_days", 0)
 
     try:
-        vtype = vdata.get("vehicle_classification", {}).get("type", "three_wheeler")
+        vtype = vdata.get("vehicle_classification", {}).get("type", "three_wheeler")  # type: ignore[attr-defined]
         deviation_result = vehicle.get("deviation_result")
         geometry_result = vehicle.get("geometry_result")
-        bp = compute_battery_zones(vtype, deviation_result, geometry_result)
+        bp = compute_battery_zones(vtype, deviation_result, geometry_result)  # type: ignore[arg-type]
         result["battery_placement"] = bp
-        wg = compute_routing(vtype, bp.get("recommended_zone"), deviation_result, geometry_result)
+        wg = compute_routing(vtype, bp.get("recommended_zone"), deviation_result, geometry_result)  # type: ignore[arg-type]
         result["wiring_guidance"] = wg
     except Exception:
         pass

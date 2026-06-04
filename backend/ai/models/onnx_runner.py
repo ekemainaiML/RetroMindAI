@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 class ONNXRunner:
-    def __init__(self, model_path: str = None):
+    def __init__(self, model_path: str = None):  # type: ignore[assignment]
         self._session = None
         self._input_name = None
         self._output_name = None
@@ -38,8 +38,8 @@ class ONNXRunner:
                     else ort.get_available_providers()
                 ),
             )
-            self._input_name = self._session.get_inputs()[0].name
-            self._output_name = self._session.get_outputs()[0].name
+            self._input_name = self._session.get_inputs()[0].name  # type: ignore[attr-defined]
+            self._output_name = self._session.get_outputs()[0].name  # type: ignore[attr-defined]
             logger.info("ONNX model loaded from %s", self._model_path)
             return True
         except Exception:

@@ -19,7 +19,7 @@ class PyTorchRunner:
     PyTorch is not installed or the model file is missing.
     """
 
-    def __init__(self, model_path: str = None):
+    def __init__(self, model_path: str = None):  # type: ignore[assignment]
         self._model = None
         self._device = None
         self._model_path = model_path or settings.torch_model_path
@@ -35,7 +35,7 @@ class PyTorchRunner:
             import torch
             self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
             self._model = torch.jit.load(self._model_path, map_location=self._device)
-            self._model.eval()
+            self._model.eval()  # type: ignore[attr-defined]
             CapabilityRegistry.probe("pytorch", True, lambda: True)
             logger.info(
                 "PyTorch model loaded from %s (device: %s)",

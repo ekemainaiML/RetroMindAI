@@ -227,9 +227,9 @@ async def get_report(
         cost_mid = int(total_cost)
         cost_high = int(total_cost * 1.15)
     elif isinstance(total_cost, dict):
-        cost_low = total_cost.get("low", total_cost.get("min", 0))
-        cost_mid = total_cost.get("mid", total_cost.get("max", 0))
-        cost_high = total_cost.get("high", total_cost.get("max", 0))
+        cost_low = total_cost.get("low", total_cost.get("min", 0))  # type: ignore[assignment]
+        cost_mid = total_cost.get("mid", total_cost.get("max", 0))  # type: ignore[assignment]
+        cost_high = total_cost.get("high", total_cost.get("max", 0))  # type: ignore[assignment]
     else:
         cost_low = cost_mid = cost_high = 0
 

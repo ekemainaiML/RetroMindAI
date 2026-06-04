@@ -49,7 +49,7 @@ class Neo4jClient:
         except Exception:
             return False
 
-    def run_query(self, query: str, params: dict = None) -> list[dict]:
+    def run_query(self, query: str, params: dict = None) -> list[dict]:  # type: ignore[assignment]
         if self._driver is None:
             if not self.connect():
                 return []

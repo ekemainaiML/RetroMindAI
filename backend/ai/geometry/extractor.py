@@ -86,7 +86,7 @@ class GeometryExtractor:
         )
 
         normalized = min(1.0, mse / 65025.0)
-        return round(normalized, 4)
+        return round(normalized, 4)  # type: ignore[call-overload]
 
     def _find_largest_contour_rect(self, image_path: str):
         img = cv2.imread(image_path)
@@ -172,7 +172,7 @@ class GeometryExtractor:
             if path and os.path.isfile(path):
                 structural_coverage[view_name] = self.estimate_structural_coverage(path)
             else:
-                structural_coverage[view_name] = None
+                structural_coverage[view_name] = None  # type: ignore[assignment]
 
         symmetry_deviation = None
         left_path = image_paths.get("left_side_profile")

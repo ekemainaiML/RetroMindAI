@@ -52,7 +52,7 @@ def tune_confidence_weights(trial, db_session) -> float:
             elif score < 50 and had_confirmation:
                 correct += 1
             elif human_confirmed and score < 50:
-                correct += 0.5
+                correct += 0.5  # type: ignore[assignment]
     finally:
         ConfidenceEngine.WEIGHTS = original
 

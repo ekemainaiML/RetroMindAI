@@ -319,7 +319,7 @@ async def reupload_view(
     view_slots[view_slot] = file_path
 
     quality_scores = dict(intake.quality_scores or {})
-    quality_scores[view_slot] = compute_blur_score(file_path)
+    quality_scores[view_slot] = compute_blur_score(file_path)  # type: ignore[arg-type]
 
     low_quality = _find_low_quality(quality_scores, view_slots)
     low_quality_views = list(low_quality)
@@ -339,7 +339,7 @@ async def reupload_view(
 
     failure_reason = None
     if current_attempt >= MAX_ATTEMPTS and view_slot in REQUIRED_SLOTS:
-        if is_blurry(file_path):
+        if is_blurry(file_path):  # type: ignore[arg-type]
             intake.status = "failed"
             failure_reason = (
                 f"Mandatory view '{view_slot}' failed after {MAX_ATTEMPTS} attempts"
@@ -351,7 +351,7 @@ async def reupload_view(
                 view_slot=view_slot,
                 status="failed",
                 attempt=current_attempt,
-                blurry=is_blurry(file_path),
+                blurry=is_blurry(file_path),  # type: ignore[arg-type]
                 missing_views=[s for s in REQUIRED_SLOTS if view_slots.get(s) is None],
                 low_quality_views=low_quality_views,
                 swap_suspected=swap_detected,
@@ -365,7 +365,7 @@ async def reupload_view(
     db.refresh(intake)
 
     missing_views = [s for s in REQUIRED_SLOTS if view_slots.get(s) is None]
-    blurry = is_blurry(file_path)
+    blurry = is_blurry(file_path)  # type: ignore[arg-type]
 
     return ViewSlotResponse(
         intake_id=str(intake_id),

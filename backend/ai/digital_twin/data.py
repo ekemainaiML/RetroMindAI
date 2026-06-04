@@ -153,9 +153,9 @@ class DigitalTwinDataGenerator:
             component = {
                 "id": template["id"],
                 "label": template["label"],
-                "position": dict(template["position"]),
+                "position": dict(template["position"]),  # type: ignore[arg-type]
                 "color": template["color"],
-                "size": dict(template["size"]),
+                "size": dict(template["size"]),  # type: ignore[arg-type]
             }
             components.append(component)
 

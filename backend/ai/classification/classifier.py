@@ -17,7 +17,7 @@ MIN_MODEL_CONFIDENCE = 0.35
 class VehicleClassifier:
     SUPPORTED_CLASSES = list(CLASS_LABELS)
 
-    def __init__(self, model_path: str = None):
+    def __init__(self, model_path: str = None):  # type: ignore[assignment]
         self._onnx_runner = ONNXRunner(model_path)
         self._pytorch_runner = None
         self._onnx_loaded = self._onnx_runner.load()
@@ -252,7 +252,7 @@ class VehicleClassifier:
             for i in range(len(CLASS_LABELS))
             if i != predicted_idx
         ]
-        alternatives.sort(key=lambda x: x["confidence"], reverse=True)
+        alternatives.sort(key=lambda x: x["confidence"], reverse=True)  # type: ignore[arg-type]
 
         logger.info(
             "Classification result: %s (conf=%.4f) from view=%s",
@@ -286,7 +286,7 @@ class VehicleClassifier:
             return None
 
         try:
-            result = self._pytorch_runner.run(input_tensor)
+            result = self._pytorch_runner.run(input_tensor)  # type: ignore[attr-defined]
         except Exception:
             logger.warning("PyTorch inference raised exception")
             return None
@@ -312,7 +312,7 @@ class VehicleClassifier:
             for i in range(len(CLASS_LABELS))
             if i != predicted_idx
         ]
-        alternatives.sort(key=lambda x: x["confidence"], reverse=True)
+        alternatives.sort(key=lambda x: x["confidence"], reverse=True)  # type: ignore[arg-type]
 
         logger.info(
             "PyTorch classification: %s (conf=%.4f) from view=%s",
