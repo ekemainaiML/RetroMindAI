@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiGet, getApiKey, getJwt, setApiKey } from "@/utils/api";
+import { apiGet, getApiKey, setApiKey } from "@/utils/api";
 import { useRouter } from "next/navigation";
+import { useUser } from "@/contexts/UserContext";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card, { CardHeader } from "@/components/ui/Card";
@@ -26,13 +27,6 @@ interface Capability {
   dep_installed: boolean;
 }
 
-interface Workshop {
-  id: string;
-  name: string;
-  api_key_prefix: string;
-  tier: string;
-}
-
 const phaseLabel: Record<string, string> = {
   vision: "Phase 1",
   classification: "Phase 1",
@@ -47,6 +41,7 @@ const phaseLabel: Record<string, string> = {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { user, jwt, workshops, setWorkshops } = useUser();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [capsLoading, setCapsLoading] = useState(true);
@@ -56,24 +51,9 @@ export default function SettingsPage() {
   const [showRenewConfirm, setShowRenewConfirm] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [renewDone, setRenewDone] = useState(false);
-  const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [newWorkshopName, setNewWorkshopName] = useState("");
   const [creatingWorkshop, setCreatingWorkshop] = useState(false);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
-
-  const jwt = getJwt();
-
-  useEffect(() => {
-    if (!jwt) return;
-    fetch(`${API_BASE}/workshops`, {
-      headers: { Authorization: `Bearer ${jwt}` },
-    })
-      .then((r) => r.ok && r.json())
-      .then((data) => {
-        if (data) setWorkshops(data.workshops);
-      })
-      .catch(() => {});
-  }, [jwt]);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -204,6 +184,19 @@ export default function SettingsPage() {
         <div className="rounded-lg border border-danger/30 bg-danger/5 p-3">
           <p className="text-xs text-danger">{error}</p>
         </div>
+      )}
+
+      {user && (
+        <Card>
+          <CardHeader>
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">User</h2>
+          </CardHeader>
+          <div className="space-y-2">
+            <Row label="Name" value={user.name} />
+            <Row label="Email" value={user.email} />
+            <Row label="ID" value={user.id} mono />
+          </div>
+        </Card>
       )}
 
       <Card>
