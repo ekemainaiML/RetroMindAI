@@ -335,12 +335,18 @@ class TestTrainRL:
 class TestRecommendationEngineRL:
     def test_rl_agent_lazy_init(self):
         from ai.recommendations.engine import RecommendationEngine
+        from core.config import settings
 
-        engine = RecommendationEngine()
-        assert engine._rl_agent is None
-        agent = engine._get_rl_agent()
-        assert agent is not None
-        assert agent._algorithm is None
+        old_flag = settings.enable_rl_recommendations
+        settings.enable_rl_recommendations = True
+        try:
+            engine = RecommendationEngine()
+            assert engine._rl_agent is None
+            agent = engine._get_rl_agent()
+            assert agent is not None
+            assert agent._algorithm is None
+        finally:
+            settings.enable_rl_recommendations = old_flag
 
     def test_generate_no_rl_adjustments_when_not_loaded(self, sample_assessment):
         from ai.recommendations.engine import RecommendationEngine

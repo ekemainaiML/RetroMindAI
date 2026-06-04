@@ -20,7 +20,7 @@ class TestTrainingScheduler:
         with patch("workers.training_scheduler.logger") as mock_log:
             scheduled_retrain()
             mock_log.info.assert_any_call(
-                "Not enough new samples for retraining (%d < %d)", 0, 10
+                "Not enough new samples for retraining (%d < %d)", 0, 3
             )
 
     def test_scheduled_retrain_import_error(self, monkeypatch):
@@ -38,7 +38,7 @@ class TestTrainingScheduler:
 
     def test_insufficient_samples_skips_training(self, monkeypatch):
         mock_db = MagicMock()
-        mock_db.query.return_value.filter.return_value.count.return_value = 3
+        mock_db.query.return_value.filter.return_value.count.return_value = 2
         monkeypatch.setattr("workers.training_scheduler.SessionLocal", lambda: mock_db)
 
         with patch(
@@ -46,7 +46,7 @@ class TestTrainingScheduler:
         ) as mock_log:
             scheduled_retrain()
             mock_log.info.assert_any_call(
-                "Not enough new samples for retraining (%d < %d)", 3, 10
+                "Not enough new samples for retraining (%d < %d)", 2, 3
             )
 
     def test_trained_on_column_on_model(self):
