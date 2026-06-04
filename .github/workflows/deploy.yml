@@ -17,13 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-<<<<<<< HEAD
-<<<<<<< HEAD
 
-=======
->>>>>>> origin/main
-=======
->>>>>>> origin/main
       - name: Deploy to Oracle Cloud VM
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -32,8 +26,6 @@ jobs:
           key: ${{ secrets.ORACLE_SSH_KEY }}
           script: |
             set -e
-<<<<<<< HEAD
-<<<<<<< HEAD
             cd /app/retromind
 
             # Pull latest code
@@ -61,15 +53,3 @@ jobs:
         run: curl -sfI https://${{ secrets.DOMAIN }} 2>&1 | head -5
       - name: Smoke test API
         run: curl -sf https://api.${{ secrets.DOMAIN }}/api/v1/health 2>&1 | head -5
-=======
-=======
->>>>>>> origin/main
-            cd ${{ secrets.ORACLE_DEPLOY_PATH }}
-            git pull origin main
-            docker compose -f docker-compose.prod.yml build --pull
-            docker compose -f docker-compose.prod.yml up -d
-            docker system prune -f
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
