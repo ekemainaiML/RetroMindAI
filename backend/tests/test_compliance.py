@@ -1,4 +1,3 @@
-import pytest
 from core.compliance import compute_compliance_state
 
 

@@ -1,12 +1,11 @@
 import uuid
-from datetime import datetime, timezone
 
 import pytest
 
 from core.database import SessionLocal
 from core.models import Intake, Job
 
-from tests.conftest import auth_headers, get_test_workshop_id
+from tests.conftest import get_test_workshop_id
 
 
 @pytest.fixture

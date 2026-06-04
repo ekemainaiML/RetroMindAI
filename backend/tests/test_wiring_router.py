@@ -1,4 +1,3 @@
-import pytest
 
 from optimization.wiring import (
     ROUTING_TEMPLATES,
@@ -42,7 +41,7 @@ class TestComputeRouting:
         assert result["recommended_path"] == "chassis_rail_right"
 
     def test_confidence_drops_with_deviations(self):
-        clean = compute_routing("three_wheeler")
+        _ = compute_routing("three_wheeler")
         degraded = compute_routing(
             "three_wheeler",
             deviation_result={

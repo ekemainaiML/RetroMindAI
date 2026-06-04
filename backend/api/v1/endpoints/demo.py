@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from api.v1.models.intake import JobResponse
 from core.auth import get_current_workshop
 from core.database import get_db
 from core.models import Intake, Job

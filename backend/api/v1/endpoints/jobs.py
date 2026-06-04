@@ -10,12 +10,12 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
-from api.v1.models.intake import ConfirmRequest, JobResponse
-from core.auth import get_current_workshop
-from core.confidence import ConfidenceEngine
-from core.config import settings
-from core.database import get_db
-from core.models import Intake, Job
+from api.v1.models.intake import ConfirmRequest, JobResponse  # noqa: E402
+from core.auth import get_current_workshop  # noqa: E402
+from core.confidence import ConfidenceEngine  # noqa: E402
+from core.config import settings  # noqa: E402
+from core.database import get_db  # noqa: E402
+from core.models import Intake, Job  # noqa: E402
 
 router = APIRouter()
 

@@ -6,7 +6,6 @@ import pytest
 from ai.classification.preprocess import check_occlusion, detect_low_light
 from core.conflict import evaluate_classification_conflict
 from core.degradation import DegradationManager, get_degradation_manager, reset_degradation_manager
-from core.retry import with_retry
 from core.risk import (
     assess_deviation_risks,
     compute_system_risk_state,
@@ -108,7 +107,7 @@ class TestFM_IN_03_BlurryImage:
         assert BLUR_THRESHOLD == 100.0
 
     def test_blurry_returns_true(self):
-        from core.validation import is_blurry, compute_blur_score
+        from core.validation import is_blurry
 
         with patch("cv2.imread") as mock_read:
             import numpy as np
@@ -465,7 +464,7 @@ class TestFM_IF_02_RedisUnavailable:
         mock_file.filename = "test.jpg"
         mock_file.read = Mock()
 
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(Exception) as _:
             import anyio
 
             async def run():
@@ -546,7 +545,6 @@ class TestFM_IF_07_DigitalTwinFailure:
     """FM-IF-07: Digital twin unavailable → skip stage"""
 
     def test_digital_twin_is_skippable(self):
-        from core.degradation import DegradationManager
 
         assert "digital_twin" in DegradationManager.TIER_AI_STAGES
 
@@ -689,7 +687,7 @@ class TestFM_UX_02_TabClose:
 
         import anyio
         workshop_id = str(uuid.uuid4())
-        result = anyio.run(get_job, job_id, workshop_id, db)
+        anyio.run(get_job, job_id, workshop_id, db)
         assert job.status == "expired"
 
 
@@ -718,7 +716,7 @@ class TestFM_UX_03_ConcurrentAssessment:
 
         import anyio
         workshop_id = str(uuid.uuid4())
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(Exception) as _:
             anyio.run(analyze_intake, intake_id, workshop_id, db)
         assert anyio is not None
         assert True

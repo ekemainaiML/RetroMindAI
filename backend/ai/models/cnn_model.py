@@ -8,8 +8,8 @@
 def mobilenet_v3_classifier(num_classes: int = 4, pretrained: bool = True):
     """Build a MobileNetV3-small with a custom classifier head."""
     try:
-        import torch
-        import torch.nn as nn
+        import torch  # noqa
+        import torch.nn as nn  # noqa
         from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
 
         weights = MobileNet_V3_Small_Weights.DEFAULT if pretrained else None

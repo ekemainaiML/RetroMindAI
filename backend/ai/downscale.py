@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 
 from core.config import settings
 

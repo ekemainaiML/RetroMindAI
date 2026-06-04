@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,7 +8,7 @@ from sqlalchemy.orm import Session
 from core.auth import get_admin_user
 from core.config import settings
 from core.database import get_db
-from core.models import Intake, Workshop
+from core.models import Workshop
 
 router = APIRouter()
 

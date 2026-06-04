@@ -9,7 +9,7 @@ rails and identifies caution zones from deviation data (heat sources, moving
 parts, structural compromise areas).
 """
 
-from core.config import settings
+from core.config import settings  # noqa: E402
 
 ROUTING_TEMPLATES: dict[str, list[dict]] = {
     "three_wheeler": [

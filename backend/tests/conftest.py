@@ -22,10 +22,10 @@ def pytest_collection_modifyitems(config, items):
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
 
-from api.main import app
-from core.auth import hash_api_key
-from core.database import SessionLocal
-from core.models import Intake, Job, Workshop
+from api.main import app  # noqa: E402
+from core.auth import hash_api_key  # noqa: E402
+from core.database import SessionLocal  # noqa: E402
+from core.models import Intake, Job, Workshop  # noqa: E402
 
 TEST_API_KEY = "rm_test_" + "a" * 37
 TEST_API_KEY_HASH = hash_api_key(TEST_API_KEY)

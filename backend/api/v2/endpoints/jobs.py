@@ -68,9 +68,6 @@ async def get_job_v2(
         assessment_state = result.get("assessment_state")
         degradation = result.get("degradations") or []
 
-    is_terminal = job.status in {
-        "completed", "partial_complete", "failed", "timed_out", "cancelled", "expired",
-    }
 
     telemetry = None
     try:

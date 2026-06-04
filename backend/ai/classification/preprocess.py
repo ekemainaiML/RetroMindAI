@@ -30,10 +30,10 @@ def auto_enhance(image_path: str) -> str | None:
         if img is None:
             return None
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-        l, a, b = cv2.split(lab)
+        lightness, a, b = cv2.split(lab)
         clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
-        l = clahe.apply(l)
-        enhanced = cv2.cvtColor(cv2.merge([l, a, b]), cv2.COLOR_LAB2BGR)
+        lightness = clahe.apply(lightness)
+        enhanced = cv2.cvtColor(cv2.merge([lightness, a, b]), cv2.COLOR_LAB2BGR)
         enhanced_path = image_path.rsplit(".", 1)[0] + "_enhanced." + image_path.rsplit(".", 1)[1]
         cv2.imwrite(enhanced_path, enhanced)
         return enhanced_path

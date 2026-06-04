@@ -7,10 +7,8 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from core.auth import (
-    _lookup_workshop,
     generate_api_key,
     get_current_workshop_obj,
-    hash_api_key,
 )
 from core.database import get_db
 from core.models import Intake, Job, Workshop

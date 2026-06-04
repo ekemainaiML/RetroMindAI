@@ -288,8 +288,6 @@ class TestRecommendationEngine:
             deviation_severity="low",
         )
 
-        lower_feasibility = result["feasibility_score"] < 75
-
         battery = next(r for r in result["recommendations"] if r["id"] == "battery_pack_location")
         assert "48V" in battery["description"]
 

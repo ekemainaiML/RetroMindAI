@@ -1,7 +1,4 @@
-import hashlib
 import os
-import time
-import uuid
 from pathlib import Path
 
 from locust import FastHttpUser, between, task

@@ -4,7 +4,6 @@ Call `seed_oem_data(db)` from app startup or run standalone.
 """
 
 import logging
-from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
@@ -27,9 +26,7 @@ def seed_oem_data(db: Session) -> None:
         logger.info("OEM seed data already present, skipping")
         return
 
-    now = datetime.now(timezone.utc)
     manufacturers: dict[str, OEMManufacturer] = {}
-    models: list[dict] = []
 
     def mfr(name: str, country: str | None = None, founded_year: int | None = None) -> OEMManufacturer:
         if name not in manufacturers:

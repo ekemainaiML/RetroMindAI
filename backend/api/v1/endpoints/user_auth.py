@@ -1,17 +1,14 @@
 import logging
 import uuid
-from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from core.auth import (
     create_jwt,
     generate_api_key,
-    get_current_workshop_obj,
     get_current_user,
-    hash_api_key,
     hash_password,
     verify_password,
 )

@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import Any
 
 from core.capabilities import CapabilityRegistry
 from core.config import settings

@@ -6,7 +6,6 @@ from core.risk import assess_deviation_risks
 
 
 def _blank_image(width=640, height=480):
-    import cv2
     return np.ones((height, width, 3), dtype=np.uint8) * 200
 
 

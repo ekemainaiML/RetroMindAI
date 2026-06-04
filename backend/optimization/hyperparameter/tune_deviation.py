@@ -28,7 +28,6 @@ def tune_deviation_thresholds(trial, db_session) -> float:
     if len(jobs) < 5:
         return 0.0
 
-    from ai.deviation.detector import DeviationDetector
 
     score = 0.0
     count = 0

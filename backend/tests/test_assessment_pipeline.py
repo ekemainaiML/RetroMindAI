@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from core.database import SessionLocal
-from core.models import Intake, Job
+from core.models import Intake
 from tests.conftest import get_test_workshop_id
 from tests.synthetic_images import generate_views
 from workers.assessment import _build_result, _compute_factors

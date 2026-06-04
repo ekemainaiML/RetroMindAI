@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from core.models import Job
 from workers.training_scheduler import (
@@ -15,7 +14,6 @@ class TestTrainingScheduler:
 
     def test_scheduled_retrain_no_unprocessed(self, monkeypatch):
         mock_db = MagicMock()
-        mock_query = MagicMock()
         mock_db.query.return_value.filter.return_value.count.return_value = 0
         monkeypatch.setattr("workers.training_scheduler.SessionLocal", lambda: mock_db)
 
@@ -27,7 +25,6 @@ class TestTrainingScheduler:
 
     def test_scheduled_retrain_import_error(self, monkeypatch):
         mock_db = MagicMock()
-        mock_query = MagicMock()
         mock_db.query.return_value.filter.return_value.count.return_value = 50
         monkeypatch.setattr("workers.training_scheduler.SessionLocal", lambda: mock_db)
 

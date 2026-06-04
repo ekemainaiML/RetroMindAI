@@ -1,4 +1,3 @@
-import json
 import logging
 import threading
 
@@ -24,7 +23,7 @@ def run_optimization(
 ):
     """Run Optuna hyperparameter search (offline, may take minutes)."""
     try:
-        import optuna
+        import optuna  # noqa: F401
     except ImportError:
         raise HTTPException(
             status_code=400,

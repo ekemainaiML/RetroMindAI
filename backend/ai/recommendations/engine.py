@@ -585,7 +585,6 @@ class RecommendationEngine:
             factors,
         )
 
-        total_costs = _compute_total_costs(recommendations)
         tooling = template["tooling_required"]
         skill_level = _compute_skill_level(
             template["skill_level_required"], deviation_result

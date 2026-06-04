@@ -6,7 +6,6 @@ from datetime import datetime, timedelta, timezone
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from core.auth import get_current_workshop

@@ -2,9 +2,8 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 
 from optimization.hyperparameter.study_runner import StudyRunner, BEST_PARAMS_PATH
 from optimization.hyperparameter.config_overrides import ConfigOverrides, OVERRIDE_PATH
@@ -53,8 +52,7 @@ class TestStudyRunner:
         assert StudyRunner.load_best_params() == {}
 
     def test_save_and_load_best_params(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = os.path.join(tmp, "best_params.json")
+        with tempfile.TemporaryDirectory():
             runner = StudyRunner()
             runner._save_results({"test": {"best_params": {"x": 1}, "best_value": 0.9, "trials": 10}})
 

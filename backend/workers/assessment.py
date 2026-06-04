@@ -1,10 +1,8 @@
 import logging
 import time
 import uuid
-from collections.abc import MutableMapping, MutableSequence
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from datetime import datetime, timezone as tz
-from functools import partial
 
 import numpy as np
 
@@ -16,12 +14,10 @@ from core.conflict import evaluate_classification_conflict
 from core.database import SessionLocal
 from core.degradation import get_degradation_manager
 from core.config import settings
-from core.retry import with_retry
 from core.risk import (
     assess_deviation_risks,
     compute_system_risk_state,
     create_risk_record,
-    is_recommendation_blocked,
 )
 
 _logged_rec_engine_warning = False
@@ -83,7 +79,7 @@ def _fetch_oem_specs(model_id: uuid.UUID | None, vehicle_type: str, db: DBSessio
     if not model_id:
         return None
     try:
-        from core.models import OEMSpecification, OEMVehicleModel
+        from core.models import OEMSpecification
         spec = (
             db.query(OEMSpecification)
             .filter(OEMSpecification.model_id == model_id)
@@ -746,7 +742,7 @@ def run_assessment(intake_id: str) -> None:
                 oem_info = None
                 if intake_model_id:
                     try:
-                        from core.models import OEMVehicleModel, OEMManufacturer
+                        from core.models import OEMVehicleModel
                         oem_vm = (
                             db.query(OEMVehicleModel)
                             .options(joinedload(OEMVehicleModel.manufacturer))

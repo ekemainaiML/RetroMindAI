@@ -1,10 +1,9 @@
 import uuid
 from unittest.mock import patch
 
-import pytest
 from core.database import SessionLocal
 from core.models import Intake
-from tests.conftest import auth_client, client, get_test_workshop_id
+from tests.conftest import get_test_workshop_id
 from tests.synthetic_images import generate_views
 
 

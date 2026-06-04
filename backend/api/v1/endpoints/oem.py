@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
@@ -12,7 +12,6 @@ from api.v1.models.oem import (
     MountingPointCreate,
     MountingPointResponse,
     MountingPointUpdate,
-    OEMLookupRequest,
     OEMLookupResponse,
     RoutingPathCreate,
     RoutingPathResponse,
@@ -145,7 +144,6 @@ def list_manufacturers(
         query = query.filter(OEMManufacturer.name.ilike(f"%{search}%"))
     if is_active is not None:
         query = query.filter(OEMManufacturer.is_active.is_(is_active))
-    total = query.count()
     manufacturers = query.order_by(OEMManufacturer.name).offset(offset).limit(limit).all()
     model_counts = {
         str(row[0]): row[1]

@@ -1,4 +1,3 @@
-import pytest
 
 from core.conflict import evaluate_classification_conflict
 from core.risk import (

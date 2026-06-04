@@ -108,7 +108,6 @@ class DigitalTwinDataGenerator:
             parameter = d.get("parameter", "unknown")
             severity = d.get("severity", "minor")
             location_key = _DEVIATION_LOCATIONS.get(parameter, "chassis_center")
-            position = _DEVIATION_3D_POSITIONS.get(location_key, {"x": 0, "y": 0, "z": 0})
             color = _SEVERITY_COLORS.get(severity, "#3b82f6")
 
             deviations_3d.append({

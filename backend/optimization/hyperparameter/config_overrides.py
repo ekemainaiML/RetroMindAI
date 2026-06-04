@@ -39,7 +39,6 @@ class ConfigOverrides:
 
     @classmethod
     def _patch_deviation_thresholds(cls, best_params: dict):
-        from ai.deviation.detector import DeviationDetector
         import ai.deviation.detector as det_mod
 
         if hasattr(det_mod, "SEVERITY_THRESHOLDS"):

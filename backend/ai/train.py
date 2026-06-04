@@ -83,7 +83,6 @@ def _convert_to_onnx(rf_model, feature_names: list[str]) -> bytes | None:
 
 def train_from_collected(images_dir: str, model_output_path: str) -> dict[str, Any]:
     from sklearn.ensemble import RandomForestClassifier
-    from sklearn.model_selection import train_test_split
 
     X: list[list[float]] = []
     y: list[str] = []

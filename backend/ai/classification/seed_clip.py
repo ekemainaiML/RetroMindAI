@@ -8,7 +8,6 @@ is fast instead of waiting 20s for model loading + text embeddings.
 import logging
 import threading
 
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +63,6 @@ def seed_clip_embeddings(db_session=None):
                         "vehicle_type": vt,
                     })
 
-                dummy_img = np.zeros((224, 224, 3), dtype=np.uint8)
                 for vt, oem_list in by_type.items():
                     clip._compute_text_embeddings(oem_list, vehicle_type=vt)
                     logger.info("Seeded CLIP embeddings for %s (%d models)", vt, len(oem_list))

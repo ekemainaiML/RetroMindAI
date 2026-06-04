@@ -3,9 +3,7 @@ import os
 import shutil
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 
-from sqlalchemy import func
 
 from core.config import settings
 from core.database import SessionLocal
@@ -26,7 +24,6 @@ def _collect_training_data(db_session, output_dir: str) -> int:
     from core.models import Intake
 
     import cv2
-    import numpy as np
 
     jobs = (
         db_session.query(Job)

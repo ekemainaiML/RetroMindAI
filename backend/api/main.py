@@ -7,35 +7,35 @@ import sentry_sdk
 from fastapi import FastAPI, Request
 
 logger = logging.getLogger(__name__)
-from fastapi.middleware.cors import CORSMiddleware
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
-from sqlalchemy.exc import SQLAlchemyError
+from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
+from slowapi import _rate_limit_exceeded_handler  # noqa: E402
+from slowapi.errors import RateLimitExceeded  # noqa: E402
+from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
+from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
 
-from api.v1.endpoints.admin import router as admin_router
-from api.v1.endpoints.analytics import router as analytics_router
-from api.v1.endpoints.auth import router as auth_router
-from api.v1.endpoints.user_auth import router as user_auth_router
-from api.v1.endpoints.demo import router as demo_router
-from api.v1.endpoints.health import router as health_router
-from api.v1.endpoints.history import router as history_router
-from api.v1.endpoints.intake import router as intake_router
-from api.v1.endpoints.jobs import router as jobs_router
-from api.v1.endpoints.comparison import router as comparison_router
-from api.v1.endpoints.knowledge_graph import router as kg_router
-from api.v1.endpoints.metrics import router as metrics_router
-from api.v1.endpoints.reports import router as reports_router
-from api.v1.endpoints.setup import router as setup_router
-from api.v1.endpoints.training import router as training_router
-from api.v1.endpoints.metrics import HTTP_REQUESTS_TOTAL, HTTP_REQUEST_DURATION
-from api.v2.main import router as v2_router
-from core.audit import AuditLog
-from core.auth import seed_demo_workshop
-from core.config import settings
-from core.database import SessionLocal
-from core.db_exceptions import db_error_handler
-from core.limiter import limiter
+from api.v1.endpoints.admin import router as admin_router  # noqa: E402
+from api.v1.endpoints.analytics import router as analytics_router  # noqa: E402
+from api.v1.endpoints.auth import router as auth_router  # noqa: E402
+from api.v1.endpoints.user_auth import router as user_auth_router  # noqa: E402
+from api.v1.endpoints.demo import router as demo_router  # noqa: E402
+from api.v1.endpoints.health import router as health_router  # noqa: E402
+from api.v1.endpoints.history import router as history_router  # noqa: E402
+from api.v1.endpoints.intake import router as intake_router  # noqa: E402
+from api.v1.endpoints.jobs import router as jobs_router  # noqa: E402
+from api.v1.endpoints.comparison import router as comparison_router  # noqa: E402
+from api.v1.endpoints.knowledge_graph import router as kg_router  # noqa: E402
+from api.v1.endpoints.metrics import router as metrics_router  # noqa: E402
+from api.v1.endpoints.reports import router as reports_router  # noqa: E402
+from api.v1.endpoints.setup import router as setup_router  # noqa: E402
+from api.v1.endpoints.training import router as training_router  # noqa: E402
+from api.v1.endpoints.metrics import HTTP_REQUESTS_TOTAL, HTTP_REQUEST_DURATION  # noqa: E402
+from api.v2.main import router as v2_router  # noqa: E402
+from core.audit import AuditLog  # noqa: E402
+from core.auth import seed_demo_workshop  # noqa: E402
+from core.config import settings  # noqa: E402
+from core.database import SessionLocal  # noqa: E402
+from core.db_exceptions import db_error_handler  # noqa: E402
+from core.limiter import limiter  # noqa: E402
 
 if settings.sentry_dsn:
     sentry_sdk.init(
@@ -165,16 +165,16 @@ app.include_router(reports_router, prefix="/api/v1")
 app.include_router(setup_router, prefix="/api/v1")
 app.include_router(training_router, prefix="/api/v1")
 
-from optimization.hyperparameter.admin_endpoints import router as optimization_router
+from optimization.hyperparameter.admin_endpoints import router as optimization_router  # noqa: E402
 app.include_router(optimization_router, prefix="/api/v1")
 
-from ai.recommendations.admin_endpoints import router as rl_admin_router
+from ai.recommendations.admin_endpoints import router as rl_admin_router  # noqa: E402
 app.include_router(rl_admin_router, prefix="/api/v1")
 
-from api.v1.endpoints.cad_export import router as cad_router
+from api.v1.endpoints.cad_export import router as cad_router  # noqa: E402
 app.include_router(cad_router, prefix="/api/v1")
 
-from api.v1.endpoints.oem import router as oem_router
+from api.v1.endpoints.oem import router as oem_router  # noqa: E402
 app.include_router(oem_router, prefix="/api/v1")
 
 app.include_router(v2_router, prefix="/api/v2")

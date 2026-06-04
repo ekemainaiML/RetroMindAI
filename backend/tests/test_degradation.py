@@ -1,5 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 from fastapi import Request

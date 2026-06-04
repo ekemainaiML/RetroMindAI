@@ -1,13 +1,9 @@
 import logging
 import os
-import shutil
 from datetime import datetime, timezone
-from pathlib import Path
 
 import cv2
-import numpy as np
 
-from core.config import settings
 
 logger = logging.getLogger(__name__)
 

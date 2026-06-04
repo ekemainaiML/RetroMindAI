@@ -12,8 +12,6 @@ def tune_safety_overrides(trial, db_session) -> float:
     """
     class_floor = trial.suggest_float("class_floor", 20.0, 60.0)
     geom_floor = trial.suggest_float("geom_floor", 20.0, 60.0)
-    weak_view_threshold = trial.suggest_float("weak_view_threshold", 30.0, 70.0)
-
     if db_session is None:
         return 0.5
 

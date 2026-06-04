@@ -9,7 +9,7 @@ for structural deviations (asymmetry, delamination, salvage), and returns
 a priority-ordered list with per-zone constraints and risk assessment.
 """
 
-from core.config import settings
+from core.config import settings  # noqa: E402
 
 VEHICLE_ZONE_TEMPLATES: dict[str, list[dict]] = {
     "three_wheeler": [

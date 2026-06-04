@@ -2,7 +2,6 @@ import json
 import logging
 from pathlib import Path
 
-from core.capabilities import CapabilityRegistry
 
 logger = logging.getLogger(__name__)
 

@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from api.main import app
 from core.auth import hash_api_key
 from core.database import SessionLocal
-from core.models import Intake, Job, Workshop
+from core.models import Workshop
 
 FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures", "images")
 

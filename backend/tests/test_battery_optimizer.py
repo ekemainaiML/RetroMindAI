@@ -1,4 +1,3 @@
-import pytest
 
 from optimization.battery import (
     VEHICLE_ZONE_TEMPLATES,
@@ -44,7 +43,7 @@ class TestComputeBatteryZones:
         assert result["recommended_zone"] == "under_seat"
 
     def test_deviation_penalty_increases_priority(self):
-        clean = compute_battery_zones("three_wheeler")
+        _ = compute_battery_zones("three_wheeler")
         deviated = compute_battery_zones("three_wheeler", {
             "salvage_potential": 30,
             "critical_delamination": True,

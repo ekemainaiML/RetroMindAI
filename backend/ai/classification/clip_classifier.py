@@ -93,7 +93,7 @@ class CLIPVehicleClassifier:
             if self._loaded:
                 return True
             try:
-                import torch
+                import torch  # noqa: F401
                 from transformers import CLIPModel, CLIPProcessor
 
                 self._processor = CLIPProcessor.from_pretrained(self.model_name)
@@ -172,7 +172,7 @@ class CLIPVehicleClassifier:
             return cached["embeddings"], cached["prompts"]
 
         self._load()
-        import torch
+        import torch  # noqa: F401
 
         prompts = self._build_prompts(oem_models, vehicle_type)
         if not prompts:
@@ -208,7 +208,7 @@ class CLIPVehicleClassifier:
         loaded = self._load()
         if not loaded:
             return {"top_prediction": None, "all_scores": [], "top_k": [], "threshold": confidence_threshold, "error": "model not loaded"}
-        import torch
+        import torch  # noqa: F401
 
         text_embeds, prompts = self._compute_text_embeddings(oem_models, vehicle_type)
         if text_embeds is None:

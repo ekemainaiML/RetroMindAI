@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
-from ai.classification.classifier import VehicleClassifier, CLASS_LABELS
+from ai.classification.classifier import VehicleClassifier
 from ai.models.pytorch_runner import PyTorchRunner, MODEL_CLASSES
 from core.capabilities import CapabilityRegistry
 
@@ -40,7 +40,7 @@ class TestPyTorchRunner:
             mock_settings.enable_pytorch = True
             mock_settings.torch_model_path = "/fake/path"
             with patch("ai.models.pytorch_runner.os.path.isfile", return_value=True):
-                with patch("ai.models.pytorch_runner.CapabilityRegistry.probe") as mock_probe:
+                with patch("ai.models.pytorch_runner.CapabilityRegistry.probe") as _:
                     runner = PyTorchRunner()
                     result = runner.load()
                     assert result is False

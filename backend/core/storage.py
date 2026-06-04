@@ -1,7 +1,4 @@
-import os
-import io
 from pathlib import Path
-from typing import BinaryIO
 
 import boto3
 from botocore.config import Config as BotoConfig
