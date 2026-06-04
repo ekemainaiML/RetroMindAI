@@ -16,8 +16,6 @@ graph TB
     subgraph "Oracle Cloud Free Tier VM (4 OCPU, 24 GB RAM)"
         subgraph ReverseProxy["Caddy Reverse Proxy"]
             CADDY[Caddy :80 / :443<br/>Auto Let's Encrypt TLS]
-/main
-/main
         end
 
         subgraph DockerCompose["Docker Compose Services"]
@@ -31,20 +29,23 @@ graph TB
         end
 
         UV[Local Upload Storage<br/>/app/uploads/]
+        AI[ONNX Runtime<br/>+ OpenCV<br/>in-worker]
     end
 
     User -->|HTTPS :443| CADDY
     Admin -->|HTTPS :443| CADDY
     CADDY -->|/api/*| API
     CADDY -->|/*| FE
-/main
-    User -->|HTTPS :443| NGINX
-    Admin -->|HTTPS :443| NGINX
-    NGINX -->|/api/*| API
-    NGINX -->|/*| FE
->>>>>>> origin/main
-/main
-/main
+
+    FE -->|read/write| PG
+    API -->|read/write| PG
+    API -->|enqueue / cache / pubsub| RD
+    WK -->|poll / pubsub| RD
+    WK -->|graph queries| N4J
+    WK -->|read| UV
+    API -->|read| UV
+    WK -->|onnx inference| AI
+
     style FE fill:#c084fc,stroke:#6b21a8
     style API fill:#f472b6,stroke:#9d174d
     style WK fill:#fb923c,stroke:#9a3412
@@ -53,6 +54,9 @@ graph TB
     style N4J fill:#22d3ee,stroke:#155e75
     style UV fill:#e2e8f0,stroke:#64748b
     style AI fill:#a78bfa,stroke:#5b21b6
+    style User fill:#4ade80,stroke:#15803d
+    style Admin fill:#facc15,stroke:#ca8a04
+    style CADDY fill:#60a5fa,stroke:#1d4ed8
 ```
 
 ---
