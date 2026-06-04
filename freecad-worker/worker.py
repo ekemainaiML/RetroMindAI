@@ -10,18 +10,12 @@ import sys
 import tempfile
 import uuid
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 for _p in ("/usr/lib/freecad/lib", "/usr/lib/freecad-python3/lib", "/usr/lib/python3/dist-packages"):
     if os.path.isdir(_p):
         sys.path.insert(0, _p)
         break
-=======
-sys.path.insert(0, "/usr/lib/freecad-python3/lib")
->>>>>>> origin/main
-=======
-sys.path.insert(0, "/usr/lib/freecad-python3/lib")
->>>>>>> origin/main
+/main
+/main
 
 from fastapi import FastAPI, Response
 from pydantic import BaseModel

@@ -181,30 +181,18 @@
 - Build mode: Autonomous with structured checkpoints.
 - All 14 checklist items completed across 7 dispatched subagent tasks.
 - Architecture checkpoints: `v0.1-foundation`, `v0.2-async-pipeline`, `v0.3-decision-engine`, `v0.4-deviation-engine`, `v0.5-digital-twin`, `v0.6-resilience`, `v0.7-release-candidate`.
-<<<<<<< HEAD
-<<<<<<< HEAD
 - 401 tests passing (no regressions).
-=======
-- 138 tests passing (no regressions).
->>>>>>> origin/main
-=======
-- 138 tests passing (no regressions).
->>>>>>> origin/main
+/main
+/main
 - Docker Compose boot verified — full stack (postgres, redis, neo4j, backend-api, backend-worker) all healthy.
 - Frontend production build succeeds.
 - Seed demo data created — `POST /api/v1/demo/0` returns pre-computed assessment.
 - Devpost page, architecture diagrams, deployment configs (Vercel + Railway) created.
 - Item 11 (digital twin) was built but checklist checkbox left unmarked — fixed during /iterate.
 - Notable: Git `lib/` pattern in `.gitignore` required `git add -f` for frontend 3D lib files.
-<<<<<<< HEAD
-<<<<<<< HEAD
 - Deployment: migrated from Vercel+Railway to OCI Always Free Tier (Ampere A1 Flex VM). See `docker-compose.prod.yml`, `Caddyfile`, `infrastructure/terraform/`.
 - FreeCAD CAD export: blocked on ARM64 (no `freecad-python3` ARM build). Feature flag `enable_cad_export=False`, not deployed.
-=======
-- Deployment: not yet live on Vercel/Railway — configs are placeholder-ready.
->>>>>>> origin/main
-=======
-- Deployment: not yet live on Vercel/Railway — configs are placeholder-ready.
->>>>>>> origin/main
+/main
+/main
 
 ## /iterate

@@ -1,6 +1,4 @@
 services:
-<<<<<<< HEAD
-<<<<<<< HEAD
   postgres:
     image: postgres:16
     restart: always
@@ -139,9 +137,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-=======
-=======
->>>>>>> origin/main
+/main
   nginx:
     build:
       context: ./infra/nginx
@@ -155,47 +151,8 @@ services:
       - frontend
       - backend-api
     restart: always
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-<<<<<<< HEAD
-<<<<<<< HEAD
-    restart: always
-    environment:
-      NEXT_PUBLIC_API_URL: https://api.${DOMAIN}
-    depends_on:
-      - backend-api
-
-  caddy:
-    image: caddy:2
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - frontend
-      - backend-api
-
-volumes:
-  postgres_data:
-  redis_data:
-  neo4j_data:
-  app_uploads:
-  caddy_data:
-  caddy_config:
-=======
-=======
->>>>>>> origin/main
+/main
+/main
     environment:
       NEXT_PUBLIC_API_URL: https://${DOMAIN}/api/v1
     restart: always
@@ -268,7 +225,5 @@ volumes:
   upload_data:
   certbot_data:
   certbot_www:
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
+/main
+/main

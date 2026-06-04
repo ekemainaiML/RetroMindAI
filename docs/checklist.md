@@ -64,15 +64,9 @@
 
   Dependencies: Item 2
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   What: Mandatory views (`left_side_profile`, `right_side_profile`, `rear_view`) enforced at intake. Optional views (`front_view`, `engine_bay`, `underbody`). Capture guidance per slot. Missing view recovery prompt + continue-with-limited-analysis path. Per-view attempt counter (max 3). Deterministic quality checks: blur detection (Laplacian variance < threshold), missing/excluded, left/right swap detection via mirror symmetry.
-=======
-  What: Mandatory views (`left_side_profile`, `right_side_profile`, `rear_view`) enforced at intake. Optional views (`front_view`, `engine_bay`, `underbody`). Capture guidance per slot. Missing view recovery prompt + continue-with-limited-analysis path. Per-view attempt counter (max 3). Deterministic quality checks: blur detection (Laplacian variance < threshold), missing/excluded, left/right swap detection via mirror symmetry. Skip deferred heuristics (lighting enhancement, occlusion detection, advanced geometry consistency).
->>>>>>> origin/main
-=======
-  What: Mandatory views (`left_side_profile`, `right_side_profile`, `rear_view`) enforced at intake. Optional views (`front_view`, `engine_bay`, `underbody`). Capture guidance per slot. Missing view recovery prompt + continue-with-limited-analysis path. Per-view attempt counter (max 3). Deterministic quality checks: blur detection (Laplacian variance < threshold), missing/excluded, left/right swap detection via mirror symmetry. Skip deferred heuristics (lighting enhancement, occlusion detection, advanced geometry consistency).
->>>>>>> origin/main
+/main
+/main
 
   Acceptance
 
@@ -169,15 +163,9 @@
   Acceptance
 
   - Functional: Vehicle views → geometry quality score. Asymmetric frame → geometry conflict flag. Missing view → reduced geometry coverage.
-<<<<<<< HEAD
-<<<<<<< HEAD
   - Architectural: Geometry stage runs after classification. Uses OpenCV for deterministic geometry hints.
-=======
-  - Architectural: Geometry stage runs after classification. Uses OpenCV for deterministic geometry hints. ONNX model for structural segmentation (stub if time constrained). Output feeds into confidence engine's `geometry` and visibility factors.
->>>>>>> origin/main
-=======
-  - Architectural: Geometry stage runs after classification. Uses OpenCV for deterministic geometry hints. ONNX model for structural segmentation (stub if time constrained). Output feeds into confidence engine's `geometry` and visibility factors.
->>>>>>> origin/main
+/main
+/main
 
   Verify: Upload symmetric vehicle → confirm geometry >= 70. Upload asymmetric/damaged vehicle → confirm geometry < 60 and geometry_conflict flag.
 
@@ -218,15 +206,9 @@
 
   Dependencies: Items 5, 8
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   What: Battery placement optimization using constraint-based solver. Primary zone selection with dimension constraints (`max_width`, `max_height`, `max_depth`). Adaptation logic: when deviation detected, adjust placement (offset, shift) and document `adaptation_reason`. `risk_if_standard` field showing what would happen with non-adapted layout. `unsafe_to_recommend` when no valid placement found. Wiring guidance: primary routing path, caution zones, confidence level, confidence reason. All outputs include reasoning summaries suitable for report.
-=======
-  What: Battery placement optimization using constraint-based solver (SciPy/Optuna). Primary zone selection with dimension constraints (`max_width`, `max_height`, `max_depth`). Adaptation logic: when deviation detected, adjust placement (offset, shift) and document `adaptation_reason`. `risk_if_standard` field showing what would happen with non-adapted layout. `unsafe_to_recommend` when no valid placement found. Wiring guidance: primary routing path, caution zones, confidence level, confidence reason. All outputs include reasoning summaries suitable for report.
->>>>>>> origin/main
-=======
-  What: Battery placement optimization using constraint-based solver (SciPy/Optuna). Primary zone selection with dimension constraints (`max_width`, `max_height`, `max_depth`). Adaptation logic: when deviation detected, adjust placement (offset, shift) and document `adaptation_reason`. `risk_if_standard` field showing what would happen with non-adapted layout. `unsafe_to_recommend` when no valid placement found. Wiring guidance: primary routing path, caution zones, confidence level, confidence reason. All outputs include reasoning summaries suitable for report.
->>>>>>> origin/main
+/main
+/main
 
   Acceptance
 
@@ -291,15 +273,9 @@
 
 - [x] **12. Neo4j Retrofit DNA — graph integration, similarity queries**
 
-<<<<<<< HEAD
-<<<<<<< HEAD
   Spec ref: `docs/spec.md > 3 > Bounded Contexts (intelligence_graph)`
-=======
-  Spec ref: `spec.md > 3 > Bounded Contexts (intelligence_graph)`
->>>>>>> origin/main
-=======
-  Spec ref: `spec.md > 3 > Bounded Contexts (intelligence_graph)`
->>>>>>> origin/main
+/main
+/main
 
   Dependencies: Item 9
 
@@ -343,8 +319,6 @@
 
 ---
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 - [x] **14. Deployment + project state**
 
   Spec ref: `docs/spec.md > 2.2 > Deployment Topology`
@@ -361,9 +335,7 @@
   Checkpoint: **YES** — release candidate.
 
   Demo state: Live deployment on OCI free tier with end-to-end assessment flow.
-=======
-=======
->>>>>>> origin/main
+/main
 - [x] **14. Deployment + Devpost submission**
 
   Spec ref: `spec.md > 2.2 > Deployment Topology`, `prd.md > What We're Building`
@@ -384,23 +356,8 @@
   Checkpoint: **YES** — release candidate. Production-ready demo pipeline.
 
   Demo state: Live deployed RetroMind with seed demo data. Devpost submission ready for judging.
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
-
----
-
-## Iteration 1
-
-- [x] **I1. Fix confidence factor bars overflow**
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-  What: Backend stores confidence factors as 0-100 ints but frontend did `Math.round(value * 100)` assuming 0-1. Fixed frontend to normalize both: `Math.round((value > 1 ? value / 100 : value) * 100)`.
-=======
-=======
->>>>>>> origin/main
+/main
+/main
   Spec ref: `frontend/src/components/assessment/AssessmentResult.tsx:30`, `backend/workers/assessment.py:352-354`
 
   What: Backend stores confidence factors as 0-100 ints (`int(round(v))`) but frontend did `Math.round(value * 100)` assuming 0-1. Seed data uses 0-1, real pipeline uses 0-100. Fixed frontend to normalize both: `Math.round((value > 1 ? value / 100 : value) * 100)`.
@@ -408,21 +365,8 @@
   Acceptance: Seed demo data and live pipeline data both render correct bar widths (0-100%).
 
   Verify: Load seed demo and live assessment — bars fill proportionally without overflow.
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
-
-  Commit: `fix(ui): normalize confidence factor scale for seed and live data`
-
-- [x] **I2. Replace hardcoded mock classifier with OpenCV heuristics**
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-  What: `_mock_classify()` always returned `three_wheeler` with 0.85. Replaced with `_heuristic_classify()` using OpenCV contour analysis + aspect ratio.
-=======
-=======
->>>>>>> origin/main
+/main
+/main
   Spec ref: `backend/ai/classification/classifier.py:75-85`
 
   What: `_mock_classify()` always returned `three_wheeler` with 0.85 regardless of uploaded images. Replaced with `_heuristic_classify()` that reads actual images via OpenCV, finds the largest contour, computes aspect ratio, and classifies based on vehicle proportions. Added `classifier` field ("ONNX" / "Heuristic") to vehicle classification output so frontend shows the real classifier mode.
@@ -430,21 +374,8 @@
   Acceptance: Upload wide vehicle photo → classifies as `three_wheeler`. Upload tall/narrow vehicle photo → classifies as `motorcycle`. Low-area/low-contrast images → `unknown` with low confidence.
 
   Verify: Upload synthetic 3-wheeler photo → confirm `three_wheeler`. Upload motorcycle photo → confirm `motorcycle`. Upload blank image → confirm `unknown`.
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
-
-  Commit: `feat(ai): replace hardcoded mock with opencv heuristic classification`
-
-- [x] **I3. Fix missing upload volume on backend-api**
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-  What: `backend-api` had no volume mount for uploads directory. Files written by API went to ephemeral storage.
-=======
-=======
->>>>>>> origin/main
+/main
+/main
   Spec ref: `docker-compose.yml:38-62`
 
   What: `backend-api` had no volume mount for uploads directory. Files written by API went to ephemeral container storage, invisible to the worker. Added `volumes: - ./backend/uploads:/app/uploads` to `backend-api` service. Also fixed `upload_dir` config default from `/app/backend/uploads` to `/app/uploads` to match the volume mount.
@@ -452,21 +383,8 @@
   Acceptance: Uploaded files persist to host filesystem and are readable by both API and worker containers.
 
   Verify: Upload file via API → confirm file exists on host at `backend/uploads/{intake_id}/`.
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
-
-  Commit: `fix(deploy): add upload volume mount to backend-api service`
-
-- [x] **I4. Fix numpy float32 JSON serialization in worker**
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-  What: OpenCV returns `numpy.float32` values not JSON serializable. Added `_make_json_safe()` recursive converter.
-=======
-=======
->>>>>>> origin/main
+/main
+/main
   Spec ref: `backend/workers/assessment.py`
 
   What: OpenCV geometry and deviation extraction returns `numpy.float32` values that are not JSON serializable. Added `_make_json_safe()` recursive converter that converts numpy types to Python natives before storing job result in PostgreSQL.
@@ -474,9 +392,7 @@
   Acceptance: All job results are JSON-serializable regardless of numpy types in AI pipeline output.
 
   Verify: Run full assessment pipeline → confirm job completes without `TypeError: Object of type float32 is not JSON serializable`.
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
+/main
+/main
 
   Commit: `fix(worker): convert numpy types to json-safe python natives`

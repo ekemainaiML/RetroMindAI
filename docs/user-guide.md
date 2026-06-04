@@ -1,14 +1,8 @@
 # RetroMind AI — Workshop Operator Guide
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 > **RetroMind AI** — EV retrofit intelligence platform deployed on Oracle Cloud Free Tier.
-=======
-> **RetroMind AI v2.0** — Now with optional AI enhancements: PyTorch CNN classification, RLlib adaptive recommendations, generative design refinement, and FreeCAD CAD export. All optional capabilities are disabled by default and require configuration to activate.
->>>>>>> origin/main
-=======
-> **RetroMind AI v2.0** — Now with optional AI enhancements: PyTorch CNN classification, RLlib adaptive recommendations, generative design refinement, and FreeCAD CAD export. All optional capabilities are disabled by default and require configuration to activate.
->>>>>>> origin/main
+/main
+/main
 
 This guide walks you through using RetroMind AI for your EV retrofit assessments, from first login to generating compliance reports.
 
@@ -145,10 +139,8 @@ Open RetroMind AI in your browser. If your admin has provided a URL, use that. F
 **Option C: Register a New Workshop**
 
 curl -X POST https://api.your-domain.com/api/v1/auth/register \
-=======
 curl -X POST http://localhost:8000/api/v1/auth/register \
 
-=======
 curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name": "My Workshop", "email": "owner@workshop.in"}'
@@ -244,21 +236,11 @@ After clicking **"Start Assessment"**, the pipeline runs:
 
 **Total target**: 60 seconds. **Hard max**: 120 seconds.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 ### 4.2 Progress Updates
 
 The frontend polls the job status endpoint for live updates. If your browser supports Server-Sent Events (SSE), real-time streaming is used instead.
-=======
-### 4.2 SSE Progress Streaming
-
-If your browser supports Server-Sent Events, the frontend streams progress updates in real-time. Otherwise it falls back to polling every 2 seconds.
->>>>>>> origin/main
-=======
-### 4.2 SSE Progress Streaming
-
-If your browser supports Server-Sent Events, the frontend streams progress updates in real-time. Otherwise it falls back to polling every 2 seconds.
->>>>>>> origin/main
+/main
+/main
 
 ### 4.3 Timeout Handling
 
@@ -303,14 +285,9 @@ The system reports the detected vehicle type:
 - **Three-wheeler** (auto-rickshaw)
 - **Four-wheeler** (car)
 - **Motorcycle**
-<<<<<<< HEAD
-<<<<<<< HEAD
 - **Scooter**
 - **Commercial**
-=======
->>>>>>> origin/main
-=======
->>>>>>> origin/main
+/main
 - **Unknown** (insufficient evidence)
 
 Each classification includes a confidence percentage. If confidence is below a threshold, you'll be asked to **confirm the classification** (see section 6).
@@ -363,15 +340,9 @@ When the system is uncertain about the vehicle type, a confirmation dialog appea
 
 To confirm via API:
 ```bash
-<<<<<<< HEAD
-<<<<<<< HEAD
 curl -X POST https://api.your-domain.com/api/v1/jobs/{job_id}/confirm \
-=======
-curl -X POST http://localhost:8000/api/v1/jobs/{job_id}/confirm \
->>>>>>> origin/main
-=======
-curl -X POST http://localhost:8000/api/v1/jobs/{job_id}/confirm \
->>>>>>> origin/main
+/main
+/main
   -H "X-API-Key: rm_..." \
   -H "Content-Type: application/json" \
   -d '{"confirmation_type": "vehicle_classification", "selection": "three_wheeler"}'
@@ -514,15 +485,9 @@ Download all your workshop data from `/api/v1/workshop/export`:
 
 ```bash
 curl -H "X-API-Key: rm_..." \
-<<<<<<< HEAD
-<<<<<<< HEAD
   https://api.your-domain.com/api/v1/workshop/export \
-=======
-  http://localhost:8000/api/v1/workshop/export \
->>>>>>> origin/main
-=======
-  http://localhost:8000/api/v1/workshop/export \
->>>>>>> origin/main
+/main
+/main
   -o my-workshop-export.json
 ```
 
@@ -538,8 +503,6 @@ Use this for:
 
 ---
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 ## 14. CAD Export
 
 When the FreeCAD worker container is running, completed assessments can be exported as STEP or STL 3D model files. FreeCAD runs natively on ARM64 (Ubuntu apt package).
@@ -553,9 +516,7 @@ Included by default in the production stack (`docker-compose.prod.yml`). No manu
 ```bash
 # STEP format (default)
 curl -X GET "https://api.your-domain.com/api/v1/cad/export/{job_id}" \
-=======
-=======
->>>>>>> origin/main
+/main
 ## 14. Optional Capabilities
 
 RetroMind AI includes several optional AI and engineering capabilities that are disabled by default. Workshop administrators can enable them by setting the appropriate environment variables and installing dependencies.
@@ -654,23 +615,9 @@ export FREECAD_HOST=http://freecad-worker:8100
 ```bash
 # STEP format (default)
 curl -X GET "http://localhost:8000/api/v1/cad/export/{job_id}" \
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
-  -H "X-API-Key: rm_..." \
-  -o assessment.step
-
-# STL format
-<<<<<<< HEAD
-<<<<<<< HEAD
-curl -X GET "https://api.your-domain.com/api/v1/cad/export/{job_id}?format=stl" \
-=======
-curl -X GET "http://localhost:8000/api/v1/cad/export/{job_id}?format=stl" \
->>>>>>> origin/main
-=======
-curl -X GET "http://localhost:8000/api/v1/cad/export/{job_id}?format=stl" \
->>>>>>> origin/main
+/main
+/main
+/main
   -H "X-API-Key: rm_..." \
   -o assessment.stl
 ```
@@ -682,8 +629,6 @@ The exported model includes:
 
 **Note:** Returns `503 Service Unavailable` if the FreeCAD container is not running.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 ---
 
 ## 15. CLIP Vehicle Identification
@@ -738,12 +683,8 @@ Navigate to the OEM Admin page to view, add, or edit OEM specifications for vari
 ---
 
 ## 17. Troubleshooting
-=======
-## 16. Troubleshooting
->>>>>>> origin/main
-=======
-## 16. Troubleshooting
->>>>>>> origin/main
+/main
+/main
 
 ### Common Issues
 
@@ -756,8 +697,6 @@ Navigate to the OEM Admin page to view, add, or edit OEM specifications for vari
 | "400 Cannot confirm" | Job not in terminal state | Wait for job to complete; or job has no result yet |
 | Low confidence all results | Poor image quality | Retake photos with better lighting and framing |
 | Frontend shows blank page | API server not running | Check `docker compose ps` |
-<<<<<<< HEAD
-<<<<<<< HEAD
 | Report says service degraded | Neo4j or Redis unavailable | Check service health indicators in report |
 
 ### Checking Service Health
@@ -767,9 +706,7 @@ The compliance report includes an **Infrastructure Degradation** section showing
 ```bash
 # API health
 curl https://api.your-domain.com/api/v1/health
-=======
-=======
->>>>>>> origin/main
+/main
 | SSE not working | Proxy stripping `text/event-stream` | Frontend auto-falls back to polling |
 
 ### Checking Service Health
@@ -777,10 +714,8 @@ curl https://api.your-domain.com/api/v1/health
 ```bash
 # API health
 curl http://localhost:8000/api/v1/health
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
+/main
+/main
 
 # Container status
 docker compose ps

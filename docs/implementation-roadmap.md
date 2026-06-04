@@ -1,27 +1,15 @@
 # RetroMind AI — Implementation Roadmap
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 **All 7 phases are implemented.** Below is the record of what was built.
-=======
-**All 7 phases are complete and committed.** Below is the record of what was built.
->>>>>>> origin/main
-=======
-**All 7 phases are complete and committed.** Below is the record of what was built.
->>>>>>> origin/main
+/main
+/main
 
 ---
 
 ## ✅ Phase 0 — Foundation
-<<<<<<< HEAD
-<<<<<<< HEAD
 **Effort:** ~1 day | **Risk:** None | **Dependency for:** Everything else
-=======
-**Effort:** ~1 day &nbsp;|&nbsp; **Risk:** None &nbsp;|&nbsp; **Dependency for:** Everything else
->>>>>>> origin/main
-=======
-**Effort:** ~1 day &nbsp;|&nbsp; **Risk:** None &nbsp;|&nbsp; **Dependency for:** Everything else
->>>>>>> origin/main
+/main
+/main
 
 Feature flags, capability registry, and optional dependency groups. Every new feature gates on `settings.enable_*` before loading any code.
 
@@ -32,15 +20,9 @@ Feature flags, capability registry, and optional dependency groups. Every new fe
 ---
 
 ## ✅ Phase 0.5 — Hyperparameter Optimization
-<<<<<<< HEAD
-<<<<<<< HEAD
 **Effort:** ~2 days | **Risk:** Near-zero (offline only) | **Benefit:** Improves every assessment
-=======
-**Effort:** ~2 days &nbsp;|&nbsp; **Risk:** Near-zero (offline only) &nbsp;|&nbsp; **Benefit:** Improves every assessment
->>>>>>> origin/main
-=======
-**Effort:** ~2 days &nbsp;|&nbsp; **Risk:** Near-zero (offline only) &nbsp;|&nbsp; **Benefit:** Improves every assessment
->>>>>>> origin/main
+/main
+/main
 
 Optuna tuning for 5 targets: confidence weights, classifier signals, deviation thresholds, safety overrides, stage timeouts.
 
@@ -51,15 +33,9 @@ Optuna tuning for 5 targets: confidence weights, classifier signals, deviation t
 ---
 
 ## ✅ Phase 1 — PyTorch CNN Classifier
-<<<<<<< HEAD
-<<<<<<< HEAD
 **Effort:** ~3 days | **Risk:** Low (falls back to ONNX → heuristic) | **Benefit:** Replaces RandomForest with real CNN
-=======
-**Effort:** ~3 days &nbsp;|&nbsp; **Risk:** Low (falls back to ONNX → heuristic) &nbsp;|&nbsp; **Benefit:** Replaces RandomForest with real CNN
->>>>>>> origin/main
-=======
-**Effort:** ~3 days &nbsp;|&nbsp; **Risk:** Low (falls back to ONNX → heuristic) &nbsp;|&nbsp; **Benefit:** Replaces RandomForest with real CNN
->>>>>>> origin/main
+/main
+/main
 
 - `PyTorchRunner`, MobileNetV3-small model, fallback chain (PyTorch → ONNX → heuristic)
 - `train_pytorch.py` with accuracy validation before deploy
@@ -71,15 +47,9 @@ Optuna tuning for 5 targets: confidence weights, classifier signals, deviation t
 ---
 
 ## ✅ Phase 2 — RL Adaptive Recommendations
-<<<<<<< HEAD
-<<<<<<< HEAD
 **Effort:** ~5 days | **Risk:** Low (template is always the fallback) | **Benefit:** Recommendations improve with use
-=======
-**Effort:** ~5 days &nbsp;|&nbsp; **Risk:** Low (template is always the fallback) &nbsp;|&nbsp; **Benefit:** Recommendations improve with use
->>>>>>> origin/main
-=======
-**Effort:** ~5 days &nbsp;|&nbsp; **Risk:** Low (template is always the fallback) &nbsp;|&nbsp; **Benefit:** Recommendations improve with use
->>>>>>> origin/main
+/main
+/main
 
 - `RLRecommendationAgent` on top of template engine
 - `FeedbackStore`, `RecommendationFeedback` table (migration 005)
@@ -92,15 +62,9 @@ Optuna tuning for 5 targets: confidence weights, classifier signals, deviation t
 ---
 
 ## ✅ Phase 3 — Generative Refinement
-<<<<<<< HEAD
-<<<<<<< HEAD
 **Effort:** ~4 days | **Risk:** Low (pass-through on failure) | **Benefit:** Smart battery/wiring proposals
-=======
-**Effort:** ~4 days &nbsp;|&nbsp; **Risk:** Low (pass-through on failure) &nbsp;|&nbsp; **Benefit:** Smart battery/wiring proposals
->>>>>>> origin/main
-=======
-**Effort:** ~4 days &nbsp;|&nbsp; **Risk:** Low (pass-through on failure) &nbsp;|&nbsp; **Benefit:** Smart battery/wiring proposals
->>>>>>> origin/main
+/main
+/main
 
 - `GenerativeRefiner` with OpenAI/Anthropic backends
 - Refines battery zones and wiring routes; pass-through on any failure
@@ -112,8 +76,6 @@ Optuna tuning for 5 targets: confidence weights, classifier signals, deviation t
 ---
 
 ## ✅ Phase 4 — FreeCAD CAD Export
-<<<<<<< HEAD
-<<<<<<< HEAD
 **Effort:** ~3 days | **Risk:** Low (separate container) | **Status:** Deployable
 
 FreeCAD worker produces STEP/STL 3D model exports from assessment data. Runs as a separate container. `freecad` is available on ARM64 via Ubuntu apt.
@@ -126,9 +88,7 @@ FreeCAD worker produces STEP/STL 3D model exports from assessment data. Runs as 
 **Files:** `backend/infrastructure/freecad_client.py`, `freecad-worker/Dockerfile`, `freecad-worker/worker.py`, `backend/api/v1/endpoints/cad_export.py`
 
 **Status: ✅ Deployable (apt package, ARM64 native)**
-=======
-=======
->>>>>>> origin/main
+/main
 **Effort:** ~3 days &nbsp;|&nbsp; **Risk:** Low (separate container) &nbsp;|&nbsp; **Benefit:** Downloadable STEP/STL files
 
 - `FreeCADClient`, `freecad-worker/` container (Docker profile)
@@ -137,23 +97,9 @@ FreeCAD worker produces STEP/STL 3D model exports from assessment data. Runs as 
 **Files:** `backend/infrastructure/freecad_client.py`, `freecad-worker/Dockerfile`, `freecad-worker/worker.py`, `backend/api/v1/endpoints/cad_export.py`
 
 **Status: ✅ Complete (committed)**
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
-
----
-
-## ✅ Phase 5 — Continuous Learning
-<<<<<<< HEAD
-<<<<<<< HEAD
-**Effort:** ~4 days | **Risk:** Low (background job) | **Benefit:** Models improve automatically
-=======
-**Effort:** ~4 days &nbsp;|&nbsp; **Risk:** Low (background job) &nbsp;|&nbsp; **Benefit:** Models improve automatically
->>>>>>> origin/main
-=======
-**Effort:** ~4 days &nbsp;|&nbsp; **Risk:** Low (background job) &nbsp;|&nbsp; **Benefit:** Models improve automatically
->>>>>>> origin/main
+/main
+/main
+/main
 
 - `training-scheduler` container retrains every hour
 - Collects human-confirmed assessments → retrains PyTorch model → validates accuracy > 75% baseline
@@ -164,8 +110,6 @@ FreeCAD worker produces STEP/STL 3D model exports from assessment data. Runs as 
 
 ---
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 ## ✨ Post-Phase Additions
 
 ### CLIP Zero-Shot Classification
@@ -181,10 +125,7 @@ Terraform provisioning, Caddy reverse proxy, `docker-compose.prod.yml`, `.env.pr
 
 ---
 
-=======
->>>>>>> origin/main
-=======
->>>>>>> origin/main
+/main
 ## Summary
 
 ```
@@ -195,23 +136,17 @@ P0.5    Optuna hyperparameter tuning   6           12     ✅
 P1      PyTorch CNN classifier         4           12     ✅
 P2      RLlib recommendations          5           31     ✅
 P3      Generative AI refinement       3           26     ✅
-<<<<<<< HEAD
-<<<<<<< HEAD
 P4      FreeCAD CAD export             4           15     ✅ (ARM64 via apt)
 P5      Continuous learning            3            5     ✅
 ───     ───────────                    ──          ───    ────
 Total                                  32         132     ✅
-=======
-=======
->>>>>>> origin/main
+/main
 P4      FreeCAD CAD export             4           15     ✅
 P5      Continuous learning            3            5     ✅
 ───     ───────────                    ──          ───    ────
 Total                                  28         117     ✅
-<<<<<<< HEAD
->>>>>>> origin/main
-=======
->>>>>>> origin/main
+/main
+/main
 ```
 
 All optional capabilities are feature-flag-gated (default `False`) and dependency-isolated via `pyproject.toml` extras. The assessment pipeline is unchanged when all flags are off.

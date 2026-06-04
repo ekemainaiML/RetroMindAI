@@ -34,8 +34,6 @@ RetroMind AI: a self-learning EV retrofit intelligence network for imperfect rea
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-<<<<<<< HEAD
-<<<<<<< HEAD
 | Frontend | Next.js 16 + Tailwind CSS 4 | Workshop UI, progressive insight, confirmation modals |
 | Visualization | Three.js / React Three Fiber | Digital twin, risk overlays, battery placement zones |
 | Backend API | FastAPI | REST endpoints under `/api/v1/...`, job orchestration |
@@ -46,9 +44,7 @@ RetroMind AI: a self-learning EV retrofit intelligence network for imperfect rea
 | Knowledge Graph | Neo4j (AuraDB Free Tier) | Retrofit DNA, cross-retrofit similarity, pattern learning |
 | Object Storage | OCI Object Storage (S3-compatible) | Vehicle images, assessment artifacts, report exports |
 | Reverse Proxy | Caddy | Let's Encrypt auto TLS, frontend + API routing |
-=======
-=======
->>>>>>> origin/main
+/main
 | Frontend | Next.js + TailwindCSS | Workshop UI, progressive insight, confirmation modals |
 | Visualization | Three.js / React Three Fiber | Digital twin, risk overlays, battery placement zones |
 | Backend API | FastAPI | REST endpoints under `/api/v1/...`, job orchestration |
@@ -59,60 +55,8 @@ RetroMind AI: a self-learning EV retrofit intelligence network for imperfect rea
 | Primary DB | PostgreSQL | Jobs, assessments, risks, compliance reports, entity state |
 | Knowledge Graph | Neo4j | Retrofit DNA, cross-retrofit similarity, pattern learning |
 | Object Storage | Cloudflare R2 (S3-compatible) | Vehicle images, assessment artifacts, report exports |
-<<<<<<< HEAD
 >>>>>>> origin/main
-=======
->>>>>>> origin/main
-
-### 2.2 Deployment Topology
-
-```mermaid
-graph TB
-<<<<<<< HEAD
-<<<<<<< HEAD
-    subgraph OCI["Oracle Cloud Always Free Tier"]
-        subgraph VM["Ampere A1 Flex (4 OCPU, 24 GB)"]
-            subgraph RP["Caddy Reverse Proxy"]
-                CADDY["Caddy :80 / :443<br/>Auto Let's Encrypt TLS"]
-            end
-            subgraph DC["Docker Compose Services"]
-                FE["Next.js Frontend<br/>:3000"]
-                API["FastAPI API<br/>:8000"]
-                WK["RQ Worker<br/>Background jobs"]
-                FC["FreeCAD Worker<br/>:8100 (STEP/STL)"]
-
-                PG[("PostgreSQL 16<br/>:5432")]
-                RD[("Redis 7<br/>:6379")]
-            end
-            UV["Local Upload Cache<br/>/app/uploads/"]
-        end
-
-        subgraph Aura["AuraDB Free Tier"]
-            N4J[("Neo4j<br/>200k nodes")]
-        end
-
-        subgraph OCIStorage["OCI Object Storage"]
-            OS[("Uploads + Backups<br/>10 GB free")]
-        end
-    end
-
-    User["Workshop User"] -->|HTTPS :443| CADDY
-    CADDY -->|/api/*| API
-    CADDY -->|/*| FE
-    API -->|read/write| PG
-    API -->|enqueue / cache| RD
-    API -->|presigned URL| OS
-    API -->|STEP/STL export| FC
-    FC -->|assessment data| API
-    WK -->|poll| RD
-    WK -->|read/write| PG
-    WK -->|graph queries| N4J
-    WK -->|store| OS
-    WK -->|CV / ONNX / CLIP| AI["In-process AI"]
-    FE -->|HTTPS| CADDY
-=======
-=======
->>>>>>> origin/main
+/main
     subgraph Cloud["Cloud (Vercel + Railway + Aura)"]
         FE["Next.js Frontend<br/>Vercel"]
         API["FastAPI API<br/>Railway: backend-api"]
@@ -132,31 +76,8 @@ graph TB
     WK -->|"inference"| AI["PyTorch/ONNX/OpenCV<br/>local to Worker"]
     API -->|"read"| PG
     API -->|"serve"| R2
-<<<<<<< HEAD
 >>>>>>> origin/main
-=======
->>>>>>> origin/main
-```
-
-### 2.3 Monorepo Structure
-
-```
-retromind-ai/
-<<<<<<< HEAD
-<<<<<<< HEAD
-├── frontend/                 # Next.js 16 + Tailwind CSS 4
-│   ├── src/
-│   │   ├── app/              # App router pages
-│   │   ├── components/       # Shared components
-│   │   └── hooks/            # Custom React hooks
-│   └── package.json
-├── backend/                  # FastAPI + Workers
-│   ├── api/v1/endpoints/     # Route handlers
-│   ├── ai/                   # AI/ML modules
-│   │   ├── classification/   # Heuristic + CLIP classifiers
-=======
-=======
->>>>>>> origin/main
+/main
 ├── frontend/                 # Next.js + Tailwind (Vercel-deployed)
 │   ├── src/
 │   │   ├── app/              # App router pages
@@ -174,31 +95,8 @@ retromind-ai/
 │   │   └── main.py
 │   ├── ai/                   # AI/ML modules
 │   │   ├── classification/   # Vehicle classifier
-<<<<<<< HEAD
 >>>>>>> origin/main
-=======
->>>>>>> origin/main
-│   │   ├── geometry/         # Geometry extraction
-│   │   ├── deviation/        # Deviation detection
-│   │   └── models/           # ONNX runtime wrappers
-│   ├── workers/              # RQ task definitions
-│   ├── optimization/         # Battery placement, wiring
-<<<<<<< HEAD
-<<<<<<< HEAD
-│   ├── core/                 # Config, auth, confidence, models
-│   ├── tests/                # 401 unit + integration tests
-│   └── alembic/              # Migrations (001-008)
-├── freecad-worker/           # FreeCAD CAD export container
-├── infrastructure/
-│   └── terraform/            # OCI provisioning
-├── docs/                     # Architecture, user guide, specs
-├── Caddyfile                 # TLS reverse proxy config
-├── docker-compose.yml        # Dev orchestration
-├── docker-compose.prod.yml   # Production orchestration
-└── .env.prod.template        # Production secrets
-=======
-=======
->>>>>>> origin/main
+/main
 │   ├── graph/                # Neo4j client + queries
 │   ├── cad/                  # FreeCAD/OpenSCAD stubs
 │   ├── core/                 # Shared domain logic
@@ -218,23 +116,9 @@ retromind-ai/
 │   └── learner-profile.md
 ├── docker-compose.yml        # Root orchestration
 └── README.md
-<<<<<<< HEAD
 >>>>>>> origin/main
-=======
->>>>>>> origin/main
-```
-
-**API boundary rule**: `frontend/` and `backend/` MUST NOT share runtime business logic. Communication only via REST at `/api/v1/...`. Independent deployability SHALL be maintained throughout v1.
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-**Local development** (`docker-compose.yml`): frontend (Next.js dev), backend-api (FastAPI uvicorn), backend-worker (RQ worker), postgres, redis, neo4j (community).
-=======
-**Local development** (`docker-compose.yml`): frontend (Next.js dev), backend-api (FastAPI uvicorn), backend-worker (RQ worker), postgres, redis, neo4j (community), minio (optional R2 substitute).
->>>>>>> origin/main
-=======
-**Local development** (`docker-compose.yml`): frontend (Next.js dev), backend-api (FastAPI uvicorn), backend-worker (RQ worker), postgres, redis, neo4j (community), minio (optional R2 substitute).
->>>>>>> origin/main
+/main
+/main
 
 ---
 
@@ -247,15 +131,9 @@ retromind-ai/
 | `intake` | Evidence upload, validation, slot management | Yes |
 | `jobs` | Async job lifecycle, polling, timeout, retry | Yes |
 | `assessments` | Confidence scoring, deviation detection, risk analysis | Yes |
-<<<<<<< HEAD
-<<<<<<< HEAD
 | `recommendations` | Battery placement, wiring guidance | Yes |
-=======
-| `recommendations` | Battery placement, wiring guidance, CAD stub | Yes |
->>>>>>> origin/main
-=======
-| `recommendations` | Battery placement, wiring guidance, CAD stub | Yes |
->>>>>>> origin/main
+/main
+/main
 | `reports` | Compliance report generation (13-section canonical) | Yes |
 | `intelligence_graph` | Retrofit DNA, similarity queries, pattern learning | Yes |
 | `shared` | Common enums, base models, utilities | Yes |
@@ -367,15 +245,9 @@ upload_validation -> image_quality_check -> vehicle_classification -> geometry_e
 ## 6. Async Job Contract
 
 ### 6.1 Transport
-<<<<<<< HEAD
-<<<<<<< HEAD
 - v1: polling (`GET /api/v1/jobs/{job_id}`)
-=======
-- v1: polling only (`GET /api/v1/jobs/{job_id}`)
->>>>>>> origin/main
-=======
-- v1: polling only (`GET /api/v1/jobs/{job_id}`)
->>>>>>> origin/main
+/main
+/main
 - v1.5: SSE upgrade via transport abstraction
 - v2+: WebSockets (deferred)
 
@@ -421,15 +293,9 @@ sequenceDiagram
     A->>P: store evidence records
     A-->>F: { intake_id }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     F->>A: POST /api/v1/intake/{id}/analyze
-=======
-    F->>A: POST /api/v1/jobs { intake_id }
->>>>>>> origin/main
-=======
-    F->>A: POST /api/v1/jobs { intake_id }
->>>>>>> origin/main
+/main
+/main
     A->>R: enqueue assessment job
     A->>P: create job record (queued)
     A-->>F: { job_id, status: queued }
@@ -494,15 +360,9 @@ Content-Type: multipart/form-data
 ```
 
 **Mandatory views**: `left_side_profile`, `right_side_profile`, `rear_view`
-<<<<<<< HEAD
-<<<<<<< HEAD
 - if 3/3 valid -> eligible to score; 2/3 -> `partial_assessment`; <2 -> `unsafe_to_assess`
-=======
--if 3/3 valid -> eligible to score; 2/3 -> `partial_assessment`; <2 -> `unsafe_to_assess`
->>>>>>> origin/main
-=======
--if 3/3 valid -> eligible to score; 2/3 -> `partial_assessment`; <2 -> `unsafe_to_assess`
->>>>>>> origin/main
+/main
+/main
 
 ```
 PUT /api/v1/intake/{intake_id}/views/{view_slot}
@@ -516,52 +376,14 @@ Content-Type: multipart/form-data
 ### 7.2 Job API
 
 ```
-<<<<<<< HEAD
-<<<<<<< HEAD
 POST /api/v1/intake/{intake_id}/analyze
-=======
-=======
->>>>>>> origin/main
+/main
 POST /api/v1/jobs
 {
   "intake_id": "uuid"
 }
-<<<<<<< HEAD
 >>>>>>> origin/main
-=======
->>>>>>> origin/main
-
--> 201 { "job_id": "uuid", "status": "queued" }
-
-GET /api/v1/jobs/{job_id}
--> 200 { /* job response shape from 6.3 */ }
-
-POST /api/v1/jobs/{job_id}/confirm
-{
-  "confirmation_type": "vehicle_classification",
-  "selection": "three_wheeler"
-}
-
--> 200 { "job_id": "...", "status": "running" }
-```
-
-### 7.3 Assessment API
-
-```
-GET /api/v1/assessments/{assessment_id}
--> 200
-{
-  "assessment_id": "uuid",
-  "job_id": "uuid",
-  "intake_id": "uuid",
-  "assessment_state": "reduced_confidence",
-  "confidence_score": 78,
-<<<<<<< HEAD
-<<<<<<< HEAD
-  "confidence_factors": { ... },
-=======
-=======
->>>>>>> origin/main
+/main
   "confidence_factors": {
     "completeness": 90,
     "quality": 75,
@@ -570,28 +392,8 @@ GET /api/v1/assessments/{assessment_id}
     "geometry": 70,
     "deviation_certainty": 65
   },
-<<<<<<< HEAD
 >>>>>>> origin/main
-=======
->>>>>>> origin/main
-  "safety_overrides": [],
-  "vehicle_classification": {
-    "type": "three_wheeler",
-    "confidence": 0.85,
-    "human_confirmed": true,
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "alternatives": [...]
-  },
-  "deviation_summary": { ... },
-  "feasibility_score": 72,
-  "feasibility_label": "feasible_with_adaptation",
-  "risk_summary": { ... },
-  "risks": [...],
-  "infrastructure_degradation": [...],
-=======
-=======
->>>>>>> origin/main
+/main
     "alternatives": [
       { "type": "motorcycle", "confidence": 0.12 }
     ]
@@ -635,42 +437,8 @@ GET /api/v1/assessments/{assessment_id}
       "fallback": "heuristic_recommendation_engine"
     }
   ],
-<<<<<<< HEAD
 >>>>>>> origin/main
-=======
->>>>>>> origin/main
-  "needs_confirmation": false,
-  "compliance_state": "pass_with_caveats"
-}
-```
-
-### 7.4 Needs Confirmation Response
-
-```json
-{
-  "status": "needs_confirmation",
-  "reason": "vehicle_classification_conflict",
-  "options": [
-    { "vehicle_type": "three_wheeler", "confidence": 0.58 },
-    { "vehicle_type": "motorcycle", "confidence": 0.31 }
-  ]
-}
-```
-
-### 7.5 Recommendation API
-
-```
-GET /api/v1/recommendations/{assessment_id}
--> 200
-{
-  "recommendation_status": "feasible_with_adaptation",
-  "battery_placement": {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "zones": [{ "id": "A", "priority": 1, "position": "under_seat_forward", "constraints": [...] }],
-=======
-=======
->>>>>>> origin/main
+/main
     "zones": [
       {
         "id": "A",
@@ -679,32 +447,9 @@ GET /api/v1/recommendations/{assessment_id}
         "constraints": ["max_width_420mm", "max_height_180mm"]
       }
     ],
-<<<<<<< HEAD
 >>>>>>> origin/main
-=======
->>>>>>> origin/main
-    "adapted": true,
-    "adaptation_reason": "Frame asymmetry required 15mm left offset compensation",
-    "risk_if_standard": "Battery would contact frame rail under load"
-  },
-  "wiring_guidance": {
-    "routing_path": "chassis_rail_right",
-    "caution_zones": ["engine_bay_left_corner", "wheel_well_rear"],
-    "confidence": "partial",
-    "confidence_reason": "Structural visibility limited in engine bay"
-<<<<<<< HEAD
-<<<<<<< HEAD
-  }
-=======
-  },
-  "cad_output_available": false,
-  "human_confirmed": true
->>>>>>> origin/main
-=======
-  },
-  "cad_output_available": false,
-  "human_confirmed": true
->>>>>>> origin/main
+/main
+/main
 }
 ```
 

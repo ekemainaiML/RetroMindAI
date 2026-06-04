@@ -14,20 +14,10 @@ graph TB
     end
 
     subgraph "Oracle Cloud Free Tier VM (4 OCPU, 24 GB RAM)"
-<<<<<<< HEAD
-<<<<<<< HEAD
         subgraph ReverseProxy["Caddy Reverse Proxy"]
             CADDY[Caddy :80 / :443<br/>Auto Let's Encrypt TLS]
-=======
-        subgraph ReverseProxy["nginx Reverse Proxy"]
-            NGINX[nginx :80 / :443]
-            CERT[Certbot<br/>Let's Encrypt SSL]
->>>>>>> origin/main
-=======
-        subgraph ReverseProxy["nginx Reverse Proxy"]
-            NGINX[nginx :80 / :443]
-            CERT[Certbot<br/>Let's Encrypt SSL]
->>>>>>> origin/main
+/main
+/main
         end
 
         subgraph DockerCompose["Docker Compose Services"]
@@ -43,47 +33,18 @@ graph TB
         UV[Local Upload Storage<br/>/app/uploads/]
     end
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     User -->|HTTPS :443| CADDY
     Admin -->|HTTPS :443| CADDY
     CADDY -->|/api/*| API
     CADDY -->|/*| FE
-=======
-=======
->>>>>>> origin/main
+/main
     User -->|HTTPS :443| NGINX
     Admin -->|HTTPS :443| NGINX
     NGINX -->|/api/*| API
     NGINX -->|/*| FE
-<<<<<<< HEAD
 >>>>>>> origin/main
-=======
->>>>>>> origin/main
-
-    API -->|read/write| PG
-    API -->|enqueue / cache / pubsub| RD
-    API -->|read| UV
-
-    WK -->|poll / pubsub| RD
-    WK -->|read/write| PG
-    WK -->|graph queries| N4J
-    WK -->|read| UV
-    WK -->|onnx inference| AI[ONNX Runtime<br/>+ OpenCV<br/>in-worker]
-
-    style User fill:#4ade80,stroke:#166534
-    style Admin fill:#facc15,stroke:#854d0e
-<<<<<<< HEAD
-<<<<<<< HEAD
-    style CADDY fill:#60a5fa,stroke:#1e40af
-=======
-    style NGINX fill:#60a5fa,stroke:#1e40af
-    style CERT fill:#94a3b8,stroke:#475569
->>>>>>> origin/main
-=======
-    style NGINX fill:#60a5fa,stroke:#1e40af
-    style CERT fill:#94a3b8,stroke:#475569
->>>>>>> origin/main
+/main
+/main
     style FE fill:#c084fc,stroke:#6b21a8
     style API fill:#f472b6,stroke:#9d174d
     style WK fill:#fb923c,stroke:#9a3412
