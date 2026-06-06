@@ -1,15 +1,11 @@
 # RetroMind AI — Implementation Roadmap
 
 **All 7 phases are implemented.** Below is the record of what was built.
-/main
-/main
 
 ---
 
 ## ✅ Phase 0 — Foundation
 **Effort:** ~1 day | **Risk:** None | **Dependency for:** Everything else
-/main
-/main
 
 Feature flags, capability registry, and optional dependency groups. Every new feature gates on `settings.enable_*` before loading any code.
 
@@ -21,8 +17,6 @@ Feature flags, capability registry, and optional dependency groups. Every new fe
 
 ## ✅ Phase 0.5 — Hyperparameter Optimization
 **Effort:** ~2 days | **Risk:** Near-zero (offline only) | **Benefit:** Improves every assessment
-/main
-/main
 
 Optuna tuning for 5 targets: confidence weights, classifier signals, deviation thresholds, safety overrides, stage timeouts.
 
@@ -34,8 +28,6 @@ Optuna tuning for 5 targets: confidence weights, classifier signals, deviation t
 
 ## ✅ Phase 1 — PyTorch CNN Classifier
 **Effort:** ~3 days | **Risk:** Low (falls back to ONNX → heuristic) | **Benefit:** Replaces RandomForest with real CNN
-/main
-/main
 
 - `PyTorchRunner`, MobileNetV3-small model, fallback chain (PyTorch → ONNX → heuristic)
 - `train_pytorch.py` with accuracy validation before deploy
@@ -48,8 +40,6 @@ Optuna tuning for 5 targets: confidence weights, classifier signals, deviation t
 
 ## ✅ Phase 2 — RL Adaptive Recommendations
 **Effort:** ~5 days | **Risk:** Low (template is always the fallback) | **Benefit:** Recommendations improve with use
-/main
-/main
 
 - `RLRecommendationAgent` on top of template engine
 - `FeedbackStore`, `RecommendationFeedback` table (migration 005)
@@ -63,8 +53,6 @@ Optuna tuning for 5 targets: confidence weights, classifier signals, deviation t
 
 ## ✅ Phase 3 — Generative Refinement
 **Effort:** ~4 days | **Risk:** Low (pass-through on failure) | **Benefit:** Smart battery/wiring proposals
-/main
-/main
 
 - `GenerativeRefiner` with OpenAI/Anthropic backends
 - Refines battery zones and wiring routes; pass-through on any failure
@@ -88,20 +76,13 @@ FreeCAD worker produces STEP/STL 3D model exports from assessment data. Runs as 
 **Files:** `backend/infrastructure/freecad_client.py`, `freecad-worker/Dockerfile`, `freecad-worker/worker.py`, `backend/api/v1/endpoints/cad_export.py`
 
 **Status: ✅ Deployable (apt package, ARM64 native)**
-/main
-**Effort:** ~3 days &nbsp;|&nbsp; **Risk:** Low (separate container) &nbsp;|&nbsp; **Benefit:** Downloadable STEP/STL files
 
-- `FreeCADClient`, `freecad-worker/` container (Docker profile)
-- `GET /api/v1/cad/export/{id}` returns STEP/STL
+---
 
-**Files:** `backend/infrastructure/freecad_client.py`, `freecad-worker/Dockerfile`, `freecad-worker/worker.py`, `backend/api/v1/endpoints/cad_export.py`
+## ✅ Phase 5 — Continuous Learning
+**Effort:** ~2 days | **Risk:** Low (offline) | **Benefit:** Assessment pipeline improves itself
 
-**Status: ✅ Complete (committed)**
-/main
-/main
-/main
-
-- `training-scheduler` container retrains every hour
+- `training-scheduler` container retrains every 30 minutes
 - Collects human-confirmed assessments → retrains PyTorch model → validates accuracy > 75% baseline
 
 **Files:** `backend/workers/training_scheduler.py`, migration 004, `docker-compose.yml`
@@ -125,7 +106,6 @@ Terraform provisioning, Caddy reverse proxy, `docker-compose.prod.yml`, `.env.pr
 
 ---
 
-/main
 ## Summary
 
 ```
@@ -140,13 +120,6 @@ P4      FreeCAD CAD export             4           15     ✅ (ARM64 via apt)
 P5      Continuous learning            3            5     ✅
 ───     ───────────                    ──          ───    ────
 Total                                  32         132     ✅
-/main
-P4      FreeCAD CAD export             4           15     ✅
-P5      Continuous learning            3            5     ✅
-───     ───────────                    ──          ───    ────
-Total                                  28         117     ✅
-/main
-/main
 ```
 
 All optional capabilities are feature-flag-gated (default `False`) and dependency-isolated via `pyproject.toml` extras. The assessment pipeline is unchanged when all flags are off.

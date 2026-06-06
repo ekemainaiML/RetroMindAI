@@ -44,81 +44,6 @@ RetroMind AI: a self-learning EV retrofit intelligence network for imperfect rea
 | Knowledge Graph | Neo4j (AuraDB Free Tier) | Retrofit DNA, cross-retrofit similarity, pattern learning |
 | Object Storage | OCI Object Storage (S3-compatible) | Vehicle images, assessment artifacts, report exports |
 | Reverse Proxy | Caddy | Let's Encrypt auto TLS, frontend + API routing |
-/main
-| Frontend | Next.js + TailwindCSS | Workshop UI, progressive insight, confirmation modals |
-| Visualization | Three.js / React Three Fiber | Digital twin, risk overlays, battery placement zones |
-| Backend API | FastAPI | REST endpoints under `/api/v1/...`, job orchestration |
-| Worker | RQ + Redis | Background inference tasks, queue management |
-| AI Runtime | PyTorch + ONNX + OpenCV | Classification, geometry extraction, deviation detection |
-| Optimization | SciPy / Optuna | Battery placement multi-objective optimization |
-| CAD Path | FreeCAD / OpenSCAD scripting | CAD-ready output generation (v1 stub) |
-| Primary DB | PostgreSQL | Jobs, assessments, risks, compliance reports, entity state |
-| Knowledge Graph | Neo4j | Retrofit DNA, cross-retrofit similarity, pattern learning |
-| Object Storage | Cloudflare R2 (S3-compatible) | Vehicle images, assessment artifacts, report exports |
->>>>>>> origin/main
-/main
-    subgraph Cloud["Cloud (Vercel + Railway + Aura)"]
-        FE["Next.js Frontend<br/>Vercel"]
-        API["FastAPI API<br/>Railway: backend-api"]
-        WK["RQ Worker<br/>Railway: backend-worker"]
-        PG[("PostgreSQL<br/>Railway")]
-        RD[("Redis<br/>Railway")]
-        N4J[("Neo4j AuraDB")]
-        R2[("Cloudflare R2")]
-    end
-
-    FE -->|"/api/v1/*"| API
-    API -->|"enqueue"| RD
-    WK -->|"poll"| RD
-    WK -->|"read/write"| PG
-    WK -->|"graph queries"| N4J
-    WK -->|"store/retrieve"| R2
-    WK -->|"inference"| AI["PyTorch/ONNX/OpenCV<br/>local to Worker"]
-    API -->|"read"| PG
-    API -->|"serve"| R2
->>>>>>> origin/main
-/main
-├── frontend/                 # Next.js + Tailwind (Vercel-deployed)
-│   ├── src/
-│   │   ├── app/              # App router pages
-│   │   ├── components/       # Shared components
-│   │   ├── lib/              # API client, types, utilities
-│   │   └── hooks/            # Custom React hooks
-│   ├── public/
-│   └── package.json
-├── backend/                  # FastAPI + Workers (Railway-deployed)
-│   ├── api/                  # FastAPI application
-│   │   ├── v1/
-│   │   │   ├── endpoints/    # Route handlers
-│   │   │   ├── models/       # Pydantic schemas (request/response)
-│   │   │   └── deps/         # Dependency injection
-│   │   └── main.py
-│   ├── ai/                   # AI/ML modules
-│   │   ├── classification/   # Vehicle classifier
->>>>>>> origin/main
-/main
-│   ├── graph/                # Neo4j client + queries
-│   ├── cad/                  # FreeCAD/OpenSCAD stubs
-│   ├── core/                 # Shared domain logic
-│   │   ├── confidence.py     # Confidence score engine
-│   │   ├── risk.py           # Risk model + escalation
-│   │   ├── compliance.py     # Compliance state machine
-│   │   └── states.py         # Enums, state tables
-│   ├── tests/
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   └── docker-compose.yml
-├── docs/
-│   ├── prd.md
-│   ├── spec.md
-│   ├── failure_modes.md
-│   ├── scope.md
-│   └── learner-profile.md
-├── docker-compose.yml        # Root orchestration
-└── README.md
->>>>>>> origin/main
-/main
-/main
 
 ---
 
@@ -132,8 +57,6 @@ RetroMind AI: a self-learning EV retrofit intelligence network for imperfect rea
 | `jobs` | Async job lifecycle, polling, timeout, retry | Yes |
 | `assessments` | Confidence scoring, deviation detection, risk analysis | Yes |
 | `recommendations` | Battery placement, wiring guidance | Yes |
-/main
-/main
 | `reports` | Compliance report generation (13-section canonical) | Yes |
 | `intelligence_graph` | Retrofit DNA, similarity queries, pattern learning | Yes |
 | `shared` | Common enums, base models, utilities | Yes |
@@ -246,8 +169,6 @@ upload_validation -> image_quality_check -> vehicle_classification -> geometry_e
 
 ### 6.1 Transport
 - v1: polling (`GET /api/v1/jobs/{job_id}`)
-/main
-/main
 - v1.5: SSE upgrade via transport abstraction
 - v2+: WebSockets (deferred)
 
@@ -294,8 +215,6 @@ sequenceDiagram
     A-->>F: { intake_id }
 
     F->>A: POST /api/v1/intake/{id}/analyze
-/main
-/main
     A->>R: enqueue assessment job
     A->>P: create job record (queued)
     A-->>F: { job_id, status: queued }
@@ -361,8 +280,6 @@ Content-Type: multipart/form-data
 
 **Mandatory views**: `left_side_profile`, `right_side_profile`, `rear_view`
 - if 3/3 valid -> eligible to score; 2/3 -> `partial_assessment`; <2 -> `unsafe_to_assess`
-/main
-/main
 
 ```
 PUT /api/v1/intake/{intake_id}/views/{view_slot}
@@ -377,13 +294,9 @@ Content-Type: multipart/form-data
 
 ```
 POST /api/v1/intake/{intake_id}/analyze
-/main
-POST /api/v1/jobs
+
+-> 200
 {
-  "intake_id": "uuid"
-}
->>>>>>> origin/main
-/main
   "confidence_factors": {
     "completeness": 90,
     "quality": 75,
@@ -392,8 +305,6 @@ POST /api/v1/jobs
     "geometry": 70,
     "deviation_certainty": 65
   },
->>>>>>> origin/main
-/main
     "alternatives": [
       { "type": "motorcycle", "confidence": 0.12 }
     ]
@@ -437,8 +348,6 @@ POST /api/v1/jobs
       "fallback": "heuristic_recommendation_engine"
     }
   ],
->>>>>>> origin/main
-/main
     "zones": [
       {
         "id": "A",
@@ -447,9 +356,6 @@ POST /api/v1/jobs
         "constraints": ["max_width_420mm", "max_height_180mm"]
       }
     ],
->>>>>>> origin/main
-/main
-/main
 }
 ```
 
