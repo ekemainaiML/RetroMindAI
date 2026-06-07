@@ -55,7 +55,9 @@ services:
       AI_MODEL_PATH: /app/ai/models/vehicle_classifier.onnx
       TORCH_MODEL_PATH: /app/ai/models/mobilenet.pt
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      HF_TOKEN: ${HF_TOKEN:-}
       FREECAD_HOST: http://freecad-worker:8100
+      ENABLE_GENERATIVE_DESIGN: "true"
     volumes:
       - ./backend:/app
       - /app/__pycache__
@@ -82,7 +84,9 @@ services:
       AI_MODEL_PATH: /app/ai/models/vehicle_classifier.onnx
       TORCH_MODEL_PATH: /app/ai/models/mobilenet.pt
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      HF_TOKEN: ${HF_TOKEN:-}
       FREECAD_HOST: http://freecad-worker:8100
+      ENABLE_GENERATIVE_DESIGN: "true"
     depends_on:
       postgres:
         condition: service_healthy

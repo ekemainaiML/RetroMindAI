@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAssessment } from "@/hooks/useAssessment";
 import { STAGE_LABELS, type OEMSearchResult, type OEMSearchResponse } from "@/types/assessment";
 import { apiPost, apiGet, ensureApiKey, getApiKey, clearApiKey, setApiKey } from "@/utils/api";
+import Tooltip from "@/components/ui/Tooltip";
 import AssessmentResult from "@/components/assessment/AssessmentResult";
 import type { IdentifyVehicleResponse } from "@/types/assessment";
 import OnboardingGuide from "@/components/OnboardingGuide";
@@ -29,6 +30,7 @@ interface SlotDef {
 interface SlotUploadInfo {
   attempt: number;
   blurry: boolean;
+  occluded: boolean;
   filePath: string | null;
 }
 
@@ -37,6 +39,7 @@ type SlotUploadMap = Record<SlotKey, SlotUploadInfo>;
 const INITIAL_SLOT_INFO: SlotUploadInfo = {
   attempt: 0,
   blurry: false,
+  occluded: false,
   filePath: null,
 };
 
@@ -45,37 +48,37 @@ const SLOTS: SlotDef[] = [
     key: "left_side_profile",
     label: "Left Side Profile",
     required: true,
-    guidance: "Capture the full left side of the vehicle, including wheelbase",
+    guidance: "Capture the full left side, level with the chassis — shows wheelbase, running boards, and panel alignment",
   },
   {
     key: "right_side_profile",
     label: "Right Side Profile",
     required: true,
-    guidance: "Capture the full right side of the vehicle, including wheelbase",
+    guidance: "Capture the full right side, level with the chassis — shows wheelbase, running boards, and panel alignment",
   },
   {
     key: "rear_view",
     label: "Rear View",
     required: true,
-    guidance: "Capture the rear of the vehicle, including bumper and taillights",
+    guidance: "Direct rear view, centered on license plate area — shows bumper, tailgate, taillights, and chassis width",
   },
   {
     key: "front_view",
     label: "Front View",
     required: false,
-    guidance: "Capture the front of the vehicle, including bumper and headlights",
+    guidance: "Direct front view, centered on grille — shows bumper, headlights, hood, and front suspension",
   },
   {
     key: "engine_bay",
     label: "Engine Bay",
     required: false,
-    guidance: "Capture the engine bay with hood fully open",
+    guidance: "Hood fully open, top-down view — shows engine layout, battery tray area, and wiring harness routing",
   },
   {
     key: "underbody",
     label: "Underbody",
     required: false,
-    guidance: "Capture the undercarriage from the rear looking forward — Optional, improves accuracy",
+    guidance: "From rear, looking forward at a low angle — shows frame rails, fuel tank, exhaust, and axle assembly",
   },
 ];
 
@@ -136,6 +139,11 @@ function UploadSlot({
               Blurry — may reduce accuracy
             </div>
           )}
+          {slotInfo.occluded && (
+            <div className="absolute inset-x-0 bottom-0 rounded-b-lg bg-orange-500/80 px-2 py-1 text-center text-[10px] font-medium text-white">
+              Occlusion detected — recapture for full accuracy
+            </div>
+          )}
         </div>
       ) : (
         <div
@@ -185,8 +193,13 @@ function UploadSlot({
         )}
       </div>
 
-      <span className="text-center text-[10px] leading-tight text-zinc-400">
+      <span className="flex items-center gap-1 text-center text-[10px] leading-tight text-zinc-400">
         {slot.guidance}
+        <Tooltip text="Use diffuse daylight. Keep the camera level and steady. Ensure the entire vehicle section is in frame — avoid obstructions. Retake if the image is blurry or poorly lit.">
+          <span className="inline-flex h-3.5 w-3.5 cursor-help items-center justify-center rounded-full border border-zinc-300 text-[8px] font-bold text-zinc-400 dark:border-zinc-600 dark:text-zinc-500">
+            ?
+          </span>
+        </Tooltip>
       </span>
 
       {preview && !isUnusable && (
@@ -211,12 +224,16 @@ function MissingViewRecoveryDialog({
   swapSuspected,
   onUploadNow,
   onContinueLimited,
+  onSwapNow,
+  onKeepAsIs,
 }: {
   missingViews: string[];
   lowQualityViews: string[];
   swapSuspected: boolean;
   onUploadNow: () => void;
   onContinueLimited: () => void;
+  onSwapNow: () => void;
+  onKeepAsIs: () => void;
 }) {
   return (
     <div className="mt-6 space-y-4 rounded-xl border border-yellow-300 bg-yellow-50 p-6 dark:border-yellow-700 dark:bg-yellow-950">
@@ -266,12 +283,14 @@ function MissingViewRecoveryDialog({
           <div className="mt-2 flex gap-2">
             <button
               type="button"
+              onClick={onKeepAsIs}
               className="rounded-md border border-purple-300 bg-white px-3 py-1 text-[10px] font-medium text-purple-700 hover:bg-purple-50 dark:border-purple-700 dark:bg-purple-900 dark:text-purple-300"
             >
               Keep as is
             </button>
             <button
               type="button"
+              onClick={onSwapNow}
               className="rounded-md bg-purple-600 px-3 py-1 text-[10px] font-medium text-white hover:bg-purple-700"
             >
               Swap them
@@ -431,6 +450,7 @@ export default function Home() {
 
   const [concurrentBlocking, setConcurrentBlocking] = useState<{
     existing_job_id: string;
+    existing_intake_id: string;
   } | null>(null);
 
   interface DemoVehicle {
@@ -487,11 +507,10 @@ export default function Home() {
 
         if (res.status === 409) {
           const errBody = await res.json();
+          const detail = errBody.detail || errBody;
           setConcurrentBlocking({
-            existing_job_id:
-              errBody.detail?.existing_job_id ||
-              errBody.existing_job_id ||
-              "unknown",
+            existing_job_id: detail.existing_job_id || "unknown",
+            existing_intake_id: detail.existing_intake_id || intakeId || "unknown",
           });
           setUploading(false);
           return;
@@ -523,8 +542,11 @@ export default function Home() {
       const h: Record<string, string> = {};
       const key = await ensureApiKey();
       if (key) h["X-API-Key"] = key;
+      const cancelTarget = concurrentBlocking
+        ? concurrentBlocking.existing_intake_id
+        : intakeId;
       await fetch(
-        `http://localhost:8000/api/v1/intake/${intakeId}/cancel-analysis`,
+        `http://localhost:8000/api/v1/intake/${cancelTarget}/cancel-analysis`,
         { method: "POST", headers: h }
       );
       setConcurrentBlocking(null);
@@ -536,7 +558,7 @@ export default function Home() {
     } finally {
       setUploading(false);
     }
-  }, [intakeId, handleAnalyzeTrigger]);
+  }, [intakeId, handleAnalyzeTrigger, concurrentBlocking]);
 
   const selectOemModel = useCallback((model: OEMSearchResult | null) => {
     setOemSelectedModel(model);
@@ -578,6 +600,7 @@ export default function Home() {
           newSlotInfo[slot.key] = {
             attempt: intakeData.attempts?.[slot.key] ?? 0,
             blurry: intakeData.low_quality_views?.includes(slot.key) ?? false,
+            occluded: intakeData.occluded_views?.includes(slot.key) ?? false,
             filePath: intakeData.intake_id,
           };
         }
@@ -640,9 +663,10 @@ export default function Home() {
       setSlotInfo((prev) => ({
         ...prev,
         [slotKey]: {
-          attempt: data.attempt ?? 0,
-          blurry: data.blurry ?? false,
-          filePath: intakeId,
+        attempt: data.attempt ?? 0,
+        blurry: data.blurry ?? false,
+        occluded: data.occluded ?? false,
+        filePath: intakeId,
         },
       }));
 
@@ -690,6 +714,30 @@ export default function Home() {
     } finally {
       setReuploadingSlot(null);
     }
+  };
+
+  const handleSwapNow = async () => {
+    if (!intakeId) return;
+    try {
+      const h: Record<string, string> = {};
+      const key = getApiKey();
+      if (key) h["X-API-Key"] = key;
+      await fetch(`http://localhost:8000/api/v1/intake/${intakeId}/swap-views`, {
+        method: "POST",
+        headers: h,
+      });
+      setRecoveryData((prev) =>
+        prev ? { ...prev, swapSuspected: false } : prev
+      );
+    } catch {
+      // Swallow — the user can retry if needed
+    }
+  };
+
+  const handleKeepAsIs = () => {
+    setRecoveryData((prev) =>
+      prev ? { ...prev, swapSuspected: false } : prev
+    );
   };
 
   const handleReuploadFromDialog = () => {
@@ -766,12 +814,77 @@ export default function Home() {
                 swapSuspected={recoveryData.swapSuspected}
                 onUploadNow={handleReuploadFromDialog}
                 onContinueLimited={handleContinueLimited}
+                onSwapNow={handleSwapNow}
+                onKeepAsIs={handleKeepAsIs}
               />
             )}
 
             {uploadError && (
               <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-700 dark:bg-red-950 dark:text-red-200">
                 {uploadError}
+              </div>
+            )}
+
+            {concurrentBlocking && (
+              <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 shadow-sm dark:border-amber-700 dark:bg-amber-950">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 shrink-0">
+                    <svg className="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                      Assessment already in progress
+                    </p>
+                    <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                      An assessment is already running for this workshop. You can view its progress or cancel it and start a new one.
+                    </p>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setJobId(concurrentBlocking.existing_job_id);
+                          setIntakeId(null);
+                          setFiles({} as Record<SlotKey, File | null>);
+                          setPreviews({} as Record<SlotKey, string | null>);
+                          setSlotInfo({} as Record<SlotKey, SlotUploadInfo>);
+                          setConcurrentBlocking(null);
+                        }}
+                        className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50 transition-colors dark:border-amber-700 dark:bg-amber-900 dark:text-amber-200 dark:hover:bg-amber-800"
+                      >
+                        View Current
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setUploading(true);
+                          try {
+                            const h: Record<string, string> = {};
+                            const key = await ensureApiKey();
+                            if (key) h["X-API-Key"] = key;
+                            await fetch(
+                              `http://localhost:8000/api/v1/intake/${concurrentBlocking.existing_intake_id}/cancel-analysis`,
+                              { method: "POST", headers: h }
+                            );
+                            setConcurrentBlocking(null);
+                            await handleAnalyzeTrigger(intakeId!);
+                          } catch (err) {
+                            setUploadError(
+                              err instanceof Error ? err.message : "Cancel failed"
+                            );
+                          } finally {
+                            setUploading(false);
+                          }
+                        }}
+                        disabled={uploading}
+                        className="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600 disabled:opacity-50 transition-colors dark:bg-amber-600 dark:hover:bg-amber-500"
+                      >
+                        {uploading ? "Cancelling…" : "Cancel & Start New"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

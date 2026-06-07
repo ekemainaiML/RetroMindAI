@@ -122,10 +122,10 @@ class TestReports:
         response = auth_client.get(f"/api/v1/reports/{completed_job_id}")
         assert response.status_code == 200
 
-    def test_report_has_13_sections(self, completed_job_id, auth_client):
+    def test_report_has_14_sections(self, completed_job_id, auth_client):
         response = auth_client.get(f"/api/v1/reports/{completed_job_id}")
         data = response.json()
-        assert len(data["sections"]) == 13
+        assert len(data["sections"]) == 14
 
     def test_report_contains_metadata(self, completed_job_id, auth_client):
         response = auth_client.get(f"/api/v1/reports/{completed_job_id}")
@@ -140,6 +140,7 @@ class TestReports:
         expected_ids = [
             "assessment_metadata",
             "vehicle_classification",
+            "evidence_summary",
             "deviation_summary",
             "confidence_and_risk",
             "compliance_state",

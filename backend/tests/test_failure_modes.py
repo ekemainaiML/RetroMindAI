@@ -3,7 +3,9 @@ from unittest.mock import Mock, mock_open, patch
 
 import pytest
 
-from ai.classification.preprocess import check_occlusion, detect_low_light
+from ai.classification.preprocess import auto_enhance, check_occlusion, detect_low_light
+from core.database import SessionLocal
+from core.models import Intake, Workshop
 from core.conflict import evaluate_classification_conflict
 from core.degradation import DegradationManager, get_degradation_manager, reset_degradation_manager
 from core.risk import (
@@ -150,6 +152,43 @@ class TestFM_IN_04_ViewSwap:
         assert check_swap(None, None) is False
         assert check_swap("/fake/left.png", None) is False
 
+    def test_swap_views_endpoint_swaps_slots(self, auth_client):
+        db = SessionLocal()
+        workshop_id = None
+        try:
+            workshop = db.query(Workshop).filter(Workshop.name == "Test Workshop").first()
+            workshop_id = workshop.id
+        finally:
+            db.close()
+
+        intake_id = uuid.uuid4()
+        db = SessionLocal()
+        try:
+            intake = Intake(
+                id=intake_id,
+                workshop_id=workshop_id,
+                view_slots={
+                    "left_side_profile": "/uploads/left.png",
+                    "right_side_profile": "/uploads/right.png",
+                },
+            )
+            db.add(intake)
+            db.commit()
+        finally:
+            db.close()
+
+        resp = auth_client.post(f"/api/v1/intake/{intake_id}/swap-views")
+        assert resp.status_code == 200
+
+        db = SessionLocal()
+        try:
+            intake = db.query(Intake).filter(Intake.id == intake_id).first()
+            assert intake.view_slots["left_side_profile"] == "/uploads/right.png"
+            assert intake.view_slots["right_side_profile"] == "/uploads/left.png"
+            assert intake.swap_detected is False
+        finally:
+            db.close()
+
 
 class TestFM_IN_05_LowLight:
     """FM-IN-05: Low light → auto-enhance before analysis"""
@@ -167,6 +206,22 @@ class TestFM_IN_05_LowLight:
             bright = np.ones((100, 100, 3), dtype=np.uint8) * 200
             mock_read.return_value = bright
             assert detect_low_light("/fake/bright.png") is False
+
+    def test_auto_enhance_creates_enhanced_file(self):
+        with patch("cv2.imread") as mock_read, patch("cv2.imwrite") as mock_write:
+            import numpy as np
+            dark = np.ones((100, 100, 3), dtype=np.uint8) * 30
+            mock_read.return_value = dark
+            result = auto_enhance("/fake/dark.png")
+            assert result is not None
+            assert result.endswith("_enhanced.png")
+            mock_write.assert_called_once()
+
+    def test_auto_enhance_returns_none_on_failure(self):
+        with patch("cv2.imread") as mock_read:
+            mock_read.return_value = None
+            result = auto_enhance("/fake/none.png")
+            assert result is None
 
 
 class TestFM_IN_06_Occlusion:
@@ -239,8 +294,8 @@ class TestFM_AI_02_UnresolvedConflict:
                 "left_side_profile": 80, "right_side_profile": 85, "rear_view": 90,
             },
         )
-        assert result["action"] == "partial_downgrade"
-        assert result["state"] == "partial_assessment"
+        assert result["action"] == "human_confirmation"
+        assert result["fallback"] == "partial_downgrade"
 
 
 class TestFM_AI_03_SevereContradiction:
@@ -255,8 +310,8 @@ class TestFM_AI_03_SevereContradiction:
                 "left_side_profile": 20, "right_side_profile": None, "rear_view": 15,
             },
         )
-        assert result["action"] == "unsafe_override"
-        assert result["state"] == "unsafe_to_assess"
+        assert result["action"] == "human_confirmation"
+        assert result["fallback"] == "unsafe_override"
 
     def test_severe_contradiction_safety_override(self):
         from core.confidence import ConfidenceEngine

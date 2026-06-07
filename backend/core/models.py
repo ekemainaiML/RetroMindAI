@@ -67,6 +67,8 @@ class Intake(Base):
     attempts = Column(JSONB, nullable=False, default=dict)
     quality_scores = Column(JSONB, nullable=False, default=dict)
     low_quality_views = Column(JSONB, nullable=False, default=list)
+    enhanced_views = Column(JSONB, nullable=False, default=list)
+    occluded_views = Column(JSONB, nullable=False, default=list)
     swap_detected = Column(Boolean, nullable=False, default=False)
     status = Column(String, nullable=False, default="validating")
     failure_reason = Column(Text, nullable=True)

@@ -20,6 +20,21 @@ interface ComplianceReport {
   sections: ReportSection[];
 }
 
+function formatValue(v: unknown): string {
+  if (typeof v === "number") {
+    return Number.isInteger(v) ? String(v) : v.toFixed(2);
+  }
+  if (typeof v === "object" && v !== null) {
+    if (Array.isArray(v)) {
+      return v.map(formatValue).join(", ");
+    }
+    return Object.entries(v)
+      .map(([k, val]) => `${k.replace(/_/g, " ")}: ${formatValue(val)}`)
+      .join(", ");
+  }
+  return String(v);
+}
+
 function ValueDisplay({ value, label }: { value: unknown; label: string }) {
   if (value == null) return null;
   let display: string;
@@ -30,7 +45,7 @@ function ValueDisplay({ value, label }: { value: unknown; label: string }) {
       .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
       .join(", ");
   } else if (typeof value === "object") {
-    display = JSON.stringify(value);
+    display = formatValue(value);
   } else {
     display = String(value);
   }
@@ -39,7 +54,7 @@ function ValueDisplay({ value, label }: { value: unknown; label: string }) {
       <span className="shrink-0 text-xs font-medium text-text-secondary">
         {label}
       </span>
-      <span className="break-words text-right text-xs font-semibold text-text-primary">
+      <span className="break-all text-right text-xs font-semibold text-text-primary">
         {display}
       </span>
     </div>
@@ -292,6 +307,16 @@ function SectionRenderer({ section }: { section: ReportSection }) {
                     </span>
                   </div>
                 ))}
+              </div>
+            )}
+            {matches.length === 0 && (
+              <div className="mt-3 rounded-lg border border-dashed border-indigo-200 bg-indigo-50/50 p-4 text-center dark:border-indigo-800 dark:bg-indigo-950/20">
+                <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                  New Pattern
+                </p>
+                <p className="mt-1 text-[10px] text-zinc-500 dark:text-zinc-400">
+                  No similar retrofit patterns found in the knowledge graph.
+                </p>
               </div>
             )}
           </div>

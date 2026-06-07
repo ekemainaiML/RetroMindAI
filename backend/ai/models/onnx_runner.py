@@ -32,11 +32,7 @@ class ONNXRunner:
 
             self._session = ort.InferenceSession(
                 self._model_path,
-                providers=(
-                    ["CoreMLExecutionProvider", "CPUExecutionProvider"]
-                    if ort.get_device() == "CPU"
-                    else ort.get_available_providers()
-                ),
+                providers=ort.get_available_providers(),
             )
             self._input_name = self._session.get_inputs()[0].name  # type: ignore[attr-defined]
             self._output_name = self._session.get_outputs()[0].name  # type: ignore[attr-defined]

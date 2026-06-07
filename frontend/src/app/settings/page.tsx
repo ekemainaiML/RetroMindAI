@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiGet, getApiKey, setApiKey } from "@/utils/api";
+import { apiGet, ensureApiKey, getApiKey, setApiKey } from "@/utils/api";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
 import Badge from "@/components/ui/Badge";
@@ -71,7 +71,7 @@ export default function SettingsPage() {
   const fetchCapabilities = useCallback(async () => {
     setCapsLoading(true);
     try {
-      const key = getApiKey();
+      const key = await ensureApiKey();
       const res = await fetch(`${API_BASE}/workshop/capabilities`, {
         headers: { "X-API-Key": key },
       });

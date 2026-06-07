@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
@@ -14,6 +15,7 @@ from core.conflict import evaluate_classification_conflict
 from core.database import SessionLocal
 from core.degradation import get_degradation_manager
 from core.config import settings
+from ai.classification.preprocess import auto_enhance, check_occlusion, detect_low_light
 from core.risk import (
     assess_deviation_risks,
     compute_system_risk_state,
@@ -122,8 +124,8 @@ STAGE_TIMEOUTS = {
     "deviation_detection": 20,
     "confidence_scoring": 5,
     "recommendations": 5,
-    "battery_optimization": 5,
-    "wiring_generation": 5,
+    "battery_optimization": 20,
+    "wiring_generation": 20,
     "digital_twin": 10,
 }
 
@@ -206,6 +208,35 @@ def _compute_factors(
         if downscaled:
             image_paths.update(downscaled)
             logger.info("Downscaled %d image(s) for processing", len(downscaled))
+
+        enhanced_views = list(intake.enhanced_views or [])
+        for view, path in list(image_paths.items()):
+            if detect_low_light(path):
+                enhanced_path = auto_enhance(path)
+                if enhanced_path:
+                    image_paths[view] = enhanced_path
+                    if view not in enhanced_views:
+                        enhanced_views.append(view)
+                    logger.info("Auto-enhanced %s (low light)", view)
+        if enhanced_views:
+            intake.enhanced_views = enhanced_views
+            if db:
+                db.add(intake)
+                db.commit()
+                db.refresh(intake)
+            logger.info("Enhanced %d low-light view(s): %s", len(enhanced_views), enhanced_views)
+
+        occluded_views = list(intake.occluded_views or [])
+        for view, path in image_paths.items():
+            occ_result = check_occlusion(path)
+            if occ_result.get("occluded") and view not in occluded_views:
+                occluded_views.append(view)
+        if occluded_views != list(intake.occluded_views or []):
+            intake.occluded_views = occluded_views
+            if db:
+                db.add(intake)
+                db.commit()
+                db.refresh(intake)
 
         if deg_mgr.should_skip_stage("vehicle_classification"):
             logger.warning("Skipping vehicle_classification (degradation)")
@@ -481,6 +512,7 @@ def _build_result(
                 classification_result.get("classifier_used", "ONNX") if classification_result else "N/A"
             ) if classification_result else "N/A",
             "alternatives": list(alternatives_conflict),
+            "model_loaded": classification_result.get("model_loaded", False) if classification_result else False,
         },
         "geometry_extraction": geometry_extraction,
         "deviation_summary": {
@@ -676,7 +708,7 @@ def run_assessment(intake_id: str) -> None:
                     )
 
                 bat_success, bat_result = _run_stage_with_timeout(
-                    _run_battery, "battery_optimization", 5
+                    _run_battery, "battery_optimization", STAGE_TIMEOUTS.get("battery_optimization", 5)
                 )
                 if bat_success and bat_result:
                     battery_placement_data = bat_result
@@ -694,7 +726,7 @@ def run_assessment(intake_id: str) -> None:
                     )
 
                 wir_success, wir_result = _run_stage_with_timeout(
-                    _run_wiring, "wiring_generation", 5
+                    _run_wiring, "wiring_generation", STAGE_TIMEOUTS.get("wiring_generation", 5)
                 )
                 if wir_success and wir_result:
                     wiring_guidance_data = wir_result
@@ -727,6 +759,19 @@ def run_assessment(intake_id: str) -> None:
                 job.result["battery_placement"] = battery_placement_data
             if wiring_guidance_data:
                 job.result["wiring_guidance"] = wiring_guidance_data
+            enhanced = []
+            for view_name in list(intake.enhanced_views or []):
+                original_path = (intake.view_slots or {}).get(view_name)
+                if original_path:
+                    base, ext = os.path.splitext(original_path)
+                    enhanced_path = f"{base}_enhanced{ext}"
+                    enhanced.append({
+                        "view": view_name,
+                        "original_url": original_path.replace("/app/uploads", "/uploads"),
+                        "enhanced_url": enhanced_path.replace("/app/uploads", "/uploads"),
+                    })
+            if enhanced:
+                job.result["enhanced_views"] = enhanced
 
         if job.result and job.status == "completed":
             try:

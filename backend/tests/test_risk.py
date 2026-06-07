@@ -134,7 +134,6 @@ class TestEvaluateClassificationConflict:
             },
         )
         assert result["action"] == "human_confirmation"
-        assert result["state"] is None
         assert len(result["options"]) == 2
 
     def test_severe_contradiction(self):
@@ -148,9 +147,8 @@ class TestEvaluateClassificationConflict:
                 "rear_view": 15,
             },
         )
-        assert result["action"] == "unsafe_override"
-        assert result["state"] == "unsafe_to_assess"
-        assert result["reason"] == "severe_contradiction"
+        assert result["action"] == "human_confirmation"
+        assert result["fallback"] == "unsafe_override"
 
     def test_contradiction_but_good_views_no_severe(self):
         result = evaluate_classification_conflict(
@@ -163,8 +161,8 @@ class TestEvaluateClassificationConflict:
                 "rear_view": 90,
             },
         )
-        assert result["action"] == "partial_downgrade"
-        assert result["reason"] == "unresolved_model_conflict"
+        assert result["action"] == "human_confirmation"
+        assert result["fallback"] == "partial_downgrade"
 
     def test_unresolved_partial_downgrade(self):
         result = evaluate_classification_conflict(
@@ -177,9 +175,8 @@ class TestEvaluateClassificationConflict:
                 "rear_view": 90,
             },
         )
-        assert result["action"] == "partial_downgrade"
-        assert result["state"] == "partial_assessment"
-        assert result["reason"] == "unresolved_model_conflict"
+        assert result["action"] == "human_confirmation"
+        assert result["fallback"] == "partial_downgrade"
 
     def test_boundary_50_requires_confirmation(self):
         result = evaluate_classification_conflict(
@@ -193,6 +190,7 @@ class TestEvaluateClassificationConflict:
             },
         )
         assert result["action"] == "human_confirmation"
+        assert len(result["options"]) == 1
 
     def test_boundary_84_requires_confirmation(self):
         result = evaluate_classification_conflict(

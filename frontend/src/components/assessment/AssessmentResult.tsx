@@ -298,6 +298,22 @@ export default function AssessmentResult({
     setShowConfirm(false);
   };
 
+  const handleConfirmTimeout = async () => {
+    if (!jobId) return;
+    try {
+      const key = getApiKey();
+      const headers: Record<string, string> = {};
+      if (key) headers["X-API-Key"] = key;
+      await fetch(`http://localhost:8000/api/v1/jobs/${jobId}/confirm-timeout`, {
+        method: "POST",
+        headers,
+      });
+    } catch {
+      // Best-effort — result will show partial_assessment on next poll
+    }
+    setShowConfirm(false);
+  };
+
   const stateColor =
     ASSESSMENT_STATE_COLORS[assessment.assessment_state] ??
     "bg-zinc-100 text-zinc-800 border-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-600";
@@ -519,6 +535,75 @@ export default function AssessmentResult({
             </div>
           </div>
         )}
+        {(!assessment.similar_retrofits || assessment.similar_retrofits.length === 0) && (
+          <div className="rounded-xl border border-dashed border-indigo-200 bg-indigo-50/30 p-4 shadow-sm dark:border-indigo-800 dark:bg-indigo-950/10">
+            <div className="flex items-center gap-2">
+              <svg className="h-4 w-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                Retrofit DNA Match
+              </h3>
+            </div>
+            <p className="mt-2 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+              New Pattern
+            </p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              No similar retrofit patterns found in the knowledge graph.
+            </p>
+          </div>
+        )}
+
+        {assessment.enhanced_views && assessment.enhanced_views.length > 0 && (
+          <div className="rounded-xl border border-emerald-200 bg-white p-4 shadow-sm dark:border-emerald-800 dark:bg-zinc-900">
+            <div className="mb-3 flex items-center gap-2">
+              <svg className="h-4 w-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                Low-Light Auto-Enhancement
+              </h3>
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
+                {assessment.enhanced_views.length} view{assessment.enhanced_views.length !== 1 ? "s" : ""}
+              </span>
+            </div>
+            <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+              The following views were captured in low-light conditions and automatically enhanced before analysis
+            </p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {assessment.enhanced_views.map((ev) => (
+                <div key={ev.view} className="rounded-lg border border-emerald-100 bg-emerald-50/30 p-3 dark:border-emerald-900 dark:bg-emerald-950/20">
+                  <p className="mb-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                    {({ left_side_profile: "Left Side Profile", right_side_profile: "Right Side Profile", front_view: "Front View", rear_view: "Rear View", engine_bay: "Engine Bay", underbody: "Underbody" } as Record<string, string>)[ev.view] || ev.view.replace(/_/g, " ")}
+                  </p>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <p className="mb-1 text-[10px] text-zinc-400 uppercase tracking-wide">Original</p>
+                      <img
+                        src={`http://localhost:8000${ev.original_url}`}
+                        alt={`Original ${ev.view}`}
+                        className="w-full rounded border border-zinc-200 object-cover dark:border-zinc-700"
+                        style={{ aspectRatio: "4/3" }}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="mb-1 text-[10px] text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Enhanced</p>
+                      <img
+                        src={`http://localhost:8000${ev.enhanced_url}`}
+                        alt={`Enhanced ${ev.view}`}
+                        className="w-full rounded border border-emerald-300 object-cover dark:border-emerald-700"
+                        style={{ aspectRatio: "4/3" }}
+                        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="rounded-xl border bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
           <h3 className="mb-3 text-sm font-semibold text-zinc-800 dark:text-zinc-200">
@@ -578,6 +663,7 @@ export default function AssessmentResult({
           confirmation={assessment.confirmation_required}
           onConfirm={handleConfirm}
           onDismiss={() => setShowConfirm(false)}
+          onTimeout={handleConfirmTimeout}
         />
       )}
     </>

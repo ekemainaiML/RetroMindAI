@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 
 import sentry_sdk
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 
 logger = logging.getLogger(__name__)
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
@@ -178,3 +179,9 @@ from api.v1.endpoints.oem import router as oem_router  # noqa: E402
 app.include_router(oem_router, prefix="/api/v1")
 
 app.include_router(v2_router, prefix="/api/v2")
+
+import os
+uploads_path = settings.upload_dir
+if os.path.isdir(uploads_path):
+    app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
+    logger.info("Serving static uploads from %s at /uploads", uploads_path)

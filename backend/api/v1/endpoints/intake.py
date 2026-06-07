@@ -21,6 +21,7 @@ from core.database import get_db
 from core.degradation import get_degradation_manager
 from core.models import Intake, Job
 from core.validation import check_swap, compute_blur_score, is_blurry
+from ai.classification.preprocess import check_occlusion
 
 from sqlalchemy import func
 
@@ -82,10 +83,10 @@ def _compute_quality_scores(
     return scores
 
 
-def _find_low_quality(scores: dict[str, float], view_slots: dict) -> list[str]:
+def _find_low_quality(scores: dict[str, float | None], view_slots: dict) -> list[str]:
     return [
         s for s, score in scores.items()
-        if view_slots.get(s) is not None and 0.0 < score < 100.0
+        if view_slots.get(s) is not None and score is not None and 0.0 < score < 100.0
     ]
 
 
@@ -125,6 +126,7 @@ def _build_intake_response(intake: Intake) -> dict:
         "status": intake.status,
         "missing_views": missing_views,
         "low_quality_views": low_quality,
+        "occluded_views": list(intake.occluded_views) if intake.occluded_views else [],
         "swap_suspected": intake.swap_detected or False,
         "attempts": attempts,
         "quality_scores": quality_scores,
@@ -196,6 +198,11 @@ async def create_intake(
     quality_scores = _compute_quality_scores(intake_dir, view_slots)
     low_quality = _find_low_quality(quality_scores, view_slots)
 
+    occluded_views: list[str] = []
+    for slot_name, path in view_slots.items():
+        if path and check_occlusion(path).get("occluded"):
+            occluded_views.append(slot_name)
+
     swap_detected = False
     if view_slots.get("left_side_profile") and view_slots.get("right_side_profile"):
         swap_detected = check_swap(
@@ -213,6 +220,7 @@ async def create_intake(
         attempts=attempts,
         quality_scores=quality_scores,
         low_quality_views=low_quality,
+        occluded_views=occluded_views,
         swap_detected=swap_detected,
         status=intake_status,
         oem_model_id=oem_model_uuid,
@@ -324,6 +332,13 @@ async def reupload_view(
     low_quality = _find_low_quality(quality_scores, view_slots)
     low_quality_views = list(low_quality)
 
+    occluded_views = list(intake.occluded_views or [])
+    if check_occlusion(file_path).get("occluded"):
+        if view_slot not in occluded_views:
+            occluded_views.append(view_slot)
+    else:
+        occluded_views = [v for v in occluded_views if v != view_slot]
+
     swap_detected = intake.swap_detected or False
     if view_slot in ("left_side_profile", "right_side_profile"):
         if view_slots.get("left_side_profile") and view_slots.get("right_side_profile"):
@@ -335,6 +350,7 @@ async def reupload_view(
     intake.attempts = attempts
     intake.quality_scores = quality_scores
     intake.low_quality_views = low_quality_views
+    intake.occluded_views = occluded_views
     intake.swap_detected = swap_detected
 
     failure_reason = None
@@ -352,6 +368,7 @@ async def reupload_view(
                 status="failed",
                 attempt=current_attempt,
                 blurry=is_blurry(file_path),  # type: ignore[arg-type]
+                occluded=view_slot in occluded_views,
                 missing_views=[s for s in REQUIRED_SLOTS if view_slots.get(s) is None],
                 low_quality_views=low_quality_views,
                 swap_suspected=swap_detected,
@@ -373,6 +390,7 @@ async def reupload_view(
         status=intake.status,
         attempt=current_attempt,
         blurry=blurry,
+        occluded=view_slot in occluded_views,
         missing_views=missing_views,
         low_quality_views=low_quality_views,
         swap_suspected=swap_detected,
@@ -380,6 +398,51 @@ async def reupload_view(
         quality_scores=quality_scores,
         failure_reason=intake.failure_reason,
     )
+
+
+@router.post(
+    "/intake/{intake_id}/swap-views",
+    status_code=status.HTTP_200_OK,
+    response_model=IntakeResponse,
+)
+async def swap_intake_views(
+    intake_id: uuid.UUID,
+    workshop_id: str = Depends(get_current_workshop),
+    db: Session = Depends(get_db),
+):
+    intake = db.query(Intake).filter(
+        Intake.id == intake_id,
+        Intake.workshop_id == uuid.UUID(workshop_id),
+    ).first()
+    if not intake:
+        raise HTTPException(status_code=404, detail="Intake not found")
+
+    view_slots = dict(intake.view_slots or {})
+    quality_scores = dict(intake.quality_scores or {})
+    attempts = dict(intake.attempts or {})
+
+    left_path = view_slots.get("left_side_profile")
+    right_path = view_slots.get("right_side_profile")
+
+    view_slots["left_side_profile"] = right_path
+    view_slots["right_side_profile"] = left_path
+
+    for d in (quality_scores, attempts):
+        left_val = d.get("left_side_profile")
+        right_val = d.get("right_side_profile")
+        d["left_side_profile"] = right_val
+        d["right_side_profile"] = left_val
+
+    intake.view_slots = view_slots
+    intake.quality_scores = quality_scores
+    intake.attempts = attempts
+    intake.swap_detected = False
+
+    _update_intake_status(intake, db)
+    db.commit()
+    db.refresh(intake)
+
+    return _build_intake_response(intake)
 
 
 @router.post(
@@ -413,16 +476,22 @@ async def analyze_intake(
 
     active_statuses = ["queued", "running", "retrying"]
     existing = (
-        db.query(Job)
-        .filter(Job.intake_id == intake_id, Job.status.in_(active_statuses))
+        db.query(Job, Intake)
+        .join(Intake, Job.intake_id == Intake.id)
+        .filter(
+            Intake.workshop_id == uuid.UUID(workshop_id),
+            Job.status.in_(active_statuses),
+        )
         .first()
     )
     if existing:
+        existing_job, existing_intake = existing
         raise HTTPException(
             status_code=409,
             detail={
-                "message": "An assessment is already running for this intake. Cancel it before starting a new one.",
-                "existing_job_id": str(existing.id),
+                "message": "An assessment is already running for this workshop. Cancel it before starting a new one.",
+                "existing_job_id": str(existing_job.id),
+                "existing_intake_id": str(existing_intake.id),
             },
         )
 

@@ -1,6 +1,8 @@
 import json
 import logging
 
+import numpy as np
+
 from core.capabilities import CapabilityRegistry
 from core.config import settings
 from core.degradation import get_degradation_manager
@@ -19,6 +21,20 @@ class GenerativeRefiner:
     def __init__(self):
         self._backend = None
 
+    @staticmethod
+    def _make_json_safe(obj):
+        if isinstance(obj, dict):
+            return {k: GenerativeRefiner._make_json_safe(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [GenerativeRefiner._make_json_safe(v) for v in obj]
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return obj
+
     def _init_backend(self):
         if self._backend is not None:
             return
@@ -28,7 +44,7 @@ class GenerativeRefiner:
         if settings.openai_api_key:
             try:
                 from openai import OpenAI
-                self._backend = OpenAI(api_key=settings.openai_api_key)
+                self._backend = OpenAI(api_key=settings.openai_api_key, timeout=20.0, max_retries=1)
                 CapabilityRegistry.probe("genai", True, lambda: True)
                 logger.info("Generative refiner using OpenAI backend")
             except ImportError:
@@ -41,7 +57,7 @@ class GenerativeRefiner:
         elif settings.anthropic_api_key:
             try:
                 from anthropic import Anthropic
-                self._backend = Anthropic(api_key=settings.anthropic_api_key)
+                self._backend = Anthropic(api_key=settings.anthropic_api_key, timeout=20.0, max_retries=1)
                 CapabilityRegistry.probe("genai", True, lambda: True)
                 logger.info("Generative refiner using Anthropic backend")
             except ImportError:
@@ -67,7 +83,7 @@ class GenerativeRefiner:
             logger.info("Generative refiner improved battery zones for %s", vehicle_type)
             return refined
         except Exception:
-            logger.warning("Generative battery refinement failed, using template zones")
+            logger.exception("Generative battery refinement failed, using template zones")
             get_degradation_manager().register("genai_battery", 1, "GenAI battery refinement failed")
             return zones
 
@@ -84,7 +100,7 @@ class GenerativeRefiner:
             logger.info("Generative refiner improved wiring routes for %s", vehicle_type)
             return refined
         except Exception:
-            logger.warning("Generative wiring refinement failed, using template routes")
+            logger.exception("Generative wiring refinement failed, using template routes")
             get_degradation_manager().register("genai_wiring", 1, "GenAI wiring refinement failed")
             return routes
 
@@ -94,7 +110,7 @@ class GenerativeRefiner:
         backend_name = type(self._backend).__module__
         if "openai" in backend_name:
             resp = self._backend.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4.1-nano",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 max_tokens=2000,
@@ -113,7 +129,7 @@ class GenerativeRefiner:
     def _build_battery_prompt(self, zones: list[dict], vehicle_type: str,
                                deviations: list | None,
                                geometry: dict | None) -> str:
-        return json.dumps({
+        safe = self._make_json_safe({
             "task": "refine_battery_zones",
             "vehicle_type": vehicle_type,
             "current_zones": zones,
@@ -130,11 +146,12 @@ class GenerativeRefiner:
                 "Do NOT add or remove zones — only reorder and annotate."
             ) % vehicle_type,
         })
+        return json.dumps(safe)
 
     def _build_wiring_prompt(self, routes: list[dict], vehicle_type: str,
                               deviations: list | None,
                               battery_zone: dict | None) -> str:
-        return json.dumps({
+        safe = self._make_json_safe({
             "task": "refine_wiring_routes",
             "vehicle_type": vehicle_type,
             "current_routes": routes,
@@ -151,6 +168,7 @@ class GenerativeRefiner:
                 "Do NOT add or remove routes — only reorder and annotate."
             ) % vehicle_type,
         })
+        return json.dumps(safe)
 
     def _parse_battery_response(self, response: str, original_zones: list[dict]) -> list[dict]:
         try:

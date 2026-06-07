@@ -1,24 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ConfirmationRequired } from "@/types/assessment";
 
 interface Props {
   confirmation: ConfirmationRequired;
   onConfirm: (selection: string) => Promise<void>;
   onDismiss?: () => void;
+  onTimeout?: () => void;
 }
+
+const CONFIRM_TIMEOUT_SEC = 60;
 
 export default function ConfirmDialog({
   confirmation,
   onConfirm,
   onDismiss,
+  onTimeout,
 }: Props) {
   const [selection, setSelection] = useState(
     confirmation.current_value ?? confirmation.options?.[0] ?? ""
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [remaining, setRemaining] = useState(CONFIRM_TIMEOUT_SEC);
+
+  useEffect(() => {
+    if (remaining <= 0) {
+      onTimeout?.();
+      return;
+    }
+    const id = setTimeout(() => setRemaining((r) => r - 1), 1000);
+    return () => clearTimeout(id);
+  }, [remaining, onTimeout]);
 
   const handleConfirm = async () => {
     setSubmitting(true);
@@ -59,6 +73,34 @@ export default function ConfirmDialog({
               {confirmation.message || `Review and confirm ${confirmation.type.replace(/_/g, " ")}`}
             </p>
           </div>
+        </div>
+
+        <div className="mb-3 flex items-center gap-2">
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+            <div
+              className="h-full rounded-full transition-all duration-1000"
+              style={{
+                width: `${(remaining / CONFIRM_TIMEOUT_SEC) * 100}%`,
+                backgroundColor:
+                  remaining <= 10
+                    ? "#ef4444"
+                    : remaining <= 30
+                      ? "#f59e0b"
+                      : "#22c55e",
+              }}
+            />
+          </div>
+          <span
+            className={`shrink-0 text-xs font-mono font-medium ${
+              remaining <= 10
+                ? "text-red-500"
+                : remaining <= 30
+                  ? "text-amber-500"
+                  : "text-green-500"
+            }`}
+          >
+            {remaining}s
+          </span>
         </div>
 
         <div className="mb-4">

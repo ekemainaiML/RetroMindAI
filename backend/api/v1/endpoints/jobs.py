@@ -291,3 +291,77 @@ async def confirm_job(
         created_at=_dt_iso(job.created_at),
         updated_at=_dt_iso(job.updated_at),
     )
+
+
+@router.post("/jobs/{job_id}/confirm-timeout")
+async def confirm_timeout_job(
+    job_id: uuid.UUID,
+    workshop_id: str = Depends(get_current_workshop),
+    db: Session = Depends(get_db),
+):
+    job = (
+        db.query(Job)
+        .join(Intake, Job.intake_id == Intake.id)
+        .filter(Job.id == job_id, Intake.workshop_id == uuid.UUID(workshop_id))
+        .first()
+    )
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    current_result = job.result
+    if not current_result or not isinstance(current_result, dict):
+        raise HTTPException(status_code=400, detail="Job has no result")
+
+    current_result["needs_confirmation"] = False
+    current_result["assessment_state"] = "partial_assessment"
+    current_result["confirmation_timed_out"] = True
+    current_result["feasibility_label"] = "conditionally_feasible"
+
+    job.result = current_result
+    job.status = "partial_complete"
+    job.updated_at = datetime.now(timezone.utc)
+    db.commit()
+
+    degradation = job.result.get("degradations", []) if isinstance(job.result, dict) else []
+
+    return JobResponse(
+        job_id=str(job.id),
+        status=job.status,
+        current_stage=job.current_stage,
+        progress_pct=job.progress_pct,
+        assessment_state="partial_assessment",
+        completed_stages=list(job.completed_stages or []),
+        missing_stages=list(job.missing_stages or []),
+        result=job.result,
+        retry_count=job.retry_count,
+        retry_available=bool(
+            isinstance(job.max_retries, int)
+            and job.retry_count < job.max_retries
+        ),
+        error_message=job.error_message,
+        timed_out=False,
+        infrastructure_degradation=degradation,
+        created_at=_dt_iso(job.created_at),
+        updated_at=_dt_iso(job.updated_at),
+    )
+
+    return JobResponse(
+        job_id=str(job.id),
+        status=job.status,
+        current_stage=job.current_stage,
+        progress_pct=job.progress_pct,
+        assessment_state=state,
+        completed_stages=list(job.completed_stages or []),
+        missing_stages=list(job.missing_stages or []),
+        result=job.result,
+        retry_count=job.retry_count,
+        retry_available=bool(
+            isinstance(job.max_retries, int)
+            and job.retry_count < job.max_retries
+        ),
+        error_message=job.error_message,
+        timed_out=False,
+        infrastructure_degradation=degradation,
+        created_at=_dt_iso(job.created_at),
+        updated_at=_dt_iso(job.updated_at),
+    )

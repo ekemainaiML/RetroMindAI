@@ -127,6 +127,7 @@ export interface AssessmentData {
   confirmation_required?: ConfirmationRequired;
   similar_retrofits?: SimilarRetrofit[];
   digital_twin?: DigitalTwinData;
+  enhanced_views?: EnhancedViewEntry[];
   degradations?: Array<{
     component?: string;
     service?: string;
@@ -136,6 +137,21 @@ export interface AssessmentData {
     tier?: number;
   }>;
 }
+
+export interface EnhancedViewEntry {
+  view: string;
+  original_url: string;
+  enhanced_url: string;
+}
+
+export const SLOT_LABELS: Record<string, string> = {
+  left_side_profile: "Left Side Profile",
+  right_side_profile: "Right Side Profile",
+  front_view: "Front View",
+  rear_view: "Rear View",
+  engine_bay: "Engine Bay",
+  underbody: "Underbody",
+};
 
 export const ASSESSMENT_STATE_LABELS: Record<string, string> = {
   feasible: "Feasible",

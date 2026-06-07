@@ -8,9 +8,10 @@ class IntakeResponse(BaseModel):
     status: str
     missing_views: list[str] = []
     low_quality_views: list[str] = []
+    occluded_views: list[str] = []
     swap_suspected: bool = False
-    attempts: dict[str, int] = {}
-    quality_scores: dict[str, float] = {}
+    attempts: dict[str, int | None] = {}
+    quality_scores: dict[str, float | None] = {}
     failure_reason: Optional[str] = None
     oem_model_id: Optional[str] = None
 
@@ -64,9 +65,10 @@ class ViewSlotResponse(BaseModel):
     status: str
     attempt: int
     blurry: bool = False
+    occluded: bool = False
     missing_views: list[str] = []
     low_quality_views: list[str] = []
     swap_suspected: bool = False
-    attempts: dict[str, int] = {}
-    quality_scores: dict[str, float] = {}
+    attempts: dict[str, int | None] = {}
+    quality_scores: dict[str, float | None] = {}
     failure_reason: Optional[str] = None

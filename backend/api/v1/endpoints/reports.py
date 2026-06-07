@@ -111,6 +111,28 @@ async def get_report(
         },
     ))
 
+    REQUIRED_SLOTS = ["left_side_profile", "right_side_profile", "rear_view"]
+
+    view_slots = dict(intake.view_slots) if intake and intake.view_slots else {}
+    submitted_views = [k for k, v in view_slots.items() if v is not None]
+    missing_views = [s for s in REQUIRED_SLOTS if view_slots.get(s) is None]
+
+    sections.append(ReportSection(
+        id="evidence_summary",
+        title="Evidence Summary",
+        content={
+            "views_submitted": submitted_views,
+            "all_required_views_submitted": len(missing_views) == 0,
+            "quality_scores": dict(intake.quality_scores) if intake and intake.quality_scores else {},
+            "missing_views": missing_views,
+            "low_quality_views": list(intake.low_quality_views) if intake and intake.low_quality_views else [],
+            "swap_suspected": intake.swap_detected if intake else False,
+            "attempts": dict(intake.attempts) if intake and intake.attempts else {},
+            "occluded_views": list(intake.occluded_views) if intake and intake.occluded_views else [],
+            "enhanced_views": list(intake.enhanced_views) if intake and intake.enhanced_views else [],
+        },
+    ))
+
     ds = result.get("deviation_summary", {})
     dev_result = result.get("deviation_result", {})
     sections.append(ReportSection(
