@@ -1,13 +1,18 @@
 import logging
 import time
 import subprocess
+import uuid
 from contextlib import asynccontextmanager
 
 import sentry_sdk
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
-logger = logging.getLogger(__name__)
+from core.logging_config import setup_logging
+
+setup_logging(settings.environment)
+logger = structlog.get_logger(__name__)
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from slowapi.errors import RateLimitExceeded  # noqa: E402
 from starlette.responses import JSONResponse  # noqa: E402
@@ -65,6 +70,14 @@ async def lifespan(app: FastAPI):
         )
     from core.feature_flags import FeatureFlagStore
     FeatureFlagStore.init()
+
+    from core.tracing import setup_tracing, instrument_fastapi, instrument_sqlalchemy, instrument_httpx, instrument_redis
+    setup_tracing("retromind-api")
+    instrument_fastapi(app)
+    from core.database import engine
+    instrument_sqlalchemy(engine)
+    instrument_httpx()
+    instrument_redis()
     yield
 
 
@@ -91,6 +104,21 @@ async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
 
 app.add_exception_handler(RateLimitExceeded, custom_rate_limit_handler)  # type: ignore[arg-type]
 app.add_exception_handler(SQLAlchemyError, db_error_handler)  # type: ignore[arg-type]
+
+@app.middleware("http")
+async def correlation_id_middleware(request: Request, call_next):
+    correlation_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4()))
+    request.state.correlation_id = correlation_id
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(
+        correlation_id=correlation_id,
+        method=request.method,
+        path=request.url.path,
+    )
+    response = await call_next(request)
+    response.headers["X-Correlation-ID"] = correlation_id
+    return response
+
 
 @app.middleware("http")
 async def version_middleware(request: Request, call_next):

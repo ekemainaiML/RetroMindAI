@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     sentry_dsn: str = ""
     environment: str = "development"
     encryption_key: str = ""
+    otel_endpoint: str = ""
 
     admin_api_key: str = "dev-admin-key"
     jwt_secret: str = "retromind-dev-jwt-secret-change-in-prod"

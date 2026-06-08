@@ -1,0 +1,262 @@
+{
+  "title": "RetroMind AI — Platform Overview",
+  "uid": "retromind-platform",
+  "version": 1,
+  "schemaVersion": 39,
+  "tags": ["retromind", "platform"],
+  "timezone": "utc",
+  "editable": true,
+  "panels": [
+    {
+      "title": "Request Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "rate(http_requests_total[5m])",
+          "legendFormat": "{{status}} {{method}} {{endpoint}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rps",
+          "custom": {"showPoints": "never"}
+        }
+      }
+    },
+    {
+      "title": "Error Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "targets": [
+        {
+          "expr": "rate(http_requests_total{status=~\"5..\"}[5m]) / rate(http_requests_total[5m])",
+          "legendFormat": "5xx rate"
+        },
+        {
+          "expr": "rate(http_requests_total{status=\"429\"}[5m])",
+          "legendFormat": "429 rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {"showPoints": "never"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 0.05},
+              {"color": "red", "value": 0.10}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Latency (P50 / P95 / P99)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, http_request_duration_seconds_bucket)", "legendFormat": "P50"},
+        {"expr": "histogram_quantile(0.95, http_request_duration_seconds_bucket)", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.99, http_request_duration_seconds_bucket)", "legendFormat": "P99"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {"showPoints": "never"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 3},
+              {"color": "red", "value": 5}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Queue Depth",
+      "type": "timeseries",
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 8},
+      "targets": [
+        {"expr": "rq_queue_depth", "legendFormat": "queued"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"showPoints": "never"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 100},
+              {"color": "red", "value": 500}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Circuit Breakers",
+      "type": "table",
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 8},
+      "targets": [
+        {"expr": "circuit_breaker_state", "legendFormat": "{{service}}"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "displayMode": "color-background",
+            "colorBackground": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Value"},
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "State"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds",
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "orange", "value": 0.5},
+                    {"color": "red", "value": 1.5}
+                  ]
+                }
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "title": "Active DB Connections",
+      "type": "gauge",
+      "gridPos": {"h": 6, "w": 4, "x": 16, "y": 8},
+      "targets": [
+        {"expr": "pg_stat_activity_count"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 50},
+              {"color": "red", "value": 80}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Rate Limit Hits (24h)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 8},
+      "targets": [
+        {"expr": "increase(http_requests_total{status=\"429\"}[24h])"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 100},
+              {"color": "red", "value": 1000}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Health Check Status",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 14},
+      "targets": [
+        {"expr": "up{job=\"retromind-api\"}"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 0.5}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "title": "Active Workshops (24h)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 14},
+      "targets": [
+        {"expr": "count(count by(workshop_id) (http_requests_total[24h]))"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "title": "Last Backup Age",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 14},
+      "targets": [
+        {"expr": "time() - backup_last_timestamp_seconds"}
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 90000},
+              {"color": "red", "value": 180000}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "timepicker": {
+    "refresh_intervals": ["10s", "30s", "1m", "5m", "15m"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "workshop",
+        "type": "query",
+        "query": "label_values(workshop_id)",
+        "datasource": "Prometheus",
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  }
+}
