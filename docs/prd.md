@@ -97,6 +97,50 @@ Independent EV retrofit workshops in India repeatedly perform high-stakes engine
   - [ ] Operator can access prior retrofit entries from the workspace.
   - [ ] Edge case: if no similar prior entries exist, system indicates "new pattern" instead of implying prior evidence.
 
+### Epic: Enterprise 3D Digital Twin
+
+- As a retrofit workshop operator, I want to see battery pack fitment visualized in 3D so that I can assess clearance before purchasing components.
+  - [ ] Battery pack renders at the correct position with actual dimensions in the 3D scene.
+  - [ ] Clearance zones (minimum distance to frame, heat sources, moving parts) are shown as wireframe bounding boxes.
+  - [ ] Fitment status is color-coded: green (clear), yellow (tight), red (conflict).
+  - [ ] Edge case: if no battery placement data exists, the fitment overlay is hidden.
+
+- As a retrofit workshop operator, I want to measure distances directly in the 3D view so that I can answer spatial fit questions without manual measurement.
+  - [ ] User can switch from orbit mode to measurement mode via a toolbar button.
+  - [ ] Clicks in measurement mode place points with visible markers and show distance in mm.
+  - [ ] Multiple segments can be chained; each shows its own distance.
+  - [ ] Edge case: measurements clear on right-click or explicit clear button.
+
+- As a retrofit workshop operator, I want heat sources visualized in the 3D scene so that I can plan battery and wiring placement away from hot zones.
+  - [ ] Default heat zones (exhaust, engine bay) render as translucent colored spheres based on vehicle type.
+  - [ ] Color gradient maps to temperature severity (green / yellow / red).
+  - [ ] Deviation-triggered heat zones appear when damage notes mention heat or thermal issues.
+  - [ ] Edge case: heat zones are toggleable and hidden by default.
+
+- As a retrofit workshop operator, I want proposed wiring routes visualized in 3D so that I can plan HV cable routing before installation.
+  - [ ] Wiring routes render as smooth 3D tubes/splines through waypoints from the battery to motor.
+  - [ ] Caution zones along the route are highlighted in red/orange.
+  - [ ] Route confidence is communicated via styling (solid for high confidence, dashed for low).
+  - [ ] Edge case: if no wiring guidance exists, routes are hidden.
+
+- As a retrofit workshop operator, I want to make the vehicle body transparent so that I can see internal component placement.
+  - [ ] A slider control adjusts body panel opacity from 10% to 100%.
+  - [ ] Internal components (battery, motor, controller) remain fully opaque at all times.
+  - [ ] Deviation overlays remain visible regardless of opacity setting.
+  - [ ] Edge case: opacity change is instant and does not reload the scene.
+
+- As a retrofit workshop operator, I want to toggle between "before" and "after" views so that I can clearly see what changes the retrofit proposes.
+  - [ ] "Before" view shows deviations highlighted on the original vehicle state.
+  - [ ] "After" view shows retrofit components installed, deviations resolved.
+  - [ ] Toggle is a simple two-state button above the scene.
+  - [ ] Edge case: when no components exist, "After" view shows the vehicle without overlays.
+
+- As a retrofit workshop floor staff member, I want to view the digital twin on my mobile device so that I can reference it during installation.
+  - [ ] QR code export button generates a scannable QR from the current assessment.
+  - [ ] QR code links to a mobile-responsive web viewer with touch controls.
+  - [ ] Viewer renders the same twin data (deviations, components, fitment, routes, heat zones).
+  - [ ] Edge case: QR generation fails gracefully if twin data is too large.
+
 ## What We're Building
 - Guided first-run workspace that prioritizes immediate retrofit start over admin/dashboard complexity.
 - Structured upload and first-pass validation with required/optional evidence handling.
@@ -107,9 +151,14 @@ Independent EV retrofit workshops in India repeatedly perform high-stakes engine
 - Progressive insight pipeline that reveals value in stages instead of one delayed final response.
 - Explainable visual summary layer that links detected issues to recommendation changes.
 - Retrofit DNA continuity in the user-visible workflow so learning value is demonstrable.
+- Enterprise 3D digital twin with battery fitment visualization, measurement tools, heat zone overlays, wiring routes, cutaway controls, before/after comparison, and QR-based mobile viewer.
 
 ## What We'd Add With More Time
-No additional deferred feature bucket is defined at this stage. The learner explicitly chose full inclusion of all discussed requirement areas for the hackathon submission scope, with depth managed through execution quality and progressive delivery.
+- Physics-based thermal simulation (heat zones are heuristic in v1).
+- Real-time CAD editing within the digital twin scene.
+- Multi-user collaboration in the 3D viewer.
+- Photorealistic rendering with PBR materials and environment lighting.
+- On-device AR overlay (QR-based mobile viewer is the first step).
 
 ## Non-Goals
 - Passenger car-first launch behavior is out of scope for initial launch wedge, because it materially increases variability and slows validation of the core workshop workflow.
@@ -117,6 +166,9 @@ No additional deferred feature bucket is defined at this stage. The learner expl
 - Fleet-first onboarding and operations workflows are out of scope for initial release, because workshop intelligence proof comes first.
 - Generic analytics-heavy landing dashboard is out of scope for first run, because it delays trust-building time-to-value.
 - Binary validator behavior that blocks non-critical input issues is out of scope, because real workshop environments require tolerant, confidence-aware operation.
+- Physics-based thermal simulation is out of scope for the digital twin v1; heat zones are heuristic.
+- Real-time CAD editing within the digital twin scene is out of scope.
+- Multi-user collaboration in the 3D viewer is out of scope for the initial release.
 
 ## Open Questions
 - What exact confidence thresholds map to "full confidence," "reduced confidence," "partial assessment," and "unsafe to assess" states? (Needs answer before /spec.)

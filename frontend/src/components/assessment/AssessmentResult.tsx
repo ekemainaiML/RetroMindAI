@@ -14,11 +14,13 @@ import RiskBadge from "./RiskBadge";
 import RecommendationCard from "./RecommendationCard";
 import ConfirmDialog from "./ConfirmDialog";
 import DigitalTwinScene from "../digital-twin/DigitalTwinScene";
+import QRCodeModal from "../QRCodeModal";
 import type { DigitalTwinData } from "@/types/assessment";
 
 interface Props {
   assessment: AssessmentData;
   jobId: string;
+  intakeId?: string;
   onConfirm: (confirmationType: string, selection: string) => Promise<void>;
 }
 
@@ -256,12 +258,16 @@ function RecommendationsSection({
 export default function AssessmentResult({
   assessment,
   jobId,
+  intakeId,
   onConfirm,
 }: Props) {
   const [showConfirm, setShowConfirm] = useState(
     assessment.needs_confirmation
   );
   const [cadLoading, setCadLoading] = useState<string | null>(null);
+  const [showQR, setShowQR] = useState(false);
+  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+  const qrUrl = intakeId ? `${siteOrigin}/view/${intakeId}` : '';
 
   const handleCadDownload = async (format: "step" | "stl") => {
     setCadLoading(format);
@@ -384,9 +390,21 @@ export default function AssessmentResult({
                 <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                   {(assessment.digital_twin as DigitalTwinData).deviations_3d.length} deviation{(assessment.digital_twin as DigitalTwinData).deviations_3d.length !== 1 ? "s" : ""}
                 </span>
+                {intakeId && (
+                  <button
+                    type="button"
+                    onClick={() => setShowQR(true)}
+                    className="ml-auto rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                  >
+                    QR
+                  </button>
+                )}
               </div>
               <DigitalTwinScene twinData={assessment.digital_twin as DigitalTwinData} />
             </div>
+          )}
+          {showQR && qrUrl && (
+            <QRCodeModal url={qrUrl} label="Scan to view 3D model on your phone" onClose={() => setShowQR(false)} />
           )}
 
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">

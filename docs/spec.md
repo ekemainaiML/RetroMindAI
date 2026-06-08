@@ -151,6 +151,36 @@ upload_validation -> image_quality_check -> vehicle_classification -> geometry_e
 
 ---
 
+### 4.9 Digital Twin Visualization Features
+
+The digital twin has two tiers of functionality:
+
+**Standard** (always available, existing):
+- Procedural 3D vehicle model (body, cabin, windshield, cargo bed, wheels)
+- Deviation overlays (colored pulsing boxes per detected anomaly)
+- Retrofit component markers (colored boxes with wireframe edges)
+- Hover tooltips on components
+- Click-to-inspect selection panel
+- CAD export (STEP/STL via FreeCAD worker container)
+
+**Enterprise** (additive, activated by new data fields in `DigitalTwinDataGenerator.generate()`):
+
+| Feature | Data Field | Backend Input | Frontend Component |
+|---------|-----------|---------------|-------------------|
+| Battery pack fitment | `battery_fitment` | `battery_placement` from assessment | `BatteryFitmentOverlay` with clearance zones |
+| Measurement tools | *(frontend-only)* | — | Measurement mode with point/line/distance |
+| Heat zone overlays | `thermal_zones` | Vehicle type + deviation heat notes | Translucent spheres with temperature gradient |
+| Wiring routes | `wiring_routes` | `wiring_guidance` from assessment | 3D tube spline through waypoints |
+| Cutaway controls | *(frontend-only)* | — | Opacity slider on body meshes |
+| Before/After toggle | *(frontend-only)* | — | View state switching deviations ↔ components |
+| QR export | `POST /api/v1/digital-twin/{id}/qr` | Compressed twin data | QR code → mobile web viewer |
+
+All enterprise features default to inactive (`null`/`[]`/hidden) when data is absent. The existing scene renders unchanged.
+
+See `docs/digital-twin-enhancement-plan.md` for detailed implementation specifications.
+
+---
+
 ## 5. PRD-to-Component Mapping
 
 | PRD Epic | Spec Component | Deliverable |
@@ -162,6 +192,7 @@ upload_validation -> image_quality_check -> vehicle_classification -> geometry_e
 | Progressive Insight & Explainability | `jobs` context + frontend polling | Stage progression, digital twin, overlays |
 | Graceful Degradation & Guided Recovery | `core/` failure logic + frontend | Degradation logic, fallback UX, recovery prompts |
 | Retrofit Intelligence Continuity | `intelligence_graph` context | Neo4j Retrofit DNA records, similarity queries |
+| **Enterprise 3D Digital Twin** | `ai/digital_twin/` + frontend Three.js | Battery fitment, measurements, heat zones, wiring routes, cutaway, before/after, QR viewer |
 
 ---
 
@@ -549,3 +580,139 @@ Failure behavior is defined fully in `docs/failure_modes.md`. Summary by categor
 13. **Recommendations** SHALL be blocked only by `critical` severity or >=3 `high` escalated
 14. **Compliance reports** SHALL contain all 13 mandatory sections
 15. **API** SHALL use `/api/v1/...` routes with polling-only async transport
+
+---
+
+## 14. Digital Twin Visualization Architecture
+
+### 14.1 Data Flow
+
+```mermaid
+flowchart LR
+    A[Assessment Result] --> B[DigitalTwinDataGenerator]
+    B --> C[core twin data]
+    B --> D[battery_fitment]
+    B --> E[thermal_zones]
+    B --> F[wiring_routes]
+    C --> G[Frontend Three.js Scene]
+    D --> G
+    E --> G
+    F --> G
+    H[Measurement Tool] -->|frontend-only| G
+    I[Cutaway Slider] -->|frontend-only| G
+    J[Before/After Toggle] -->|frontend-only| G
+    K[QR Export API] -->|compressed twin JSON| L[Mobile Web Viewer]
+```
+
+### 14.2 New API Endpoints
+
+```
+GET  /api/v1/digital-twin/{assessment_id}/qr
+     -> 200 image/png (QR code)
+     -> 404 (no twin data available)
+```
+
+### 14.3 DigitalTwinData Response Shape (Extended)
+
+```json
+{
+  "vehicle_type": "three_wheeler",
+  "dimensions": { "length": 2800, "width": 1200, "height": 1700 },
+  "deviations_3d": [ ... ],
+  "retrofit_components": [ ... ],
+  "view_angles": { "default_camera": { ... } },
+
+  "battery_fitment": {
+    "zone_id": "A",
+    "position": { "x": 0, "y": -0.25, "z": 0.15 },
+    "size": { "w": 0.6, "h": 0.22, "d": 0.4 },
+    "clearance": { "front": 15, "rear": 20, "left": 10, "right": 10, "top": 25, "bottom": 30 },
+    "fitment_status": "clear" | "tight" | "conflict",
+    "label": "48V LiFePO4 Battery Pack"
+  },
+
+  "thermal_zones": [
+    {
+      "id": "exhaust_area",
+      "label": "Exhaust / Engine Bay",
+      "position": { "x": 0, "y": -0.1, "z": -0.5 },
+      "radius": 0.35,
+      "severity": "high",
+      "temperature_c": 120,
+      "source": "oem_default"
+    }
+  ],
+
+  "wiring_routes": [
+    {
+      "id": "primary_route",
+      "label": "Primary HV Route",
+      "waypoints": [{ "x": 0, "y": 0, "z": 0 }, ...],
+      "color": "#f59e0b",
+      "caution_zones": [],
+      "confidence": 0.85
+    }
+  ]
+}
+```
+
+### 14.4 Frontend Architecture
+
+```mermaid
+flowchart TD
+    A[DigitalTwinScene] --> B[DigitalTwinSceneContent]
+    B --> C[buildRickshawModel]
+    B --> D[buildDeviationOverlays]
+    B --> E[buildRetrofitComponents]
+    B --> F[BatteryFitmentOverlay]
+    B --> G[buildThermalZones]
+    B --> H[buildWiringRoutes]
+    B --> I[MeasurementTool]
+    B --> J[CutawaySlider]
+    B --> K[BeforeAfterToggle]
+    C --> L[THREE.Group]
+    D --> M[THREE.Mesh[] - deviations]
+    E --> N[THREE.Mesh[] - components]
+    F --> O[THREE.Mesh - battery clearance]
+    G --> P[THREE.Mesh[] - heat spheres]
+    H --> Q[THREE.Mesh - wiring tubes]
+    I --> R[THREE.Points + Lines]
+    J --> S[opacity control]
+    K --> T[visibility toggle]
+```
+
+### 14.5 Scene Toolbar
+
+All toggleable features are exposed via a toolbar rendered above the 3D scene:
+
+| Control | Type | Default |
+|---------|------|---------|
+| View mode (Before / After) | Segmented toggle | Before |
+| Battery fitment | Toggle button | Off |
+| Heat zones | Toggle button | Off |
+| Wiring routes | Toggle button | Off |
+| Measurement mode | Toggle button | Off |
+| Body opacity | Range slider (10-100%) | 100% |
+| Reset camera | Button | — |
+
+### 14.6 Performance Targets
+
+| Metric | Target | Notes |
+|--------|:------:|-------|
+| Scene load time | < 500ms | From twin data received to rendered frame |
+| Toggle response | < 50ms | Visibility changes are instant |
+| Measurement calculation | < 10ms | Distance computation is O(1) |
+| QR generation | < 1s | Including compression + image encoding |
+| Mobile viewer load | < 2s | On 4G, with compressed twin JSON (~2-5 KB gzipped) |
+
+### 14.7 Acceptance Criteria (Enterprise Features)
+
+1. **Battery fitment** SHALL render the battery pack at the correct position with clearance wireframe and fitment status color; SHALL be toggleable via toolbar button
+2. **Measurement tools** SHALL support point-and-click distance measurement with mm-precision display; SHALL coexist with orbit controls via mode toggle
+3. **Heat zones** SHALL render translucent gradient spheres at known heat source positions; SHALL be toggleable
+4. **Wiring routes** SHALL render 3D splines through waypoints with caution zone indicators; SHALL be toggleable
+5. **Cutaway controls** SHALL adjust body mesh opacity from 10-100% without affecting components or deviations
+6. **Before/After toggle** SHALL switch between deviation-visible (Before) and component-visible (After) states
+7. **QR export** SHALL generate a scannable QR code linking to a mobile-responsive web viewer rendering the same twin data
+8. **All new fields** SHALL be optional; existing scene SHALL render unchanged when they are absent
+9. **All existing tests** SHALL continue to pass without modification

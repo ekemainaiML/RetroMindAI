@@ -11,6 +11,7 @@ import OnboardingGuide from "@/components/OnboardingGuide";
 import HelpBubble from "@/components/HelpBubble";
 
 const JOB_ID_STORAGE_KEY = "retromind_active_job_id";
+const INTAKE_ID_STORAGE_KEY = "retromind_active_intake_id";
 
 type SlotKey =
   | "left_side_profile"
@@ -403,19 +404,31 @@ export default function Home() {
   }, [jobId]);
 
   useEffect(() => {
-    const stored = localStorage.getItem(JOB_ID_STORAGE_KEY);
+    if (intakeId) {
+      localStorage.setItem(INTAKE_ID_STORAGE_KEY, intakeId);
+    }
+  }, [intakeId]);
+
+  useEffect(() => {
+    const storedJobId = localStorage.getItem(JOB_ID_STORAGE_KEY);
+    const storedIntakeId = localStorage.getItem(INTAKE_ID_STORAGE_KEY);
     const urlParams = new URLSearchParams(window.location.search);
     const paramJobId = urlParams.get("job_id");
 
-    const recoveredId = paramJobId || stored;
-    if (recoveredId && !jobId && !intakeId) {
-      setJobId(recoveredId);
+    const recoveredJobId = paramJobId || storedJobId;
+    if (recoveredJobId && !jobId && !intakeId) {
+      setJobId(recoveredJobId);
+    }
+    if (storedIntakeId && !intakeId) {
+      setIntakeId(storedIntakeId);
     }
   }, []);
 
   const handleClearJob = useCallback(() => {
     localStorage.removeItem(JOB_ID_STORAGE_KEY);
+    localStorage.removeItem(INTAKE_ID_STORAGE_KEY);
     setJobId(null);
+    setIntakeId(null);
   }, []);
 
   const handleFileSelect = useCallback(
@@ -760,6 +773,7 @@ export default function Home() {
     setOemSearchOpen(false);
     setVehicleIdentification(null);
     localStorage.removeItem(JOB_ID_STORAGE_KEY);
+    localStorage.removeItem(INTAKE_ID_STORAGE_KEY);
   };
 
   const isLoading =
@@ -1194,6 +1208,7 @@ export default function Home() {
               <AssessmentResult
                 assessment={assessment}
                 jobId={jobId}
+                intakeId={intakeId ?? undefined}
                 onConfirm={handleConfirm}
               />
             )}

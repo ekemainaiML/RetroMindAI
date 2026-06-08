@@ -698,3 +698,28 @@ async def set_intake_oem_model(
         intake_id=str(intake_id),
         oem_model_id=str(oem_uuid) if oem_uuid else None,
     )
+
+
+@router.get("/intake/{intake_id}/digital-twin", status_code=200)
+async def get_digital_twin_public(
+    intake_id: uuid.UUID,
+    db: Session = Depends(get_db),
+):
+    intake = db.query(Intake).filter(Intake.id == intake_id).first()
+    if not intake:
+        raise HTTPException(status_code=404, detail="Intake not found")
+
+    job = (
+        db.query(Job)
+        .filter(Job.intake_id == intake_id, Job.status == "completed")
+        .order_by(Job.created_at.desc())
+        .first()
+    )
+    if not job or not job.result:
+        raise HTTPException(status_code=404, detail="No completed assessment found")
+
+    digital_twin = job.result.get("digital_twin")
+    if not digital_twin:
+        raise HTTPException(status_code=404, detail="No digital twin data available")
+
+    return digital_twin

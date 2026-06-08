@@ -76,6 +76,110 @@ _COMPONENT_TEMPLATES = {
 }
 
 
+_BATTERY_ZONE_POSITIONS = {
+    "three_wheeler": {
+        "under_seat_forward": {"x": 0.0, "y": -0.25, "z": 0.25},
+        "under_seat_rear": {"x": 0.0, "y": -0.25, "z": -0.15},
+        "underbody_center": {"x": 0.0, "y": -0.45, "z": 0.0},
+        "underbody_rear": {"x": 0.0, "y": -0.40, "z": -0.35},
+        "engine_bay": {"x": 0.0, "y": -0.10, "z": 0.55},
+        "cargo_bay": {"x": 0.0, "y": -0.20, "z": -0.50},
+        "frame_mounted_left": {"x": -0.35, "y": -0.30, "z": 0.0},
+        "frame_mounted_right": {"x": 0.35, "y": -0.30, "z": 0.0},
+    },
+    "four_wheeler": {
+        "underfloor_front": {"x": 0.0, "y": -0.30, "z": 0.35},
+        "underfloor_center": {"x": 0.0, "y": -0.35, "z": 0.0},
+        "underfloor_rear": {"x": 0.0, "y": -0.30, "z": -0.35},
+        "trunk": {"x": 0.0, "y": -0.05, "z": -0.45},
+        "engine_bay": {"x": 0.0, "y": -0.10, "z": 0.55},
+        "frame_mounted_left": {"x": -0.45, "y": -0.25, "z": 0.0},
+        "frame_mounted_right": {"x": 0.45, "y": -0.25, "z": 0.0},
+    },
+    "motorcycle": {
+        "under_seat": {"x": 0.0, "y": -0.05, "z": 0.05},
+        "tank_area": {"x": 0.0, "y": -0.05, "z": 0.25},
+        "side_mounted_left": {"x": -0.20, "y": -0.15, "z": 0.0},
+        "side_mounted_right": {"x": 0.20, "y": -0.15, "z": 0.0},
+        "rear_rack": {"x": 0.0, "y": 0.0, "z": -0.30},
+    },
+}
+
+_BATTERY_DEFAULT_SIZE: dict[str, dict[str, float]] = {
+    "three_wheeler": {"w": 0.6, "h": 0.22, "d": 0.4},
+    "four_wheeler": {"w": 0.8, "h": 0.18, "d": 0.5},
+    "motorcycle": {"w": 0.3, "h": 0.12, "d": 0.2},
+}
+
+_HEAT_ZONE_DEFAULTS: dict[str, dict[str, list[dict]]] = {
+    "three_wheeler": {
+        "rear": [
+            {"id": "exhaust_area", "label": "Exhaust / Engine Bay", "position": {"x": 0.0, "y": -0.1, "z": -0.5}, "radius": 0.35, "severity": "high", "temperature_c": 120, "source": "oem_default"},
+            {"id": "motor_area", "label": "Motor Heat Zone", "position": {"x": 0.0, "y": -0.2, "z": -0.6}, "radius": 0.25, "severity": "medium", "temperature_c": 70, "source": "oem_default"},
+        ],
+        "front": [
+            {"id": "exhaust_area", "label": "Exhaust / Engine Bay", "position": {"x": 0.0, "y": -0.1, "z": 0.5}, "radius": 0.35, "severity": "high", "temperature_c": 120, "source": "oem_default"},
+            {"id": "motor_area", "label": "Motor Heat Zone", "position": {"x": 0.0, "y": -0.2, "z": 0.4}, "radius": 0.25, "severity": "medium", "temperature_c": 70, "source": "oem_default"},
+        ],
+        "mid": [
+            {"id": "exhaust_area", "label": "Exhaust / Engine Bay", "position": {"x": 0.0, "y": -0.1, "z": 0.0}, "radius": 0.35, "severity": "high", "temperature_c": 120, "source": "oem_default"},
+        ],
+    },
+    "four_wheeler": {
+        "front": [
+            {"id": "radiator", "label": "Radiator / Engine Bay", "position": {"x": 0.0, "y": -0.1, "z": 0.55}, "radius": 0.35, "severity": "high", "temperature_c": 110, "source": "oem_default"},
+            {"id": "exhaust_manifold", "label": "Exhaust Manifold", "position": {"x": 0.0, "y": -0.2, "z": 0.3}, "radius": 0.25, "severity": "medium", "temperature_c": 80, "source": "oem_default"},
+        ],
+        "rear": [
+            {"id": "exhaust_pipe", "label": "Exhaust / Muffler", "position": {"x": 0.0, "y": -0.2, "z": -0.50}, "radius": 0.3, "severity": "medium", "temperature_c": 70, "source": "oem_default"},
+        ],
+        "mid": [
+            {"id": "catalytic_converter", "label": "Catalytic Converter", "position": {"x": 0.0, "y": -0.25, "z": 0.0}, "radius": 0.25, "severity": "high", "temperature_c": 95, "source": "oem_default"},
+        ],
+    },
+    "motorcycle": {
+        "front": [
+            {"id": "engine_block", "label": "Engine Block", "position": {"x": 0.15, "y": -0.1, "z": 0.2}, "radius": 0.25, "severity": "high", "temperature_c": 115, "source": "oem_default"},
+            {"id": "exhaust_header", "label": "Exhaust Header", "position": {"x": 0.1, "y": -0.15, "z": 0.0}, "radius": 0.2, "severity": "medium", "temperature_c": 85, "source": "oem_default"},
+        ],
+        "rear": [
+            {"id": "muffler", "label": "Muffler / Silencer", "position": {"x": -0.25, "y": -0.15, "z": -0.35}, "radius": 0.2, "severity": "medium", "temperature_c": 65, "source": "oem_default"},
+        ],
+    },
+}
+
+
+_WAYPOINTS_MAP: dict[str, dict[str, list[dict[str, float]]]] = {
+    "three_wheeler": {
+        "under_seat_forward": [
+            {"x": 0.0, "y": -0.1, "z": 0.3}, {"x": 0.0, "y": 0.05, "z": 0.2}, {"x": 0.0, "y": -0.1, "z": -0.3}, {"x": 0.0, "y": -0.2, "z": -0.6},
+        ],
+        "underbody_center": [
+            {"x": 0.0, "y": -0.1, "z": 0.3}, {"x": 0.0, "y": -0.3, "z": 0.0}, {"x": 0.0, "y": -0.3, "z": -0.3}, {"x": 0.0, "y": -0.2, "z": -0.6},
+        ],
+    },
+    "four_wheeler": {
+        "underfloor_front_to_rear": [
+            {"x": 0.0, "y": -0.1, "z": 0.5}, {"x": 0.0, "y": -0.3, "z": 0.3}, {"x": 0.0, "y": -0.35, "z": 0.0}, {"x": 0.0, "y": -0.3, "z": -0.3}, {"x": 0.0, "y": -0.1, "z": -0.5},
+        ],
+        "underfloor_center": [
+            {"x": 0.0, "y": -0.1, "z": 0.3}, {"x": 0.0, "y": -0.35, "z": 0.0}, {"x": 0.0, "y": -0.35, "z": -0.3}, {"x": 0.0, "y": -0.1, "z": -0.5},
+        ],
+        "trunk_run": [
+            {"x": 0.0, "y": -0.1, "z": 0.3}, {"x": 0.0, "y": -0.2, "z": 0.0}, {"x": 0.0, "y": -0.1, "z": -0.3}, {"x": 0.0, "y": 0.0, "z": -0.45},
+        ],
+    },
+    "motorcycle": {
+        "under_seat_to_motor": [
+            {"x": 0.0, "y": -0.05, "z": 0.25}, {"x": 0.0, "y": 0.0, "z": 0.1}, {"x": 0.0, "y": -0.05, "z": -0.1}, {"x": 0.0, "y": -0.15, "z": -0.3},
+        ],
+        "frame_rail": [
+            {"x": 0.0, "y": -0.05, "z": 0.3}, {"x": 0.0, "y": -0.1, "z": 0.0}, {"x": 0.0, "y": -0.1, "z": -0.2},
+        ],
+    },
+}
+
+
 class DigitalTwinDataGenerator:
     def generate(
         self, assessment_result: dict, vehicle_type: str
@@ -86,16 +190,27 @@ class DigitalTwinDataGenerator:
 
         deviations_3d = self._build_deviations_3d(assessment_result)
         retrofit_components = self._build_retrofit_components(assessment_result)
+        battery_fitment = self._build_battery_fitment(assessment_result, vehicle_type)
+        thermal_zones = self._build_thermal_zones(assessment_result, vehicle_type)
+        wiring_routes = self._build_wiring_routes(assessment_result, vehicle_type)
 
-        return {
+        result = {
             "vehicle_type": vehicle_type,
             "dimensions": dict(dimensions),
             "deviations_3d": deviations_3d,
             "retrofit_components": retrofit_components,
+            "battery_fitment": battery_fitment,
+            "thermal_zones": thermal_zones,
+            "wiring_routes": wiring_routes,
             "view_angles": {
                 "default_camera": {"theta": 0.8, "phi": 0.6, "radius": 4.0}
             },
         }
+
+        if battery_fitment is None:
+            result.pop("battery_fitment")
+
+        return result
 
     def _build_deviations_3d(self, assessment_result: dict) -> list[dict]:
         deviation_result = assessment_result.get("deviation_result")
@@ -160,3 +275,129 @@ class DigitalTwinDataGenerator:
             components.append(component)
 
         return components
+
+    def _build_battery_fitment(self, assessment_result: dict, vehicle_type: str) -> dict | None:
+        battery_placement = assessment_result.get("battery_placement")
+        if not battery_placement:
+            return None
+
+        zones = battery_placement.get("zones", [])
+        recommended_id = battery_placement.get("recommended_zone")
+
+        recommended = next((z for z in zones if z.get("id") == recommended_id), zones[0] if zones else None)
+        if not recommended:
+            return None
+
+        position = self._resolve_battery_position(recommended, vehicle_type)
+        clearance = self._compute_clearance(recommended)
+        confidence = battery_placement.get("confidence", 100)
+        battery_size = _BATTERY_DEFAULT_SIZE.get(vehicle_type, _BATTERY_DEFAULT_SIZE["three_wheeler"])
+
+        return {
+            "zone_id": recommended.get("id", "A"),
+            "label": recommended.get("label", "Battery Pack"),
+            "position": position,
+            "size": dict(battery_size),
+            "clearance": clearance,
+            "fitment_status": "tight" if confidence < 60 else "clear",
+        }
+
+    @staticmethod
+    def _resolve_battery_position(zone: dict, vehicle_type: str) -> dict[str, float]:
+        zone_map = _BATTERY_ZONE_POSITIONS.get(vehicle_type, _BATTERY_ZONE_POSITIONS["three_wheeler"])
+        raw = zone.get("position", "") or zone.get("label", "").lower()
+        for key, pos in zone_map.items():
+            if key.replace("_", " ") in raw or key in raw:
+                return dict(pos)
+        fallback = _BATTERY_ZONE_POSITIONS["three_wheeler"]["underbody_center"]
+        return dict(fallback)
+
+    @staticmethod
+    def _compute_clearance(zone: dict) -> dict[str, int]:
+        constraints = zone.get("constraints") or []
+        defaults = {"front": 15, "rear": 20, "left": 10, "right": 10, "top": 25, "bottom": 30}
+        for c in constraints:
+            for axis in ("front", "rear", "left", "right", "top", "bottom"):
+                if axis in c.lower():
+                    try:
+                        val = int("".join(filter(str.isdigit, c)))
+                        if val > 0:
+                            defaults[axis] = val
+                    except (ValueError, IndexError):
+                        pass
+        return defaults
+
+    @staticmethod
+    def _build_thermal_zones(assessment_result: dict, vehicle_type: str) -> list[dict]:
+        zones: list[dict] = []
+
+        vehicle_defaults = _HEAT_ZONE_DEFAULTS.get(vehicle_type, _HEAT_ZONE_DEFAULTS["three_wheeler"])
+        geometry_result = assessment_result.get("geometry_result")
+        engine_comp = (geometry_result or {}).get("engine_bay_compartment", "rear")
+
+        defaults = vehicle_defaults.get(engine_comp, vehicle_defaults.get("front", []))
+        zones.extend(defaults)
+
+        deviations = (assessment_result.get("deviation_result") or {}).get("deviations", [])
+        for d in deviations:
+            notes = d.get("notes", "")
+            parameter = d.get("parameter", "unknown")
+            if "heat" in notes.lower() or "thermal" in notes.lower():
+                location = _DEVIATION_LOCATIONS.get(parameter, "chassis_center")
+                zones.append({
+                    "id": f"thermal_deviation_{parameter}",
+                    "label": d.get("notes", f"Heat anomaly: {parameter}"),
+                    "position": dict(_DEVIATION_3D_POSITIONS.get(location, {"x": 0, "y": 0, "z": 0})),
+                    "radius": 0.25,
+                    "severity": "high",
+                    "temperature_c": 80,
+                    "source": "deviation_detection",
+                })
+
+        return zones
+
+    @staticmethod
+    def _build_wiring_routes(assessment_result: dict, vehicle_type: str) -> list[dict]:
+        vehicle_waypoints = _WAYPOINTS_MAP.get(vehicle_type, _WAYPOINTS_MAP["three_wheeler"])
+        wiring = assessment_result.get("wiring_guidance")
+        if wiring:
+            recommended_route = wiring.get("recommended_route") or (wiring.get("routes") or [None])[0]
+            if recommended_route:
+                route_id = recommended_route.get("id", "under_seat_forward")
+                waypoints = vehicle_waypoints.get(route_id, vehicle_waypoints.get("under_seat_forward", list(vehicle_waypoints.values())[0]))
+                return [
+                    {
+                        "id": route_id,
+                        "label": recommended_route.get("label", "Primary HV Route"),
+                        "waypoints": waypoints,
+                        "color": "#f59e0b",
+                        "caution_zones": wiring.get("caution_zones", []),
+                        "confidence": wiring.get("confidence", 0.5),
+                    },
+                ]
+
+        battery_placement = assessment_result.get("battery_placement")
+        if battery_placement:
+            zones = battery_placement.get("zones", [])
+            recommended_id = battery_placement.get("recommended_zone")
+            recommended = next((z for z in zones if z.get("id") == recommended_id), zones[0] if zones else None)
+            if recommended:
+                raw = recommended.get("position", "") or recommended.get("label", "").lower()
+                route_id = "underbody_center"
+                for key in vehicle_waypoints:
+                    if key.replace("_", " ") in raw or key in raw:
+                        route_id = key
+                        break
+                waypoints = vehicle_waypoints[route_id]
+                return [
+                    {
+                        "id": route_id,
+                        "label": f"HV Route ({recommended.get('label', route_id)})",
+                        "waypoints": waypoints,
+                        "color": "#f59e0b",
+                        "caution_zones": [],
+                        "confidence": 0.5,
+                    },
+                ]
+
+        return []

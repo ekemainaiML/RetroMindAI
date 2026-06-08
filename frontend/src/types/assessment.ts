@@ -98,11 +98,62 @@ export interface ViewAngles {
   default_camera: { theta: number; phi: number; radius: number };
 }
 
+export interface BatteryFitment {
+  zone_id: string;
+  label: string;
+  position: { x: number; y: number; z: number };
+  size: { w: number; h: number; d: number };
+  clearance: {
+    front: number;
+    rear: number;
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  };
+  fitment_status: string;
+}
+
+export interface Measurement {
+  id: string;
+  start: { x: number; y: number; z: number };
+  end: { x: number; y: number; z: number };
+  distance: number;
+}
+
+export interface ThermalZone {
+  id: string;
+  label: string;
+  position: { x: number; y: number; z: number };
+  radius: number;
+  severity: "low" | "medium" | "high";
+  temperature_c: number;
+  source: string;
+}
+
+export interface Waypoint3D {
+  x: number;
+  y: number;
+  z: number;
+}
+
+export interface WiringRoute3D {
+  id: string;
+  label: string;
+  waypoints: Waypoint3D[];
+  color: string;
+  caution_zones: string[];
+  confidence: number;
+}
+
 export interface DigitalTwinData {
   vehicle_type: string;
   dimensions: VehicleDimensions;
   deviations_3d: Deviation3D[];
   retrofit_components: RetrofitComponent3D[];
+  battery_fitment?: BatteryFitment;
+  thermal_zones?: ThermalZone[];
+  wiring_routes?: WiringRoute3D[];
   view_angles: ViewAngles;
 }
 
