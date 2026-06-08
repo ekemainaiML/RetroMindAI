@@ -16,6 +16,27 @@ VALID_JOB_STATES = {
 }
 
 
+class PricingPlan(Base):
+    __tablename__ = "pricing_plans"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tier = Column(String(20), nullable=False, unique=True)
+    name = Column(String(100), nullable=False)
+    price_monthly = Column(Integer, nullable=False)
+    price_yearly = Column(Integer, nullable=False)
+    max_users = Column(Integer, nullable=True)
+    max_assessments = Column(Integer, nullable=True)
+    max_storage_mb = Column(Integer, nullable=True)
+    rate_limit = Column(Integer, nullable=True)
+    features = Column(JSONB, nullable=False, default=list)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -33,6 +54,24 @@ class User(Base):
 
     workshops = relationship("Workshop", back_populates="owner", cascade="all, delete-orphan")
     workspace_roles = relationship("WorkspaceRole", back_populates="user", cascade="all, delete-orphan")
+
+
+class UsageMetering(Base):
+    __tablename__ = "usage_metering"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workshop_id = Column(UUID(as_uuid=True), ForeignKey("workshops.id", ondelete="CASCADE"), nullable=False)
+    metric = Column(String(50), nullable=False)
+    amount = Column(Integer, nullable=False, default=0)
+    recorded_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        sqlalchemy.Index("ix_usage_metering_lookup", "workshop_id", "metric", "recorded_at"),
+    )
 
 
 class WorkspaceRole(Base):
@@ -77,6 +116,12 @@ class Workshop(Base):
     api_key_expires_at = Column(DateTime(timezone=True), nullable=True)
     api_key_revoked_at = Column(DateTime(timezone=True), nullable=True)
     api_key_ip_allowlist = Column(JSONB, nullable=True, default=[])
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
+    subscription_status = Column(String, nullable=True, default="active")
+    billing_period_start = Column(DateTime(timezone=True), nullable=True)
+    billing_period_end = Column(DateTime(timezone=True), nullable=True)
+    branding = Column(JSONB, nullable=True, default=dict)
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

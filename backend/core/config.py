@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     environment: str = "development"
     encryption_key: str = ""
     otel_endpoint: str = ""
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    api_key_expiry_days: int = 90
 
     admin_api_key: str = "dev-admin-key"
     jwt_secret: str = "retromind-dev-jwt-secret-change-in-prod"

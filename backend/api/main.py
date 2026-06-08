@@ -23,6 +23,7 @@ from api.v1.endpoints.admin import router as admin_router  # noqa: E402
 from api.v1.endpoints.analytics import router as analytics_router  # noqa: E402
 from api.v1.endpoints.auth import router as auth_router  # noqa: E402
 from api.v1.endpoints.user_auth import router as user_auth_router  # noqa: E402
+from api.v1.endpoints.billing import router as billing_router  # noqa: E402
 from api.v1.endpoints.demo import router as demo_router  # noqa: E402
 from api.v1.endpoints.health import router as health_router  # noqa: E402
 from api.v1.endpoints.history import router as history_router  # noqa: E402
@@ -222,6 +223,7 @@ app.add_middleware(
 
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
+app.include_router(billing_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(user_auth_router, prefix="/api/v1")
 app.include_router(demo_router, prefix="/api/v1")
