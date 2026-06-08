@@ -1,6 +1,6 @@
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, EmailStr
@@ -37,6 +37,8 @@ class WorkshopProfile(BaseModel):
     email: str | None
     tier: str
     api_key_prefix: str
+    api_key_expires_at: str | None = None
+    api_key_revoked_at: str | None = None
     created_at: str | None
     intake_count: int
     job_count: int
@@ -63,6 +65,7 @@ async def register_workshop(
         api_key_hash=key_hash,
         api_key_prefix=prefix,
         is_active=True,
+        api_key_expires_at=datetime.now(timezone.utc) + timedelta(days=90),
     )
     db.add(workshop)
     db.commit()
@@ -82,6 +85,8 @@ async def renew_api_key(
     raw, key_hash, prefix = generate_api_key()
     workshop.api_key_hash = key_hash
     workshop.api_key_prefix = prefix
+    workshop.api_key_expires_at = datetime.now(timezone.utc) + timedelta(days=90)
+    workshop.api_key_revoked_at = None
     if workshop.demo_raw_key is not None:
         workshop.demo_raw_key = raw
     db.commit()
@@ -114,6 +119,8 @@ async def get_workshop_profile(
         email=workshop.email,
         tier=workshop.tier,
         api_key_prefix=workshop.api_key_prefix,
+        api_key_expires_at=workshop.api_key_expires_at.isoformat() if workshop.api_key_expires_at else None,
+        api_key_revoked_at=workshop.api_key_revoked_at.isoformat() if workshop.api_key_revoked_at else None,
         created_at=workshop.created_at.isoformat() if workshop.created_at else None,
         intake_count=intake_count,
         job_count=job_count,
@@ -214,3 +221,29 @@ def toggle_workshop_capability(
     if not ok:
         raise HTTPException(status_code=404, detail=f"Unknown capability '{name}'")
     return {"name": name, "effective": FeatureFlagStore.get_effective(name)}
+
+
+class KeyInfoResponse(BaseModel):
+    prefix: str
+    expires_at: str | None
+    revoked_at: str | None
+    is_active: bool
+    days_remaining: int | None
+
+
+@router.get("/auth/key-info", response_model=KeyInfoResponse)
+async def get_api_key_info(
+    workshop: Workshop = Depends(get_current_workshop_obj),
+):
+    days_remaining = None
+    if workshop.api_key_expires_at:
+        delta = workshop.api_key_expires_at - datetime.now(timezone.utc)
+        days_remaining = max(0, delta.days)
+
+    return KeyInfoResponse(
+        prefix=workshop.api_key_prefix,
+        expires_at=workshop.api_key_expires_at.isoformat() if workshop.api_key_expires_at else None,
+        revoked_at=workshop.api_key_revoked_at.isoformat() if workshop.api_key_revoked_at else None,
+        is_active=workshop.is_active and workshop.api_key_revoked_at is None,
+        days_remaining=days_remaining,
+    )

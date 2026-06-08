@@ -9,8 +9,8 @@ from fastapi.staticfiles import StaticFiles
 
 logger = logging.getLogger(__name__)
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
-from slowapi import _rate_limit_exceeded_handler  # noqa: E402
 from slowapi.errors import RateLimitExceeded  # noqa: E402
+from starlette.responses import JSONResponse  # noqa: E402
 from slowapi.middleware import SlowAPIMiddleware  # noqa: E402
 from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
 
@@ -36,7 +36,7 @@ from core.auth import seed_demo_workshop  # noqa: E402
 from core.config import settings  # noqa: E402
 from core.database import SessionLocal  # noqa: E402
 from core.db_exceptions import db_error_handler  # noqa: E402
-from core.limiter import limiter  # noqa: E402
+from core.limiter import get_tier_from_workshop, limiter  # noqa: E402
 
 if settings.sentry_dsn:
     sentry_sdk.init(
@@ -75,7 +75,21 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+
+async def custom_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    tier = getattr(request.state, "workshop_tier", "guest")
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": f"Rate limit exceeded for tier '{tier}'. Upgrade at /settings/billing for higher limits.",
+        },
+        headers={
+            "Retry-After": "60",
+            "X-RateLimit-Tier": tier,
+        },
+    )
+
+app.add_exception_handler(RateLimitExceeded, custom_rate_limit_handler)  # type: ignore[arg-type]
 app.add_exception_handler(SQLAlchemyError, db_error_handler)  # type: ignore[arg-type]
 
 @app.middleware("http")
@@ -138,6 +152,34 @@ async def audit_middleware(request: Request, call_next):
         pass
     finally:
         db.close()
+    return response
+
+
+@app.middleware("http")
+async def tier_middleware(request: Request, call_next):
+    request.state.workshop_tier = "guest"
+    api_key = request.headers.get("X-API-Key", "")
+    if api_key:
+        try:
+            from core.auth import hash_api_key
+            from core.models import Workshop
+            from core.database import SessionLocal as _DB
+            db = _DB()
+            try:
+                key_hash = hash_api_key(api_key)
+                workshop = (
+                    db.query(Workshop)
+                    .filter(Workshop.api_key_hash == key_hash, Workshop.is_active.is_(True))
+                    .first()
+                )
+                if workshop:
+                    request.state.workshop_tier = get_tier_from_workshop(workshop.tier)
+            finally:
+                db.close()
+        except Exception:
+            pass
+    response = await call_next(request)
+    response.headers["X-RateLimit-Tier"] = request.state.workshop_tier
     return response
 
 

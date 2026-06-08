@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
+import sqlalchemy
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
@@ -23,6 +24,7 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     name = Column(String, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
+    current_workshop_id = Column(UUID(as_uuid=True), ForeignKey("workshops.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -30,6 +32,32 @@ class User(Base):
     )
 
     workshops = relationship("Workshop", back_populates="owner", cascade="all, delete-orphan")
+    workspace_roles = relationship("WorkspaceRole", back_populates="user", cascade="all, delete-orphan")
+
+
+class WorkspaceRole(Base):
+    __tablename__ = "workspace_roles"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    workshop_id = Column(UUID(as_uuid=True), ForeignKey("workshops.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String(20), nullable=False, default="operator")
+    invited_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    invited_at = Column(DateTime(timezone=True), nullable=True)
+    accepted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        sqlalchemy.UniqueConstraint("user_id", "workshop_id", name="uq_user_workshop"),
+    )
+
+    user = relationship("User", back_populates="workspace_roles")
+    workshop = relationship("Workshop", back_populates="workspace_roles")
+    inviter = relationship("User", foreign_keys=[invited_by], remote_side="User.id")
 
 
 class Workshop(Base):
@@ -46,6 +74,9 @@ class Workshop(Base):
     api_key_prefix = Column(String, nullable=False)
     demo_raw_key = Column(String, nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
+    api_key_expires_at = Column(DateTime(timezone=True), nullable=True)
+    api_key_revoked_at = Column(DateTime(timezone=True), nullable=True)
+    api_key_ip_allowlist = Column(JSONB, nullable=True, default=[])
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -54,6 +85,7 @@ class Workshop(Base):
 
     owner = relationship("User", back_populates="workshops")
     intakes = relationship("Intake", back_populates="workshop", cascade="all, delete-orphan")
+    workspace_roles = relationship("WorkspaceRole", back_populates="workshop", cascade="all, delete-orphan")
 
 
 class Intake(Base):

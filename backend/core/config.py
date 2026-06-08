@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     rate_limit: str = "1000/minute"
     sentry_dsn: str = ""
     environment: str = "development"
+    encryption_key: str = ""
 
     admin_api_key: str = "dev-admin-key"
     jwt_secret: str = "retromind-dev-jwt-secret-change-in-prod"

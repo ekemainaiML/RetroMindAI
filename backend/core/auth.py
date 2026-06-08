@@ -1,23 +1,27 @@
 import hashlib
 import logging
 import secrets
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt as pyjwt
+import redis as redis_lib
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader, HTTPBearer
 from sqlalchemy.orm import Session
 
 from core.config import settings
-from core.database import get_db
+from core.database import SessionLocal, get_db
 from core.models import User, Workshop
 
 logger = logging.getLogger(__name__)
 
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 JWT_BEARER = HTTPBearer(auto_error=False)
+
+API_KEY_EXPIRY_DAYS = 90
 
 
 def hash_api_key(key: str) -> str:
@@ -28,12 +32,63 @@ def prefix_from_key(key: str) -> str:
     return key[:7] if len(key) >= 7 else key
 
 
-def generate_api_key() -> tuple[str, str, str]:
+def generate_api_key(expiry_days: int = API_KEY_EXPIRY_DAYS) -> tuple[str, str, str]:
     raw = "rm_" + secrets.token_hex(20)
     return raw, hash_api_key(raw), prefix_from_key(raw)
 
 
-def _lookup_workshop(api_key: str, db: Session) -> Workshop | None:
+def _get_redis() -> redis_lib.Redis | None:
+    try:
+        return redis_lib.from_url(settings.redis_url, socket_connect_timeout=2)
+    except Exception:
+        return None
+
+
+def _check_key_expiry(workshop: Workshop) -> Workshop | None:
+    if workshop.api_key_expires_at and workshop.api_key_expires_at < datetime.now(timezone.utc):
+        logger.warning("Expired API key attempt for workshop %s", workshop.id)
+        return None
+    if workshop.api_key_revoked_at:
+        logger.warning("Revoked API key attempt for workshop %s", workshop.id)
+        return None
+    return workshop
+
+
+def _check_breach(api_key: str, workshop_id: str, ip_address: str | None) -> None:
+    if not ip_address:
+        return
+    redis_client = _get_redis()
+    if not redis_client:
+        return
+
+    prefix = prefix_from_key(api_key)
+    bucket = int(time.time() / 300)
+    key = f"apikey_breach:{prefix}:{bucket}"
+    redis_client.sadd(key, ip_address)
+    redis_client.expire(key, 600)
+
+    count = redis_client.scard(key)
+    if count > 3:
+        allowed = redis_client.get(f"apikey_allowlist:{prefix}")
+        if allowed and ip_address in allowed.decode():
+            return
+
+        logger.warning(
+            "Breach detected for API key %s: %d distinct IPs in 5min window",
+            prefix, count,
+        )
+        db = SessionLocal()
+        try:
+            workshop = db.query(Workshop).filter(Workshop.id == workshop_id).first()
+            if workshop and not workshop.api_key_revoked_at:
+                workshop.api_key_revoked_at = datetime.now(timezone.utc)
+                db.commit()
+                logger.info("Auto-revoked API key %s due to breach detection", prefix)
+        finally:
+            db.close()
+
+
+def _lookup_workshop(api_key: str, db: Session, ip_address: str | None = None) -> Workshop | None:
     key_hash = hash_api_key(api_key)
     workshop = (
         db.query(Workshop)
@@ -41,6 +96,9 @@ def _lookup_workshop(api_key: str, db: Session) -> Workshop | None:
         .first()
     )
     if workshop:
+        workshop = _check_key_expiry(workshop)
+        if workshop:
+            _check_breach(api_key, str(workshop.id), ip_address)
         return workshop
     if api_key == settings.admin_api_key:
         return (
@@ -86,7 +144,7 @@ def get_current_workshop_obj(
     if not workshop:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or inactive API key",
+            detail="Invalid or inactive API key. Key may be expired or revoked.",
         )
 
     return workshop
@@ -190,6 +248,7 @@ def seed_demo_workshop(db: Session) -> str:
         demo.api_key_hash = key_hash
         demo.api_key_prefix = prefix
         demo.demo_raw_key = raw
+        demo.api_key_expires_at = datetime.now(timezone.utc) + timedelta(days=90)
         db.commit()
         logger.info("Demo Workshop key regenerated: %s", raw)
         return prefix
@@ -204,6 +263,7 @@ def seed_demo_workshop(db: Session) -> str:
         api_key_prefix=prefix,
         demo_raw_key=raw,
         is_active=True,
+        api_key_expires_at=datetime.now(timezone.utc) + timedelta(days=90),
     )
     db.add(workshop)
     db.commit()

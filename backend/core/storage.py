@@ -1,9 +1,13 @@
+import logging
 from pathlib import Path
 
 import boto3
 from botocore.config import Config as BotoConfig
 
 from core.config import settings
+from core.crypto import decrypt_file, encrypt_file
+
+logger = logging.getLogger(__name__)
 
 
 class LocalStorage:
@@ -14,14 +18,20 @@ class LocalStorage:
     def save(self, key: str, data: bytes) -> str:
         path = self.base_path / key
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        encrypted = encrypt_file(data)
+        path.write_bytes(encrypted)
         return str(path)
 
     def load(self, key: str) -> bytes | None:
         path = self.base_path / key
         if not path.exists():
             return None
-        return path.read_bytes()
+        encrypted = path.read_bytes()
+        try:
+            return decrypt_file(encrypted)
+        except Exception:
+            logger.exception("Failed to decrypt file %s", key)
+            return None
 
     def delete(self, key: str) -> bool:
         path = self.base_path / key
@@ -53,14 +63,19 @@ class S3Storage:
 
     def save(self, key: str, data: bytes) -> str:
         self._ensure_bucket()
-        self.client.put_object(Bucket=self.bucket, Key=key, Body=data)
+        encrypted = encrypt_file(data)
+        self.client.put_object(Bucket=self.bucket, Key=key, Body=encrypted)
         return f"s3://{self.bucket}/{key}"
 
     def load(self, key: str) -> bytes | None:
         try:
             resp = self.client.get_object(Bucket=self.bucket, Key=key)
-            return resp["Body"].read()
+            encrypted = resp["Body"].read()
+            return decrypt_file(encrypted)
         except self.client.exceptions.NoSuchKey:
+            return None
+        except Exception:
+            logger.exception("Failed to decrypt S3 file %s", key)
             return None
 
     def delete(self, key: str) -> bool:

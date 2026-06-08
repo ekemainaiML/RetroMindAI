@@ -9,8 +9,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  secrets-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate required secrets
+        run: |
+          MISSING=""
+          for secret in ORACLE_HOST ORACLE_USER ORACLE_SSH_KEY DOMAIN; do
+            if [ -z "${{ secrets[secret] }}" ]; then
+              MISSING="$MISSING $secret"
+            fi
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing required secrets:$MISSING"
+            echo "::error::Add these secrets in GitHub repository Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          echo "All required secrets are present"
+
   test:
     uses: ./.github/workflows/ci.yml
+    needs: [secrets-check]
 
   deploy:
     needs: [test]
