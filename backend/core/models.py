@@ -46,6 +46,8 @@ class User(Base):
     name = Column(String, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
     current_workshop_id = Column(UUID(as_uuid=True), ForeignKey("workshops.id", ondelete="SET NULL"), nullable=True)
+    sso_provider = Column(String(20), nullable=True)
+    sso_subject = Column(String(255), nullable=True)
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

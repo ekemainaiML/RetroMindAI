@@ -34,6 +34,7 @@ from api.v1.endpoints.knowledge_graph import router as kg_router  # noqa: E402
 from api.v1.endpoints.metrics import router as metrics_router  # noqa: E402
 from api.v1.endpoints.reports import router as reports_router  # noqa: E402
 from api.v1.endpoints.setup import router as setup_router  # noqa: E402
+from api.v1.endpoints.sso_auth import router as sso_router  # noqa: E402
 from api.v1.endpoints.training import router as training_router  # noqa: E402
 from api.v1.endpoints.metrics import HTTP_REQUESTS_TOTAL, HTTP_REQUEST_DURATION  # noqa: E402
 from api.v2.main import router as v2_router  # noqa: E402
@@ -225,6 +226,7 @@ app.include_router(admin_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(billing_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
+app.include_router(sso_router, prefix="/api/v1")
 app.include_router(user_auth_router, prefix="/api/v1")
 app.include_router(demo_router, prefix="/api/v1")
 app.include_router(health_router, prefix="/api/v1")

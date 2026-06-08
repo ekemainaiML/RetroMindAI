@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     api_key_expiry_days: int = 90
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    azure_client_id: str = ""
+    azure_client_secret: str = ""
+    azure_tenant_id: str = ""
 
     admin_api_key: str = "dev-admin-key"
     jwt_secret: str = "retromind-dev-jwt-secret-change-in-prod"
