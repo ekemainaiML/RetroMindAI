@@ -128,7 +128,7 @@ class Workshop(Base):
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
     )
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=False, unique=True)
     email = Column(String, nullable=True)
     tier = Column(String, nullable=False, default="standard")
     api_key_hash = Column(String, nullable=False)

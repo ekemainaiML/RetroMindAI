@@ -82,6 +82,17 @@ async def get_report(
     result = job.result
     intake = db.query(Intake).filter(Intake.id == job.intake_id).first()
 
+    return ComplianceReport(
+        report_id=str(uuid.uuid5(uuid.NAMESPACE_DNS, f"report-{job_id}")),
+        job_id=str(job.id),
+        intake_id=str(job.intake_id),
+        generated_at=datetime.now(timezone.utc).isoformat(),
+        job_status=job.status,
+        sections=build_report_sections(job, intake, result),
+    )
+
+
+def build_report_sections(job: Job, intake: Intake | None, result: dict) -> list[ReportSection]:
     sections: list[ReportSection] = []
 
     sections.append(ReportSection(
@@ -325,13 +336,4 @@ async def get_report(
         },
     ))
 
-    report_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"report-{job_id}"))
-
-    return ComplianceReport(
-        report_id=report_id,
-        job_id=str(job.id),
-        intake_id=str(job.intake_id),
-        generated_at=datetime.now(timezone.utc).isoformat(),
-        job_status=job.status,
-        sections=sections,
-    )
+    return sections

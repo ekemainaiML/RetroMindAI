@@ -65,7 +65,7 @@ async def sso_authorize(
     state = str(uuid.uuid4())
     _store_state(state, provider)
 
-    redirect_uri = f"{settings.frontend_url}/api/auth/sso/{provider}/callback"
+    redirect_uri = f"{settings.backend_url}/api/v1/auth/sso/{provider}/callback"
 
     authorize_url = sso.get_authorize_url(state, redirect_uri)
     return RedirectResponse(url=authorize_url)
@@ -83,7 +83,7 @@ async def sso_callback(
         raise HTTPException(status_code=401, detail="Invalid or expired state parameter")
 
     sso = get_provider(provider)
-    redirect_uri = f"{settings.frontend_url}/api/auth/sso/{provider}/callback"
+    redirect_uri = f"{settings.backend_url}/api/v1/auth/sso/{provider}/callback"
 
     token_data = await sso.exchange_code(code, redirect_uri)
     access_token = token_data.get("access_token")

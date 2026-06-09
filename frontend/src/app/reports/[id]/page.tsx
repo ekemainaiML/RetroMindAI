@@ -596,6 +596,11 @@ export default function ReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<string>("");
   const [cadLoading, setCadLoading] = useState<string | null>(null);
+  const [portalSessions, setPortalSessions] = useState<Array<{
+    id: string; customer_email: string; customer_name: string | null;
+    status: string; created_at: string; approved_at: string | null;
+    rejection_reason: string | null;
+  }>>([]);
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalLink, setPortalLink] = useState<string | null>(null);
   const [portalViewOpen, setPortalViewOpen] = useState(false);
@@ -606,13 +611,21 @@ export default function ReportPage() {
   const [copied, setCopied] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
-  const fetchReport = useCallback(async () => {
+  const fetchReportAndSessions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await apiGet<ComplianceReport>(`/reports/${jobId}`);
+      const [result, sessions] = await Promise.all([
+        apiGet<ComplianceReport>(`/reports/${jobId}`),
+        apiGet<Array<{
+          id: string; customer_email: string; customer_name: string | null;
+          status: string; created_at: string; approved_at: string | null;
+          rejection_reason: string | null;
+        }>>(`/portal/sessions?job_id=${jobId}`).catch(() => []),
+      ]);
       setReport(result);
       setJobStatus(result.job_status);
+      setPortalSessions(sessions);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load report");
     } finally {
@@ -621,8 +634,8 @@ export default function ReportPage() {
   }, [jobId]);
 
   useEffect(() => {
-    fetchReport();
-  }, [fetchReport]);
+    fetchReportAndSessions();
+  }, [fetchReportAndSessions]);
 
   const handleCadDownload = async (format: "step" | "stl") => {
     setCadLoading(format);
@@ -781,6 +794,57 @@ export default function ReportPage() {
         <div ref={printRef}>
           <ReportHeader report={report} onExport={handleExportJson} onPdfDownload={handleExportPdf} onCadDownload={handleCadDownload} onPortalShare={handlePortalShare} cadLoading={cadLoading} portalLoading={portalLoading} jobStatus={jobStatus} />
           <ReportContent report={report} />
+        </div>
+      )}
+
+      {!error && !loading && report && portalSessions.length > 0 && (
+        <div className="rounded-lg border border-border bg-surface-card p-4">
+          <h3 className="text-sm font-semibold text-text-primary mb-3">
+            Shared Links ({portalSessions.length})
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border text-left text-text-tertiary">
+                  <th className="pb-2 pr-3 font-medium">Customer</th>
+                  <th className="pb-2 pr-3 font-medium">Email</th>
+                  <th className="pb-2 pr-3 font-medium">Status</th>
+                  <th className="pb-2 pr-3 font-medium">Sent</th>
+                  <th className="pb-2 font-medium">Response</th>
+                </tr>
+              </thead>
+              <tbody>
+                {portalSessions.map((s) => (
+                  <tr key={s.id} className="border-b border-border/50 last:border-0">
+                    <td className="py-2 pr-3 text-text-primary">
+                      {s.customer_name || "—"}
+                    </td>
+                    <td className="py-2 pr-3 text-text-secondary">{s.customer_email}</td>
+                    <td className="py-2 pr-3">
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        s.status === "approved" ? "bg-success/10 text-success" :
+                        s.status === "rejected" ? "bg-danger/10 text-danger" :
+                        s.status === "expired" ? "bg-warning/10 text-warning" :
+                        "bg-surface-hover text-text-tertiary"
+                      }`}>
+                        {s.status}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-3 text-text-tertiary whitespace-nowrap">
+                      {new Date(s.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-2 text-text-secondary">
+                      {s.status === "approved" && s.approved_at
+                        ? `Approved ${new Date(s.approved_at).toLocaleDateString()}`
+                        : s.status === "rejected" && s.rejection_reason
+                        ? s.rejection_reason
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
@@ -264,3 +265,51 @@ async def get_portal_status(
         approved_at=session.approved_at.isoformat() if session.approved_at else None,
         rejection_reason=session.rejection_reason,
     )
+
+
+class PortalSessionSummary(BaseModel):
+    id: str
+    job_id: str
+    customer_email: str
+    customer_name: str | None
+    status: str
+    created_at: str
+    expires_at: str
+    approved_at: str | None
+    rejection_reason: str | None
+
+
+@router.get("/portal/sessions")
+async def list_portal_sessions(
+    job_id: str | None = None,
+    workshop: Workshop = Depends(get_current_workshop_obj),
+    db: Session = Depends(get_db),
+):
+    now = datetime.now(timezone.utc)
+    query = db.query(PortalSession).filter(PortalSession.workshop_id == workshop.id)
+    if job_id:
+        query = query.filter(PortalSession.job_id == uuid.UUID(job_id))
+    sessions = query.order_by(desc(PortalSession.created_at)).all()
+
+    expired = False
+    for s in sessions:
+        if s.status == "pending" and now > s.expires_at:
+            s.status = "expired"
+            expired = True
+    if expired:
+        db.commit()
+
+    return [
+        PortalSessionSummary(
+            id=str(s.id),
+            job_id=str(s.job_id),
+            customer_email=s.customer_email,
+            customer_name=s.customer_name,
+            status=s.status,
+            created_at=s.created_at.isoformat(),
+            expires_at=s.expires_at.isoformat(),
+            approved_at=s.approved_at.isoformat() if s.approved_at else None,
+            rejection_reason=s.rejection_reason,
+        )
+        for s in sessions
+    ]

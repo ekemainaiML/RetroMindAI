@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     r2_endpoint: str = "http://localhost:9000"
     r2_access_key: str = "minioadmin"
     r2_secret_key: str = "minioadmin"
+    backend_url: str = "http://localhost:8000"
     frontend_url: str = "http://localhost:3000"
     upload_dir: str = "/app/uploads"
     ai_model_path: str = str(
