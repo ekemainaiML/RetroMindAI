@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { captureFrame, detectBlur } from "@/lib/blurDetection";
 import { queueCapture, getPendingCaptures, getCaptureCount } from "@/lib/db";
-import { apiUpload, getApiKey } from "@/utils/api";
+import { getApiKey } from "@/utils/api";
 import Link from "next/link";
 
 type SlotKey =
@@ -145,16 +145,20 @@ export default function CapturePage() {
   }, []);
 
   const startCamera = useCallback(async (facingMode: string = "environment") => {
-    stopCamera();
     try {
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
+      }
       const s = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
+      streamRef.current = s;
       setStream(s);
       if (videoRef.current) {
         videoRef.current.srcObject = s;
       }
+      setError(null);
     } catch (err) {
       setError(
         `Camera access denied: ${err instanceof Error ? err.message : "unknown"}`
@@ -162,18 +166,17 @@ export default function CapturePage() {
     }
   }, []);
 
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
-      setStream(null);
-    }
-  }, [stream]);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
+    startCamera("environment");
     return () => {
-      stopCamera();
+      const s = streamRef.current;
+      if (s) {
+        s.getTracks().forEach((t) => t.stop());
+      }
     };
-  }, [stopCamera]);
+  }, []);
 
   useEffect(() => {
     if (stream) {
@@ -306,12 +309,10 @@ export default function CapturePage() {
 
   const switchSlot = useCallback(
     (key: SlotKey) => {
-      stopCamera();
       setActiveSlot(key);
       setBlurryWarning(null);
-      setTimeout(() => startCamera("environment"), 100);
     },
-    [startCamera, stopCamera]
+    []
   );
 
   const requiredDone = SLOTS.filter((s) => s.required).every(
