@@ -27,6 +27,7 @@ class ComplianceReport(BaseModel):
     job_id: str
     intake_id: str
     generated_at: str
+    job_status: str
     sections: list[ReportSection]
 
 
@@ -331,5 +332,6 @@ async def get_report(
         job_id=str(job.id),
         intake_id=str(job.intake_id),
         generated_at=datetime.now(timezone.utc).isoformat(),
+        job_status=job.status,
         sections=sections,
     )

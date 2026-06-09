@@ -17,6 +17,7 @@ interface ComplianceReport {
   job_id: string;
   intake_id: string;
   generated_at: string;
+  job_status: string;
   sections: ReportSection[];
 }
 
@@ -609,12 +610,9 @@ export default function ReportPage() {
     setLoading(true);
     setError(null);
     try {
-      const [result, job] = await Promise.all([
-        apiGet<ComplianceReport>(`/reports/${jobId}`),
-        apiGet<{ status: string }>(`/jobs/${jobId}`).catch(() => ({ status: "" })),
-      ]);
+      const result = await apiGet<ComplianceReport>(`/reports/${jobId}`);
       setReport(result);
-      setJobStatus(job.status);
+      setJobStatus(result.job_status);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load report");
     } finally {
