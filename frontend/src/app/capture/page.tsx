@@ -127,6 +127,7 @@ export default function CapturePage() {
   const [pendingCount, setPendingCount] = useState(0);
   const [offline, setOffline] = useState(false);
   const [intakeId, setIntakeId] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
 
   useEffect(() => {
     setOffline(!navigator.onLine);
@@ -292,10 +293,32 @@ export default function CapturePage() {
     } catch {
       await queueCapture(activeSlot, blob);
       setPendingCount((c) => c + 1);
+      if (!offline && navigator.onLine && intakeId) {
+        const requiredKeys: SlotKey[] = ["left_side_profile", "right_side_profile", "rear_view"];
+        const nextCaptured = { ...captured, [activeSlot]: url };
+        const allRequiredDone = requiredKeys.every((k) => nextCaptured[k]);
+        if (allRequiredDone) {
+          try {
+            const key = getApiKey();
+            const h: Record<string, string> = {};
+            if (key) h["X-API-Key"] = key;
+            const analyzeRes = await fetch(
+              `${API_BASE}/intake/${intakeId}/analyze`,
+              { method: "POST", headers: h }
+            );
+            if (analyzeRes.ok) {
+              const analyzeData = await analyzeRes.json();
+              setJobId(analyzeData.job_id);
+            }
+          } catch {
+            // user can trigger from main page
+          }
+        }
+      }
     } finally {
       setUploading(null);
     }
-  }, [activeSlot, intakeId, offline]);
+  }, [activeSlot, intakeId, offline, captured]);
 
   const retake = useCallback(() => {
     setBlurryWarning(null);
@@ -318,6 +341,7 @@ export default function CapturePage() {
     (s) => captured[s.key]
   );
   const allDone = SLOTS.every((s) => captured[s.key]);
+  const isAnalyzing = jobId !== null && captured.left_side_profile && captured.right_side_profile && captured.rear_view;
 
   return (
     <div className="flex flex-1 flex-col bg-black text-white">
@@ -444,12 +468,12 @@ export default function CapturePage() {
                 : "Required views complete"
               : `${SLOTS.filter((s) => s.required && captured[s.key]).length}/${SLOTS.filter((s) => s.required).length} required`}
           </span>
-          {intakeId && (
+          {(jobId || intakeId) && (
             <Link
-              href={`/?job_id=${intakeId}`}
+              href={jobId ? `/reports/${jobId}` : `/?job_id=${intakeId}`}
               className="text-brand hover:text-brand-dark transition-colors"
             >
-              View Progress →
+              {jobId ? "View Report →" : "View Progress →"}
             </Link>
           )}
         </div>
