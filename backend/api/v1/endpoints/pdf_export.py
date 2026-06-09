@@ -305,12 +305,29 @@ def _render_section_html(section) -> str:
 </table>"""
 
 
-def _render_report_html(sections, branding: dict | None = None) -> str:
+async def _resolve_logo_data_uri(url: str) -> str:
+    if not url:
+        return ""
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            resp = await client.get(url)
+        if resp.status_code == 200:
+            import base64
+            b64 = base64.b64encode(resp.content).decode()
+            ctype = resp.headers.get("content-type", "image/png")
+            return f"data:{ctype};base64,{b64}"
+    except Exception:
+        pass
+    return ""
+
+
+def _render_report_html(sections, branding: dict | None = None, logo_data_uri: str = "") -> str:
     body = "".join(_render_section_html(s) for s in sections)
     b = branding or {}
     primary = b.get("primary_color") or "#1a73e8"
     secondary = b.get("secondary_color") or "#7c3aed"
-    logo = b.get("logo_url") or ""
+    logo = logo_data_uri
     logo_html = f'<img src="{logo}" style="max-height:40px;margin-bottom:10px;" />' if logo else ""
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
@@ -374,7 +391,8 @@ async def export_report_pdf(
     from core.models import Workshop as WorkshopModel
     w = db.query(WorkshopModel).filter(WorkshopModel.id == uuid.UUID(workshop_id)).first()
     branding = w.branding if w else {}
-    html = _render_report_html(sections, branding)
+    logo_data_uri = await _resolve_logo_data_uri(branding.get("logo_url", ""))
+    html = _render_report_html(sections, branding, logo_data_uri)
 
     try:
         from weasyprint import HTML  # type: ignore[import-untyped]
