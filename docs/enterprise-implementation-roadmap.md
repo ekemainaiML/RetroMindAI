@@ -65,8 +65,8 @@
 | # | Feature | Domain | Effort | Key Files | Status |
 |---|---------|--------|:------:|-----------|--------|
 | 16 | **Email notifications** | Business | 3d | `infrastructure/email/`, template rendering, preference management | ✅ |
-| 17 | **Customer portal** | Business | 4d | Token-based portal page, approval flow, email reminders | ⬜ |
-| 18 | **PDF report export** | Business | 4d | Playwright/WeasyPrint worker, S3 storage, email download link | ⬜ |
+| 17 | **Customer portal** | Business | 4d | Token-based portal page, approval flow, email reminders | ✅ |
+| 18 | **PDF report export** | Business | 4d | Playwright/WeasyPrint worker, S3 storage, email download link | ✅ |
 | 19 | **Audit trail depth** | Security | 3d | `audit_events` table, SQLAlchemy event listeners, admin audit UI | ✅ |
 
 **Acceptance:** Emails sent for key events with user-configurable preferences. Vehicle owners can view/approve assessments via portal. PDF reports include all 13 sections with branding. Audit trail captures before/after state on all mutations.
@@ -146,7 +146,7 @@
 | E1 | Security Hardening | 5 | ~11d | ✅ |
 | E2 | Observability & Reliability | 6 | ~13d | ✅ |
 | E3 | Multi-Tenancy Core | 4 | ~15d | ✅ |
-| E4 | Business Features | 4 | ~14d | 🟡 2/4 done |
+| E4 | Business Features | 4 | ~14d | ✅ |
 | E5 | Advanced Business | 3 | ~10d |
 | E6 | Backup & DR | 3 | ~6d |
 | E7 | Frontend/UX Overhaul | 5 | ~17d |

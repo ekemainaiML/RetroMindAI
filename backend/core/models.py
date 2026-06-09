@@ -226,6 +226,35 @@ class Job(Base):
     feedbacks = relationship("RecommendationFeedback", back_populates="job", cascade="all, delete-orphan")
 
 
+class PortalSession(Base):
+    __tablename__ = "portal_sessions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workshop_id = Column(UUID(as_uuid=True), ForeignKey("workshops.id", ondelete="CASCADE"), nullable=False)
+    job_id = Column(UUID(as_uuid=True), ForeignKey("jobs.id", ondelete="CASCADE"), nullable=False)
+    token = Column(String, nullable=False, unique=True, index=True)
+    customer_email = Column(String, nullable=False)
+    customer_name = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="pending")
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    workshop = relationship("Workshop")
+    job = relationship("Job")
+
+
 class RecommendationFeedback(Base):
     __tablename__ = "recommendation_feedback"
 

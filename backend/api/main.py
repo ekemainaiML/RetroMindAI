@@ -33,6 +33,8 @@ from api.v1.endpoints.comparison import router as comparison_router  # noqa: E40
 from api.v1.endpoints.knowledge_graph import router as kg_router  # noqa: E402
 from api.v1.endpoints.metrics import router as metrics_router  # noqa: E402
 from api.v1.endpoints.notifications import router as notifications_router  # noqa: E402
+from api.v1.endpoints.pdf_export import router as pdf_router  # noqa: E402
+from api.v1.endpoints.portal import router as portal_router  # noqa: E402
 from api.v1.endpoints.reports import router as reports_router  # noqa: E402
 from api.v1.endpoints.setup import router as setup_router  # noqa: E402
 from api.v1.endpoints.sso_auth import router as sso_router  # noqa: E402
@@ -251,6 +253,8 @@ app.include_router(demo_router, prefix="/api/v1")
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(metrics_router, prefix="/api/v1")
 app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(portal_router, prefix="/api/v1")
+app.include_router(pdf_router, prefix="/api/v1")
 app.include_router(history_router, prefix="/api/v1")
 app.include_router(intake_router, prefix="/api/v1")
 app.include_router(jobs_router, prefix="/api/v1")
