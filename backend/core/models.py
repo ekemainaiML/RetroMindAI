@@ -54,8 +54,28 @@ class User(Base):
         nullable=False,
     )
 
-    workshops = relationship("Workshop", back_populates="owner", cascade="all, delete-orphan")
-    workspace_roles = relationship("WorkspaceRole", back_populates="user", cascade="all, delete-orphan")
+    workshops = relationship("Workshop", back_populates="owner", foreign_keys="Workshop.user_id", cascade="all, delete-orphan")
+    workspace_roles = relationship("WorkspaceRole", back_populates="user", foreign_keys="WorkspaceRole.user_id", cascade="all, delete-orphan")
+
+
+class EmailPreferences(Base):
+    __tablename__ = "email_preferences"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workshop_id = Column(UUID(as_uuid=True), ForeignKey("workshops.id", ondelete="CASCADE"), nullable=False, unique=True)
+    preferences = Column(JSONB, nullable=False, default=dict)
+    updated_by = Column(UUID(as_uuid=True), nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
 
 class UsageMetering(Base):
@@ -96,9 +116,9 @@ class WorkspaceRole(Base):
         sqlalchemy.UniqueConstraint("user_id", "workshop_id", name="uq_user_workshop"),
     )
 
-    user = relationship("User", back_populates="workspace_roles")
-    workshop = relationship("Workshop", back_populates="workspace_roles")
-    inviter = relationship("User", foreign_keys=[invited_by], remote_side="User.id")
+    user = relationship("User", back_populates="workspace_roles", foreign_keys=[user_id])
+    workshop = relationship("Workshop", back_populates="workspace_roles", foreign_keys=[workshop_id])
+    inviter = relationship("User", foreign_keys=[invited_by], remote_side=[User.id])
 
 
 class Workshop(Base):
@@ -130,7 +150,7 @@ class Workshop(Base):
         nullable=False,
     )
 
-    owner = relationship("User", back_populates="workshops")
+    owner = relationship("User", back_populates="workshops", foreign_keys="Workshop.user_id")
     intakes = relationship("Intake", back_populates="workshop", cascade="all, delete-orphan")
     workspace_roles = relationship("WorkspaceRole", back_populates="workshop", cascade="all, delete-orphan")
 

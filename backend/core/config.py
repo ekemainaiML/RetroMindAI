@@ -40,6 +40,26 @@ class Settings(BaseSettings):
     poll_cache_ttl: int = 2
     daily_intake_limit: int = 50
 
+    # Email / SMTP
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = False
+    email_from: str = "noreply@retromind.ai"
+    email_from_name: str = "RetroMind AI"
+    email_enabled: bool = True
+
+    # Customer portal
+    portal_base_url: str = "http://localhost:3000/portal"
+    portal_token_expiry_hours: int = 72
+    approval_reminder_days: int = 7
+
+    # Audit trail
+    audit_retention_days: int = 90
+    audit_log_request_body: bool = False
+    audit_log_response_body: bool = False
+
     # Phase 0: Feature flags for optional capabilities
     # All default to False — no new code path active out of the box
     enable_optuna: bool = False

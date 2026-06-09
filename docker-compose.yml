@@ -123,6 +123,12 @@ services:
     volumes:
       - ./freecad-worker:/worker
 
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   postgres_data:
   neo4j_data:

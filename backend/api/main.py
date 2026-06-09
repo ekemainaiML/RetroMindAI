@@ -32,6 +32,7 @@ from api.v1.endpoints.jobs import router as jobs_router  # noqa: E402
 from api.v1.endpoints.comparison import router as comparison_router  # noqa: E402
 from api.v1.endpoints.knowledge_graph import router as kg_router  # noqa: E402
 from api.v1.endpoints.metrics import router as metrics_router  # noqa: E402
+from api.v1.endpoints.notifications import router as notifications_router  # noqa: E402
 from api.v1.endpoints.reports import router as reports_router  # noqa: E402
 from api.v1.endpoints.setup import router as setup_router  # noqa: E402
 from api.v1.endpoints.sso_auth import router as sso_router  # noqa: E402
@@ -73,6 +74,14 @@ async def lifespan(app: FastAPI):
     from core.feature_flags import FeatureFlagStore
     FeatureFlagStore.init()
 
+    from core.audit_listeners import (  # noqa: F401
+        receive_workshop_before_update,
+        receive_workshop_after_insert,
+        receive_intake_after_insert,
+        receive_intake_before_update,
+        receive_job_before_update,
+        receive_job_after_insert,
+    )
     from core.tracing import setup_tracing, instrument_fastapi, instrument_sqlalchemy, instrument_httpx, instrument_redis
     setup_tracing("retromind-api")
     instrument_fastapi(app)
@@ -156,9 +165,10 @@ async def audit_middleware(request: Request, call_next):
     api_key = request.headers.get("X-API-Key", "")
     try:
         from core.auth import hash_api_key
-        from core.models import Workshop
+        from core.models import User, Workshop
         db = SessionLocal()
         workshop_id = None
+        user_id = None
         if api_key:
             key_hash = hash_api_key(api_key)
             workshop = (
@@ -168,13 +178,21 @@ async def audit_middleware(request: Request, call_next):
             )
             if workshop:
                 workshop_id = workshop.id
+                owner = db.query(User).filter(User.id == workshop.user_id).first()
+                if owner:
+                    user_id = owner.id
+        correlation_id = getattr(request.state, "correlation_id", None)
         log = AuditLog(
             workshop_id=workshop_id,
+            user_id=user_id,
             method=request.method,
             path=request.url.path,
             status_code=str(response.status_code),
-            duration_ms=str(duration_ms),
+            duration_ms=duration_ms,
             ip_address=request.client.host if request.client else None,
+            correlation_id=correlation_id,
+            event_type="http.request",
+            user_agent=request.headers.get("User-Agent", ""),
         )
         db.add(log)
         db.commit()
@@ -232,6 +250,7 @@ app.include_router(user_auth_router, prefix="/api/v1")
 app.include_router(demo_router, prefix="/api/v1")
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(metrics_router, prefix="/api/v1")
+app.include_router(notifications_router, prefix="/api/v1")
 app.include_router(history_router, prefix="/api/v1")
 app.include_router(intake_router, prefix="/api/v1")
 app.include_router(jobs_router, prefix="/api/v1")

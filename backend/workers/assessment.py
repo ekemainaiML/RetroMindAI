@@ -568,6 +568,33 @@ def _build_result(
     return result
 
 
+def _notify_assessment_result(db: DBSession, job: object, intake: object, failed: bool = False) -> None:
+    import asyncio
+    try:
+        workshop = intake.workshop if intake else None
+        if not workshop or not workshop.email:
+            return
+        from infrastructure.email.sender import get_email_sender
+        sender = get_email_sender()
+        report_url = f"{settings.frontend_url}/reports/{job.id}"
+        if failed:
+            asyncio.run(sender.send_assessment_failed(
+                to=workshop.email,
+                workshop_name=workshop.name,
+                job_id=str(job.id),
+                error=job.error_message or "Unknown error during result building",
+            ))
+        else:
+            asyncio.run(sender.send_assessment_complete(
+                to=workshop.email,
+                workshop_name=workshop.name,
+                job_id=str(job.id),
+                report_url=report_url,
+            ))
+    except Exception:
+        logger.exception("Email notification failed for job %s", job.id)
+
+
 def run_assessment(intake_id: str) -> None:
     from core.feature_flags import FeatureFlagStore
     FeatureFlagStore.load_overrides()
@@ -735,6 +762,7 @@ def run_assessment(intake_id: str) -> None:
         job.status = "completed"
         job.current_stage = None
         job.progress_pct = 100
+        _notify_assessment_result(db, job, intake, failed=False)
         try:
             job.result = _build_result(
                 factors,
@@ -753,6 +781,7 @@ def run_assessment(intake_id: str) -> None:
             logger.exception("Error building result")
             job.result = None
             job.status = "failed"
+            _notify_assessment_result(db, job, intake, failed=True)
 
         if job.result:
             if battery_placement_data:
