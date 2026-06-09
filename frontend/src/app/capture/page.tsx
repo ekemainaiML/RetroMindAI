@@ -184,7 +184,6 @@ export default function CapturePage() {
       if (!video) return;
 
       const handleCanPlay = () => {
-        video.play();
         const overlay = overlayRef.current;
         if (overlay && overlay.parentElement) {
           overlay.width = overlay.parentElement.clientWidth;
