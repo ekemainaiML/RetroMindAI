@@ -517,6 +517,7 @@ function ReportHeader({
   onPortalShare,
   cadLoading,
   portalLoading,
+  jobStatus,
 }: {
   report: ComplianceReport;
   onExport: () => void;
@@ -525,6 +526,7 @@ function ReportHeader({
   onPortalShare: () => void;
   cadLoading: string | null;
   portalLoading: boolean;
+  jobStatus: string;
 }) {
   return (
     <div className="mb-8 flex items-start justify-between no-print">
@@ -544,8 +546,9 @@ function ReportHeader({
         <button
           type="button"
           onClick={onPortalShare}
-          disabled={portalLoading}
-          className="inline-flex items-center justify-center rounded-lg border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-medium text-purple-700 hover:bg-purple-100 transition-all disabled:opacity-40"
+          disabled={portalLoading || jobStatus !== "completed"}
+          title={jobStatus !== "completed" ? `Assessment must be completed first (current: ${jobStatus})` : ""}
+          className="inline-flex items-center justify-center rounded-lg border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-medium text-purple-700 hover:bg-purple-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {portalLoading ? "..." : "Share with Customer"}
         </button>
@@ -590,6 +593,7 @@ export default function ReportPage() {
   const [report, setReport] = useState<ComplianceReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [jobStatus, setJobStatus] = useState<string>("");
   const [cadLoading, setCadLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [portalLink, setPortalLink] = useState<string | null>(null);
@@ -605,8 +609,12 @@ export default function ReportPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await apiGet<ComplianceReport>(`/reports/${jobId}`);
+      const [result, job] = await Promise.all([
+        apiGet<ComplianceReport>(`/reports/${jobId}`),
+        apiGet<{ status: string }>(`/jobs/${jobId}`).catch(() => ({ status: "" })),
+      ]);
       setReport(result);
+      setJobStatus(job.status);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load report");
     } finally {
@@ -709,7 +717,14 @@ export default function ReportPage() {
       setPortalFormOpen(false);
       setPortalViewOpen(true);
     } catch (err) {
-      setPortalError(err instanceof Error ? err.message : "Failed to create portal link");
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("must be completed")) {
+        setPortalError("This assessment is not in a completed state. Only completed assessments can be shared.");
+      } else if (msg.includes("400")) {
+        setPortalError("Unable to share. The assessment may not be in a shareable state.");
+      } else {
+        setPortalError(msg || "Failed to create portal link");
+      }
     } finally {
       setPortalLoading(false);
     }
@@ -766,7 +781,7 @@ export default function ReportPage() {
 
       {report && (
         <div ref={printRef}>
-          <ReportHeader report={report} onExport={handleExportJson} onPdfDownload={handleExportPdf} onCadDownload={handleCadDownload} onPortalShare={handlePortalShare} cadLoading={cadLoading} portalLoading={portalLoading} />
+          <ReportHeader report={report} onExport={handleExportJson} onPdfDownload={handleExportPdf} onCadDownload={handleCadDownload} onPortalShare={handlePortalShare} cadLoading={cadLoading} portalLoading={portalLoading} jobStatus={jobStatus} />
           <ReportContent report={report} />
         </div>
       )}
