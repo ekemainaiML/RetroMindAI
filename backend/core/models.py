@@ -424,3 +424,59 @@ class OEMRoutingPath(Base):
     )
 
     vehicle_model = relationship("OEMVehicleModel", back_populates="routing_paths")
+
+
+class BatchJob(Base):
+    __tablename__ = "batch_jobs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workshop_id = Column(
+        UUID(as_uuid=True), ForeignKey("workshops.id", ondelete="CASCADE"), nullable=False
+    )
+    batch_id = Column(
+        UUID(as_uuid=True), ForeignKey("batches.id", ondelete="CASCADE"), nullable=True
+    )
+    vehicle_name = Column(String, nullable=False)
+    intake_id = Column(
+        UUID(as_uuid=True), ForeignKey("intake.id", ondelete="SET NULL"), nullable=True
+    )
+    status = Column(String, nullable=False, default="pending")
+    error_message = Column(Text, nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
+class Batch(Base):
+    __tablename__ = "batches"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    workshop_id = Column(
+        UUID(as_uuid=True), ForeignKey("workshops.id", ondelete="CASCADE"), nullable=False
+    )
+    status = Column(String, nullable=False, default="processing")
+    total = Column(Integer, nullable=False, default=0)
+    completed = Column(Integer, nullable=False, default=0)
+    failed = Column(Integer, nullable=False, default=0)
+    avg_feasibility = Column(Integer, nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+    batch_jobs = relationship("BatchJob", cascade="all, delete-orphan")
