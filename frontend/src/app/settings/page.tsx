@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiGet, ensureApiKey, getApiKey, setApiKey } from "@/utils/api";
+import { apiGet, apiPost, ensureApiKey, getApiKey, setApiKey } from "@/utils/api";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
 import Badge from "@/components/ui/Badge";
@@ -54,6 +54,10 @@ export default function SettingsPage() {
   const [newWorkshopName, setNewWorkshopName] = useState("");
   const [creatingWorkshop, setCreatingWorkshop] = useState(false);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean> | null>(null);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -175,6 +179,43 @@ export default function SettingsPage() {
       setSwitchingId(null);
     }
   }, [jwt, router]);
+
+  const fetchNotifPrefs = useCallback(async () => {
+    setNotifLoading(true);
+    try {
+      const data = await apiGet<{ preferences: Record<string, boolean> }>("/notifications/preferences");
+      setNotifPrefs(data.preferences);
+    } catch {
+    } finally {
+      setNotifLoading(false);
+    }
+  }, []);
+
+  const updateNotifPref = useCallback(async (key: string, value: boolean) => {
+    setNotifPrefs((prev) => prev ? { ...prev, [key]: value } : prev);
+    try {
+      await apiPost("/notifications/preferences", { key, value });
+    } catch {
+      fetchNotifPrefs();
+    }
+  }, [fetchNotifPrefs]);
+
+  const sendTestEmail = useCallback(async () => {
+    setSendingTest(true);
+    setTestEmailResult(null);
+    try {
+      await apiPost("/notifications/test");
+      setTestEmailResult("Test email sent! Check your inbox (or MailHog at :8025).");
+    } catch (err) {
+      setTestEmailResult(err instanceof Error ? err.message : "Failed to send test email");
+    } finally {
+      setSendingTest(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifPrefs();
+  }, [fetchNotifPrefs]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
@@ -349,6 +390,61 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">Email Notifications</h2>
+        </CardHeader>
+        <p className="mb-4 text-xs text-text-secondary">
+          Configure which events trigger email notifications. Requires SMTP to be configured on the server (MailHog in development).
+        </p>
+        {notifLoading && notifPrefs === null ? (
+          <div className="flex items-center justify-center py-6">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+          </div>
+        ) : notifPrefs ? (
+          <div className="space-y-2">
+            {Object.entries(notifPrefs).map(([key, value]) => (
+              <div key={key} className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+                <span className="text-sm font-medium text-text-primary">
+                  {key.replace(/notify_/g, "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                </span>
+                <button
+                  role="switch"
+                  aria-checked={value}
+                  onClick={() => updateNotifPref(key, !value)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-brand focus-visible:outline-offset-2 ${
+                    value ? "bg-brand" : "bg-border"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+                      value ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-text-secondary">Could not load preferences.</p>
+        )}
+        <div className="mt-4 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={sendTestEmail}
+            disabled={sendingTest}
+            className="rounded-lg border border-border bg-surface px-4 py-2 text-xs font-medium text-text-secondary hover:bg-surface-hover transition-all disabled:opacity-40"
+          >
+            {sendingTest ? "Sending..." : "Send Test Email"}
+          </button>
+          {testEmailResult && (
+            <span className={`text-xs ${testEmailResult.includes("sent") ? "text-green-600 dark:text-green-400" : "text-danger"}`}>
+              {testEmailResult}
+            </span>
+          )}
+        </div>
       </Card>
     </div>
   );

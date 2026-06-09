@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { apiGet, getApiKey } from "@/utils/api";
+import { apiGet, apiPost, getApiKey } from "@/utils/api";
 import DnaGraph from "@/components/DnaGraph";
 
 interface ReportSection {
@@ -512,15 +512,19 @@ function ReportContent({ report }: { report: ComplianceReport }) {
 function ReportHeader({
   report,
   onExport,
-  onPrint,
+  onPdfDownload,
   onCadDownload,
+  onPortalShare,
   cadLoading,
+  portalLoading,
 }: {
   report: ComplianceReport;
   onExport: () => void;
-  onPrint: () => void;
+  onPdfDownload: () => void;
   onCadDownload: (format: "step" | "stl") => void;
+  onPortalShare: () => void;
   cadLoading: string | null;
+  portalLoading: boolean;
 }) {
   return (
     <div className="mb-8 flex items-start justify-between no-print">
@@ -537,6 +541,14 @@ function ReportHeader({
         </p>
       </div>
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onPortalShare}
+          disabled={portalLoading}
+          className="inline-flex items-center justify-center rounded-lg border border-purple-300 bg-purple-50 px-3 py-2 text-xs font-medium text-purple-700 hover:bg-purple-100 transition-all disabled:opacity-40"
+        >
+          {portalLoading ? "..." : "Share with Customer"}
+        </button>
         <button
           type="button"
           disabled={cadLoading !== null}
@@ -562,7 +574,7 @@ function ReportHeader({
         </button>
         <button
           type="button"
-          onClick={onPrint}
+          onClick={onPdfDownload}
           className="inline-flex items-center justify-center rounded-lg border border-border bg-surface px-4 py-2 text-xs font-medium text-text-secondary hover:bg-surface-hover transition-all"
         >
           Export PDF
@@ -579,6 +591,14 @@ export default function ReportPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cadLoading, setCadLoading] = useState<string | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalLink, setPortalLink] = useState<string | null>(null);
+  const [portalViewOpen, setPortalViewOpen] = useState(false);
+  const [portalFormOpen, setPortalFormOpen] = useState(false);
+  const [portalEmail, setPortalEmail] = useState("");
+  const [portalName, setPortalName] = useState("");
+  const [portalError, setPortalError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const fetchReport = useCallback(async () => {
@@ -640,8 +660,71 @@ export default function ReportPage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPdf = () => {
-    window.print();
+  const handleExportPdf = async () => {
+    const key = getApiKey();
+    try {
+      const res = await fetch(
+        `http://localhost:8000/api/v1/reports/${jobId}/pdf`,
+        { headers: key ? { "X-API-Key": key } : {} }
+      );
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`PDF export failed (${res.status}): ${text}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `assessment_report_${jobId.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "PDF export failed");
+    }
+  };
+
+  const handlePortalShare = () => {
+    setPortalFormOpen(true);
+    setPortalError(null);
+    setPortalEmail("");
+    setPortalName("");
+  };
+
+  const handlePortalGenerate = async () => {
+    if (!portalEmail.trim()) {
+      setPortalError("Customer email is required");
+      return;
+    }
+    setPortalLoading(true);
+    setPortalError(null);
+    try {
+      const link = await apiPost<{ portal_url: string; token: string }>("/portal/share", {
+        job_id: jobId,
+        customer_email: portalEmail.trim(),
+        customer_name: portalName.trim() || null,
+      });
+      setPortalLink(link.portal_url);
+      setPortalFormOpen(false);
+      setPortalViewOpen(true);
+    } catch (err) {
+      setPortalError(err instanceof Error ? err.message : "Failed to create portal link");
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    if (!portalLink) return;
+    try {
+      await navigator.clipboard.writeText(portalLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const input = document.getElementById("portal-link-input") as HTMLInputElement;
+      if (input) { input.select(); document.execCommand("copy"); }
+    }
   };
 
   return (
@@ -683,8 +766,101 @@ export default function ReportPage() {
 
       {report && (
         <div ref={printRef}>
-          <ReportHeader report={report} onExport={handleExportJson} onPrint={handleExportPdf} onCadDownload={handleCadDownload} cadLoading={cadLoading} />
+          <ReportHeader report={report} onExport={handleExportJson} onPdfDownload={handleExportPdf} onCadDownload={handleCadDownload} onPortalShare={handlePortalShare} cadLoading={cadLoading} portalLoading={portalLoading} />
           <ReportContent report={report} />
+        </div>
+      )}
+
+      {portalError && (
+        <div className="fixed bottom-4 right-4 rounded-lg border border-danger/30 bg-danger/5 p-3 text-xs text-danger shadow-lg">
+          {portalError}
+        </div>
+      )}
+
+      {portalFormOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-xl bg-surface-card p-6 shadow-xl border border-border">
+            <h3 className="text-sm font-semibold text-text-primary mb-2">Share with Customer</h3>
+            <p className="mb-4 text-xs text-text-secondary">
+              Enter the customer details to generate a secure portal link.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1">Customer Email *</label>
+                <input
+                  type="email"
+                  value={portalEmail}
+                  onChange={(e) => setPortalEmail(e.target.value)}
+                  placeholder="customer@example.com"
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1">Customer Name</label>
+                <input
+                  type="text"
+                  value={portalName}
+                  onChange={(e) => setPortalName(e.target.value)}
+                  placeholder="John Doe (optional)"
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+                />
+              </div>
+              {portalError && <p className="text-xs text-danger">{portalError}</p>}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setPortalFormOpen(false); setPortalError(null); }}
+                className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-text-secondary hover:bg-surface-hover transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handlePortalGenerate}
+                disabled={portalLoading || !portalEmail.trim()}
+                className="rounded-lg bg-brand px-4 py-2 text-xs font-medium text-white hover:bg-brand-dark transition-all disabled:opacity-40"
+              >
+                {portalLoading ? "Generating..." : "Generate Link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {portalViewOpen && portalLink && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-lg rounded-xl bg-surface-card p-6 shadow-xl border border-border">
+            <h3 className="text-sm font-semibold text-text-primary mb-2">Portal Link Ready</h3>
+            <p className="mb-4 text-xs text-text-secondary">
+              Share this link with your customer to let them view the assessment and approve or reject recommendations.
+            </p>
+            <div className="flex gap-2">
+              <input
+                id="portal-link-input"
+                type="text"
+                readOnly
+                value={portalLink}
+                className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-mono text-text-primary focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className="rounded-lg bg-brand px-4 py-2 text-xs font-medium text-white hover:bg-brand-dark transition-all"
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={() => { setPortalViewOpen(false); setCopied(false); }}
+                className="rounded-lg border border-border px-4 py-2 text-xs font-medium text-text-secondary hover:bg-surface-hover transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
