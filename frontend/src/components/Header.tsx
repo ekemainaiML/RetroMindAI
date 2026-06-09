@@ -14,6 +14,7 @@ export default function Header() {
 
   const navLinks = [
     { href: "/", label: "New Assessment" },
+    { href: "/capture", label: "Capture" },
     { href: "/history", label: "History" },
     { href: "/analytics", label: "Analytics" },
     { href: "/knowledge-graph", label: "Knowledge Graph" },
