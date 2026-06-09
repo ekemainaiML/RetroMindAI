@@ -105,7 +105,7 @@ async def export_report_pdf(
     context = _build_pdf_context(job, intake)
 
     try:
-        from weasyprint import HTML
+        from weasyprint import HTML  # type: ignore[import-untyped]
         pdf_bytes = HTML(string=_render_report_html(context)).write_pdf()
         from fastapi.responses import Response
         return Response(
@@ -113,7 +113,7 @@ async def export_report_pdf(
             media_type="application/pdf",
             headers={"Content-Disposition": f'attachment; filename="assessment_report_{job.id}.pdf"'},
         )
-    except ImportError:
+    except (ImportError, OSError):
         pass
 
     return HTMLResponse(

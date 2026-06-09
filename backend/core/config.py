@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     email_enabled: bool = True
 
     # Customer portal
-    portal_base_url: str = "http://localhost:3000/portal"
+    portal_base_url: str = "http://localhost:3000/portal/view"
     portal_token_expiry_hours: int = 72
     approval_reminder_days: int = 7
 

@@ -1,15 +1,21 @@
+import logging
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from core.auth import get_current_workshop_obj
 from core.config import settings
 from core.database import get_db
 from core.models import Intake, Job, PortalSession, Workshop
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from infrastructure.email.sender import EmailMessage, EmailSender
 
 router = APIRouter()
 
@@ -71,6 +77,7 @@ class PortalApprovalRequest(BaseModel):
 @router.post("/portal/share", response_model=PortalLinkResponse)
 async def create_portal_link(
     body: CreatePortalLinkRequest,
+    background_tasks: BackgroundTasks,
     workshop: Workshop = Depends(get_current_workshop_obj),
     db: Session = Depends(get_db),
 ):
@@ -86,22 +93,34 @@ async def create_portal_link(
     if job.status != "completed":
         raise HTTPException(status_code=400, detail="Assessment must be completed before sharing")
 
+    token = _generate_portal_token(str(uuid.uuid4()), str(job.id))
+
     session = PortalSession(
         workshop_id=workshop.id,
         job_id=job.id,
+        token=token,
         customer_email=body.customer_email,
         customer_name=body.customer_name,
         expires_at=datetime.now(timezone.utc) + timedelta(hours=TOKEN_EXPIRY_HOURS),
     )
     db.add(session)
-    db.flush()
-
-    token = _generate_portal_token(str(session.id), str(job.id))
-    session.token = token
     db.commit()
     db.refresh(session)
 
     portal_url = f"{settings.portal_base_url}/{token}"
+
+    try:
+        from infrastructure.email.sender import get_email_sender
+        background_tasks.add_task(
+            get_email_sender().send_portal_invite,
+            to=body.customer_email,
+            workshop_name=workshop.name,
+            portal_url=portal_url,
+            expires_hours=TOKEN_EXPIRY_HOURS,
+        )
+    except ImportError:
+        pass
+
     return PortalLinkResponse(
         portal_url=portal_url,
         token=token,
@@ -161,6 +180,7 @@ async def view_portal_assessment(
 async def respond_portal_assessment(
     token: str,
     body: PortalApprovalRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     payload = _decode_portal_token(token)
@@ -186,6 +206,28 @@ async def respond_portal_assessment(
         session.rejection_reason = body.rejection_reason
     db.commit()
     db.refresh(session)
+
+    workshop = db.query(Workshop).filter(Workshop.id == session.workshop_id).first()
+    if workshop and workshop.email:
+        action_label = "approved" if body.action == "approved" else "rejected"
+        try:
+            from infrastructure.email.sender import EmailMessage, get_email_sender
+            background_tasks.add_task(
+                get_email_sender().send,
+                EmailMessage(
+                    to=workshop.email,
+                    subject=f"Customer {action_label} assessment — {workshop.name}",
+                    template_name="assessment_complete.html",
+                    context={
+                        "workshop_name": workshop.name,
+                        "job_id": str(session.job_id),
+                        "report_url": "#",
+                        "brand_name": settings.email_from_name,
+                    },
+                ),
+            )
+        except ImportError:
+            pass
 
     return {
         "status": session.status,
