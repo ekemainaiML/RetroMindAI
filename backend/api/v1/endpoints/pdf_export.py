@@ -305,15 +305,20 @@ def _render_section_html(section) -> str:
 </table>"""
 
 
-def _render_report_html(sections) -> str:
+def _render_report_html(sections, branding: dict | None = None) -> str:
     body = "".join(_render_section_html(s) for s in sections)
+    b = branding or {}
+    primary = b.get("primary_color") or "#1a73e8"
+    secondary = b.get("secondary_color") or "#7c3aed"
+    logo = b.get("logo_url") or ""
+    logo_html = f'<img src="{logo}" style="max-height:40px;margin-bottom:10px;" />' if logo else ""
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
   @page {{ margin: 18mm 15mm; }}
   body {{ font-family: 'Helvetica', 'Arial', sans-serif; font-size: 10pt; line-height: 1.5; color: #222; }}
-  h1 {{ font-size: 20pt; color: #1a73e8; border-bottom: 2px solid #1a73e8; padding-bottom: 5px; margin-top: 0; }}
-  h2 {{ font-size: 13pt; color: #1a73e8; margin-top: 22px; margin-bottom: 8px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px; }}
+  h1 {{ font-size: 20pt; color: {primary}; border-bottom: 2px solid {primary}; padding-bottom: 5px; margin-top: 0; }}
+  h2 {{ font-size: 13pt; color: {primary}; margin-top: 22px; margin-bottom: 8px; border-bottom: 1px solid #e0e0e0; padding-bottom: 3px; }}
   h3 {{ font-size: 11pt; color: #333; margin-top: 14px; margin-bottom: 6px; }}
   table {{ width: 100%; border-collapse: collapse; margin: 8px 0; }}
   th, td {{ border: 1px solid #ddd; padding: 5px 7px; text-align: left; font-size: 9pt; }}
@@ -328,7 +333,7 @@ def _render_report_html(sections) -> str:
   .meta-item {{ display: inline-block; margin-right: 22px; }}
   .priority-essential {{ color: #d93025; font-weight: bold; }}
   .priority-recommended {{ color: #e37400; font-weight: bold; }}
-  .priority-optional {{ color: #1a73e8; }}
+  .priority-optional {{ color: {primary}; }}
   ul {{ padding-left: 18px; margin: 4px 0; }}
   li {{ margin-bottom: 2px; }}
   .rec-card {{ border: 1px solid #e0e0e0; border-radius: 4px; padding: 8px 10px; margin-bottom: 6px; background: #fafafa; font-size: 9pt; }}
@@ -337,7 +342,7 @@ def _render_report_html(sections) -> str:
   .rec-card strong {{ font-size: 10pt; }}
   .footer {{ text-align: center; font-size: 7.5pt; color: #aaa; margin-top: 30px; border-top: 1px solid #ddd; padding-top: 8px; }}
 </style></head><body>
-<div class="header"><h1>Vehicle Assessment Report</h1></div>
+<div class="header">{logo_html}<h1>Vehicle Assessment Report</h1></div>
 <div class="meta">
   <span class="meta-item"><strong>Generated:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</span>
   <span class="meta-item"><strong>Sections:</strong> {len(sections)}</span>
@@ -366,7 +371,10 @@ async def export_report_pdf(
 
     intake = db.query(Intake).filter(Intake.id == job.intake_id).first()
     sections = build_report_sections(job, intake, job.result)
-    html = _render_report_html(sections)
+    from core.models import Workshop as WorkshopModel
+    w = db.query(WorkshopModel).filter(WorkshopModel.id == uuid.UUID(workshop_id)).first()
+    branding = w.branding if w else {}
+    html = _render_report_html(sections, branding)
 
     try:
         from weasyprint import HTML  # type: ignore[import-untyped]

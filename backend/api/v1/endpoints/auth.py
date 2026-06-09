@@ -97,6 +97,54 @@ async def renew_api_key(
     )
 
 
+class BrandingResponse(BaseModel):
+    logo_url: str = ""
+    primary_color: str = ""
+    secondary_color: str = ""
+    custom_domain: str = ""
+
+
+class BrandingUpdateRequest(BaseModel):
+    logo_url: str = ""
+    primary_color: str = ""
+    secondary_color: str = ""
+    custom_domain: str = ""
+
+
+@router.get("/workshop/branding", response_model=BrandingResponse)
+async def get_workshop_branding(
+    workshop: Workshop = Depends(get_current_workshop_obj),
+):
+    b = workshop.branding or {}
+    return BrandingResponse(
+        logo_url=b.get("logo_url", ""),
+        primary_color=b.get("primary_color", ""),
+        secondary_color=b.get("secondary_color", ""),
+        custom_domain=b.get("custom_domain", ""),
+    )
+
+
+@router.put("/workshop/branding", response_model=BrandingResponse)
+async def update_workshop_branding(
+    body: BrandingUpdateRequest,
+    workshop: Workshop = Depends(get_current_workshop_obj),
+    db: Session = Depends(get_db),
+):
+    workshop.branding = {
+        "logo_url": body.logo_url,
+        "primary_color": body.primary_color,
+        "secondary_color": body.secondary_color,
+        "custom_domain": body.custom_domain,
+    }
+    db.commit()
+    return BrandingResponse(
+        logo_url=body.logo_url,
+        primary_color=body.primary_color,
+        secondary_color=body.secondary_color,
+        custom_domain=body.custom_domain,
+    )
+
+
 @router.get("/workshop/profile", response_model=WorkshopProfile)
 async def get_workshop_profile(
     workshop: Workshop = Depends(get_current_workshop_obj),

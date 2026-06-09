@@ -394,6 +394,16 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">Branding</h2>
+        </CardHeader>
+        <p className="mb-4 text-xs text-text-secondary">
+          Customize the look and feel of reports and the portal for your customers.
+        </p>
+        <BrandingForm />
+      </Card>
+
+      <Card>
+        <CardHeader>
           <h2 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">Email Notifications</h2>
         </CardHeader>
         <p className="mb-4 text-xs text-text-secondary">
@@ -446,6 +456,133 @@ export default function SettingsPage() {
           )}
         </div>
       </Card>
+    </div>
+  );
+}
+
+function BrandingForm() {
+  const [logoUrl, setLogoUrl] = useState("");
+  const [primaryColor, setPrimaryColor] = useState("");
+  const [secondaryColor, setSecondaryColor] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const key = getApiKey();
+    if (!key) return;
+    fetch(`${API_BASE}/workshop/branding`, {
+      headers: { "X-API-Key": key },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setLogoUrl(data.logo_url || "");
+        setPrimaryColor(data.primary_color || "");
+        setSecondaryColor(data.secondary_color || "");
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSaved(false);
+    try {
+      const key = getApiKey();
+      const res = await fetch(`${API_BASE}/workshop/branding`, {
+        method: "PUT",
+        headers: { "X-API-Key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          logo_url: logoUrl,
+          primary_color: primaryColor,
+          secondary_color: secondaryColor,
+          custom_domain: "",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to save branding");
+      const data = await res.json();
+      localStorage.setItem("retromind_branding", JSON.stringify(data));
+      const root = document.documentElement;
+      if (data.primary_color) root.style.setProperty("--brand-primary", data.primary_color);
+      if (data.secondary_color) root.style.setProperty("--brand-secondary", data.secondary_color);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {
+    } finally {
+      setSaving(false);
+    }
+  }, [logoUrl, primaryColor, secondaryColor]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-6">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-xs font-medium text-text-secondary mb-1">Logo URL</label>
+        <input
+          type="text"
+          value={logoUrl}
+          onChange={(e) => setLogoUrl(e.target.value)}
+          placeholder="https://example.com/logo.png"
+          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+        />
+        {logoUrl && (
+          <div className="mt-2 flex items-center gap-3 rounded-lg border border-border bg-surface p-3">
+            <img src={logoUrl} alt="Preview" className="h-10 w-auto max-w-[120px] object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            <span className="text-[10px] text-text-tertiary">Preview</span>
+          </div>
+        )}
+      </div>
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <label className="block text-xs font-medium text-text-secondary mb-1">Primary Color</label>
+          <div className="flex gap-2">
+            <input
+              type="color"
+              value={primaryColor || "#1a73e8"}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              className="h-9 w-9 cursor-pointer rounded border border-border bg-transparent p-0.5"
+            />
+            <input
+              type="text"
+              value={primaryColor}
+              onChange={(e) => setPrimaryColor(e.target.value)}
+              placeholder="#1a73e8"
+              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+            />
+          </div>
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs font-medium text-text-secondary mb-1">Secondary Color</label>
+          <div className="flex gap-2">
+            <input
+              type="color"
+              value={secondaryColor || "#7c3aed"}
+              onChange={(e) => setSecondaryColor(e.target.value)}
+              className="h-9 w-9 cursor-pointer rounded border border-border bg-transparent p-0.5"
+            />
+            <input
+              type="text"
+              value={secondaryColor}
+              onChange={(e) => setSecondaryColor(e.target.value)}
+              placeholder="#7c3aed"
+              className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-mono text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
+            />
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 pt-1">
+        <Button onClick={handleSave} variant="brand" size="sm" loading={saving}>
+          Save Branding
+        </Button>
+        {saved && <span className="text-xs text-green-600 dark:text-green-400">Saved!</span>}
+      </div>
     </div>
   );
 }

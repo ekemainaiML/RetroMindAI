@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import AuthGuard from "@/components/AuthGuard";
 import AppShell from "@/components/AppShell";
 import ApiKeyInit from "@/components/ApiKeyInit";
+import BrandingInit from "@/components/BrandingInit";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { UserProvider } from "@/contexts/UserContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -59,6 +60,7 @@ export default function RootLayout({
         <ThemeProvider>
           <UserProvider>
             <ApiKeyInit />
+            <BrandingInit />
             <ErrorBoundary>
               <AuthGuard>
                 <AppShell>{children}</AppShell>
