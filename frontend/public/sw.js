@@ -1,6 +1,5 @@
-const CACHE_NAME = "retromind-v1";
-const SHELL_URLS = ["/", "/capture", "/history", "/settings", "/manifest.json"];
-const API_CACHE = "retromind-api-v1";
+const CACHE_NAME = "retromind-v2";
+const API_CACHE = "retromind-api-v2";
 const DB_NAME = "retromind_offline";
 const DB_VERSION = 1;
 const STORE_NAME = "pending_captures";
@@ -43,24 +42,15 @@ function deleteCapture(id) {
   );
 }
 
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS))
-  );
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((k) => k !== CACHE_NAME && k !== API_CACHE)
-            .map((k) => caches.delete(k))
-        )
-      )
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((k) => caches.delete(k)))
+    )
   );
   self.clients.claim();
 });
@@ -69,32 +59,30 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  if (url.origin === self.location.origin && url.pathname.startsWith("/api/")) {
-    return;
-  }
+  // Never cache HTML documents — always go to network
+  if (request.mode === "navigate") return;
 
+  // Never cache Next.js RSC payloads
+  if (url.searchParams.has("__next_f")) return;
+
+  // Skip non-GET and API calls
   if (request.method !== "GET") return;
+  if (url.origin === self.location.origin && url.pathname.startsWith("/api/")) return;
 
-  if (
-    url.origin === self.location.origin &&
-    !url.pathname.startsWith("/_next/")
-  ) {
+  // Cache static assets (JS, CSS, fonts, images from _next/)
+  if (url.pathname.startsWith("/_next/") || url.pathname.startsWith("/__nextjs_font/")) {
     event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request))
+      caches.open(CACHE_NAME).then((cache) =>
+        fetch(request)
+          .then((response) => {
+            if (response.ok) cache.put(request, response.clone());
+            return response;
+          })
+          .catch(() => caches.match(request))
+      )
     );
     return;
   }
-
-  event.respondWith(
-    caches.open(API_CACHE).then((cache) =>
-      fetch(request)
-        .then((response) => {
-          if (response.ok) cache.put(request, response.clone());
-          return response;
-        })
-        .catch(() => caches.match(request))
-    )
-  );
 });
 
 self.addEventListener("sync", (event) => {
