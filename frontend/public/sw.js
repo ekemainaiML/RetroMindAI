@@ -5,7 +5,7 @@ const DB_NAME = "retromind_offline";
 const DB_VERSION = 1;
 const STORE_NAME = "pending_captures";
 
-function openDB(): Promise<IDBDatabase> {
+function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
@@ -19,7 +19,7 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
-function getAllCaptures(): Promise<any[]> {
+function getAllCaptures() {
   return openDB().then(
     (db) =>
       new Promise((resolve, reject) => {
@@ -31,7 +31,7 @@ function getAllCaptures(): Promise<any[]> {
   );
 }
 
-function deleteCapture(id: number): Promise<void> {
+function deleteCapture(id) {
   return openDB().then(
     (db) =>
       new Promise((resolve, reject) => {
