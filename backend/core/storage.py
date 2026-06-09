@@ -51,7 +51,12 @@ class S3Storage:
             endpoint_url=settings.r2_endpoint,
             aws_access_key_id=settings.r2_access_key,
             aws_secret_access_key=settings.r2_secret_key,
-            config=BotoConfig(signature_version="s3v4"),
+            config=BotoConfig(
+                signature_version="s3v4",
+                connect_timeout=2,
+                read_timeout=5,
+                retries={"max_attempts": 2, "mode": "standard"},
+            ),
         )
         self.bucket = "retromind-uploads"
 

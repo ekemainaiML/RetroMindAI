@@ -1,3 +1,4 @@
+import asyncio
 import time
 from datetime import datetime, timezone
 
@@ -76,18 +77,23 @@ def _check_model() -> dict:
     return {"status": "not_found", "path": model_path}
 
 
-def _check_object_store() -> dict:
+async def _check_object_store() -> dict:
     start = time.time()
     try:
-        from core.storage import get_storage
-        storage = get_storage()
-        test_key = f"healthcheck_{time.time()}"
-        storage.save(test_key, b"ok")
-        data = storage.load(test_key)
-        storage.delete(test_key)
+        def _sync_check():
+            from core.storage import get_storage
+            storage = get_storage()
+            test_key = f"healthcheck_{time.time()}"
+            storage.save(test_key, b"ok")
+            data = storage.load(test_key)
+            storage.delete(test_key)
+            return data
+        data = await asyncio.wait_for(asyncio.to_thread(_sync_check), timeout=8)
         if data == b"ok":
             return {"status": "ok", "latency_ms": int((time.time() - start) * 1000)}
         return {"status": "degraded", "message": "read/write mismatch"}
+    except asyncio.TimeoutError:
+        return {"status": "down", "latency_ms": int((time.time() - start) * 1000), "message": "object store check timed out"}
     except Exception as e:
         return {"status": "down", "latency_ms": int((time.time() - start) * 1000), "message": str(e)}
 
@@ -115,7 +121,7 @@ async def health_check():
         "neo4j": _check_neo4j(),
         "queue_depth": _check_queue_depth(),
         "model": _check_model(),
-        "object_store": _check_object_store(),
+        "object_store": await _check_object_store(),
     }
 
     deg_mgr = get_degradation_manager()

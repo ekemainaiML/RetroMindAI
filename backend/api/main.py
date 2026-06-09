@@ -9,6 +9,7 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
+from core.config import settings
 from core.logging_config import setup_logging
 
 setup_logging(settings.environment)
@@ -22,7 +23,6 @@ from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
 from api.v1.endpoints.admin import router as admin_router  # noqa: E402
 from api.v1.endpoints.analytics import router as analytics_router  # noqa: E402
 from api.v1.endpoints.auth import router as auth_router  # noqa: E402
-from api.v1.endpoints.user_auth import router as user_auth_router  # noqa: E402
 from api.v1.endpoints.billing import router as billing_router  # noqa: E402
 from api.v1.endpoints.demo import router as demo_router  # noqa: E402
 from api.v1.endpoints.health import router as health_router  # noqa: E402
@@ -36,11 +36,11 @@ from api.v1.endpoints.reports import router as reports_router  # noqa: E402
 from api.v1.endpoints.setup import router as setup_router  # noqa: E402
 from api.v1.endpoints.sso_auth import router as sso_router  # noqa: E402
 from api.v1.endpoints.training import router as training_router  # noqa: E402
+from api.v1.endpoints.user_auth import router as user_auth_router  # noqa: E402
 from api.v1.endpoints.metrics import HTTP_REQUESTS_TOTAL, HTTP_REQUEST_DURATION  # noqa: E402
 from api.v2.main import router as v2_router  # noqa: E402
 from core.audit import AuditLog  # noqa: E402
 from core.auth import seed_demo_workshop  # noqa: E402
-from core.config import settings  # noqa: E402
 from core.database import SessionLocal  # noqa: E402
 from core.db_exceptions import db_error_handler  # noqa: E402
 from core.limiter import get_tier_from_workshop, limiter  # noqa: E402
@@ -213,7 +213,6 @@ async def tier_middleware(request: Request, call_next):
     return response
 
 
-app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_url, "http://localhost:3000"],
@@ -221,6 +220,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(SlowAPIMiddleware)
 
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
