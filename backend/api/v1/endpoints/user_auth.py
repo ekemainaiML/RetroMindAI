@@ -117,7 +117,7 @@ def signup(
     db.add(role)
     db.commit()
 
-    jwt = create_jwt(str(user.id))
+    jwt = create_jwt(str(user.id), user.email, workshop.name)
     workshops = db.query(Workshop).filter(Workshop.user_id == user.id).all()
 
     return {
@@ -137,8 +137,9 @@ def login(
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    jwt = create_jwt(str(user.id))
     workshops = db.query(Workshop).filter(Workshop.user_id == user.id).all()
+    name = workshops[0].name if workshops else ""
+    jwt = create_jwt(str(user.id), user.email, name)
     primary = workshops[0] if workshops else None
 
     if primary:

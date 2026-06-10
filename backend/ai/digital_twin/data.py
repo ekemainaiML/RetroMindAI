@@ -383,7 +383,7 @@ class DigitalTwinDataGenerator:
             recommended = next((z for z in zones if z.get("id") == recommended_id), zones[0] if zones else None)
             if recommended:
                 raw = recommended.get("position", "") or recommended.get("label", "").lower()
-                route_id = "underbody_center"
+                route_id = next(iter(vehicle_waypoints))
                 for key in vehicle_waypoints:
                     if key.replace("_", " ") in raw or key in raw:
                         route_id = key

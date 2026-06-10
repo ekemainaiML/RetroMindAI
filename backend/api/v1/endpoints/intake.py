@@ -27,6 +27,57 @@ from sqlalchemy import func
 
 logger = logging.getLogger(__name__)
 
+VALID_VEHICLE_TYPES = {"four_wheeler", "three_wheeler", "motorcycle"}
+VEHICLE_CHECK_SLOTS = {"left_side_profile", "right_side_profile", "rear_view", "front_view"}
+
+_classifier_instance = None
+
+
+def _get_classifier():
+    global _classifier_instance
+    if _classifier_instance is None:
+        try:
+            from ai.classification.classifier import VehicleClassifier
+            _classifier_instance = VehicleClassifier()
+        except Exception:
+            logger.warning("VehicleClassifier could not be loaded — vehicle content check disabled")
+            _classifier_instance = False
+    return _classifier_instance if _classifier_instance is not False else None
+
+
+def _check_vehicle_content(file_path: str, slot_name: str) -> tuple[bool, str | None]:
+    if slot_name not in VEHICLE_CHECK_SLOTS:
+        return True, None
+    classifier = _get_classifier()
+    if classifier is None:
+        return True, None
+    try:
+        result = classifier.classify({slot_name: file_path})
+        vtype = result.get("vehicle_type", "unknown")
+        conf = result.get("confidence", 0)
+        model_loaded = result.get("model_loaded", False)
+
+        if not model_loaded:
+            return False, (
+                "ML model could not confidently classify this image. "
+                "Please upload a clear photo of a car, rickshaw, or motorcycle "
+                "showing the full vehicle profile."
+            )
+        if vtype not in VALID_VEHICLE_TYPES:
+            return False, (
+                f"Image does not appear to contain a vehicle (classified as '{vtype}', "
+                f"confidence {conf:.0%}). Please upload photos of a car, rickshaw, or motorcycle."
+            )
+        if conf < 0.3:
+            return False, (
+                f"Cannot confirm this is a vehicle image (confidence too low: {conf:.0%}). "
+                "Please upload a clear photo of a car, rickshaw, or motorcycle."
+            )
+        return True, None
+    except Exception as e:
+        logger.warning("Vehicle check failed for %s: %s", slot_name, e)
+        return True, None
+
 router = APIRouter()
 
 
@@ -184,7 +235,11 @@ async def create_intake(
     view_slots: dict[str, Optional[str]] = {}
     for slot_name, file in slots.items():
         if file:
-            view_slots[slot_name] = await _process_uploaded_file(intake_dir, slot_name, file)
+            file_path = await _process_uploaded_file(intake_dir, slot_name, file)
+            valid, veh_error = _check_vehicle_content(file_path, slot_name)
+            if not valid:
+                raise HTTPException(status_code=400, detail=veh_error)
+            view_slots[slot_name] = file_path
         else:
             view_slots[slot_name] = None
 
@@ -322,6 +377,10 @@ async def reupload_view(
     os.makedirs(intake_dir, exist_ok=True)
 
     file_path = await _process_uploaded_file(intake_dir, view_slot, file)
+
+    valid, veh_error = _check_vehicle_content(file_path, view_slot)
+    if not valid:
+        raise HTTPException(status_code=400, detail=veh_error)
 
     view_slots = dict(intake.view_slots or {})
     view_slots[view_slot] = file_path

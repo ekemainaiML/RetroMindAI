@@ -14,9 +14,6 @@ for _p in ("/usr/lib/freecad/lib", "/usr/lib/freecad-python3/lib", "/usr/lib/pyt
     if os.path.isdir(_p):
         sys.path.insert(0, _p)
         break
-/main
-/main
-
 from fastapi import FastAPI, Response
 from pydantic import BaseModel
 

@@ -123,8 +123,6 @@ export default function AdminPage() {
     if (stored) load(stored);
   }, [load]);
 
-  useEffect(() => { load(); }, [load]);
-
   const tabs: { key: Tab; label: string }[] = [
     { key: "metrics", label: "Metrics" },
     { key: "workshops", label: "Workshops" },
@@ -158,14 +156,14 @@ export default function AdminPage() {
         <Card>
           <h2 className="text-sm font-semibold text-text-primary mb-2">Admin API Key Required</h2>
           <p className="text-xs text-text-secondary mb-4">
-            Enter the admin API key to access the dashboard. In development, use <code className="rounded bg-surface-muted px-1.5 py-0.5 text-xs font-mono text-brand">dev-admin-key</code>.
+            Enter the admin API key or your workshop API key to access the dashboard.
           </p>
           <div className="flex gap-2">
             <input
               type="text"
               value={adminKeyInput}
               onChange={(e) => setAdminKeyInput(e.target.value)}
-              placeholder="Enter admin API key..."
+              placeholder="Enter API key..."
               className="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && adminKeyInput) {

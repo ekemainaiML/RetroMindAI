@@ -96,6 +96,7 @@ services:
       HF_TOKEN: ${HF_TOKEN:-}
       FREECAD_HOST: http://freecad-worker:8100
       ENABLE_GENERATIVE_DESIGN: "true"
+      SMTP_HOST: mailhog
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-}

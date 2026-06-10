@@ -595,7 +595,11 @@ export default function Home() {
       });
       if (!res.ok) {
         const errBody = await res.text();
-        throw new Error(`Upload failed (${res.status}): ${errBody}`);
+        let detail = errBody;
+        try {
+          detail = JSON.parse(errBody).detail || errBody;
+        } catch {}
+        throw new Error(detail);
       }
       const intakeData = await res.json();
       setIntakeId(intakeData.intake_id);
@@ -636,9 +640,22 @@ export default function Home() {
 
       await handleAnalyzeTrigger(intakeData.intake_id);
     } catch (err) {
-      setUploadError(
-        err instanceof Error ? err.message : "Unknown error"
-      );
+      const msg = err instanceof Error ? err.message : "";
+      const isVehicleError =
+        msg.toLowerCase().includes("vehicle") ||
+        msg.toLowerCase().includes("classif") ||
+        msg.toLowerCase().includes("ml model") ||
+        msg.toLowerCase().includes("upload failed (400)");
+      if (isVehicleError) {
+        setFiles({} as Record<SlotKey, File | null>);
+        setPreviews({} as Record<SlotKey, string | null>);
+        setUploadError(
+          "The uploaded images do not appear to contain a valid vehicle. " +
+          "Please upload clear photos of a car, bus, truck, rickshaw, or motorcycle."
+        );
+      } else {
+        setUploadError(msg || "Unknown error");
+      }
     } finally {
       setUploading(false);
     }
@@ -668,7 +685,11 @@ export default function Home() {
 
       if (!res.ok) {
         const errBody = await res.text();
-        throw new Error(`Re-upload failed (${res.status}): ${errBody}`);
+        let detail = errBody;
+        try {
+          detail = JSON.parse(errBody).detail || errBody;
+        } catch {}
+        throw new Error(detail);
       }
 
       const data = await res.json();
@@ -834,8 +855,25 @@ export default function Home() {
             )}
 
             {uploadError && (
-              <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-700 dark:bg-red-950 dark:text-red-200">
-                {uploadError}
+              <div className="mt-4 rounded-xl border border-red-300 bg-red-50 p-4 shadow-sm dark:border-red-700 dark:bg-red-950">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 shrink-0">
+                    <svg className="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                      {uploadError}
+                    </p>
+                    <button
+                      onClick={() => setUploadError(null)}
+                      className="mt-2 rounded-lg bg-red-100 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-200 transition-colors dark:bg-red-800 dark:text-red-200 dark:hover:bg-red-700"
+                    >
+                      Dismiss & Try Again
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

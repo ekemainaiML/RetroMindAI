@@ -194,7 +194,12 @@ export default function SettingsPage() {
   const updateNotifPref = useCallback(async (key: string, value: boolean) => {
     setNotifPrefs((prev) => prev ? { ...prev, [key]: value } : prev);
     try {
-      await apiPost("/notifications/preferences", { key, value });
+      const k = getApiKey();
+      await fetch(`${API_BASE}/notifications/preferences`, {
+        method: "PUT",
+        headers: { "X-API-Key": k, "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: value }),
+      });
     } catch {
       fetchNotifPrefs();
     }
@@ -321,7 +326,35 @@ export default function SettingsPage() {
         <p className="mb-4 text-xs text-text-secondary">
           Renewing your API key will immediately invalidate the current key. Services using the old key will need to be updated.
         </p>
-        {!showRenewConfirm ? (
+        {renewDone && newKey ? (
+          <div className="rounded-lg border border-brand/30 bg-brand/5 p-4">
+            <p className="text-sm font-semibold text-brand">API Key Renewed Successfully</p>
+            <p className="mt-1 text-xs text-text-secondary">
+              Save this key — it will not be shown again.
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <code className="flex-1 break-all rounded border border-border bg-surface px-3 py-2 text-xs font-mono text-text-primary">
+                {newKey}
+              </code>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { navigator.clipboard.writeText(newKey); }}
+              >
+                Copy
+              </Button>
+            </div>
+            <div className="mt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setRenewDone(false); setNewKey(null); }}
+              >
+                Dismiss
+              </Button>
+            </div>
+          </div>
+        ) : !showRenewConfirm ? (
           <Button onClick={() => setShowRenewConfirm(true)} variant="accent" size="sm">
             Renew API Key
           </Button>

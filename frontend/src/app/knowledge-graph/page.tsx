@@ -33,9 +33,9 @@ interface PositionedNode extends GraphNodeData {
   vy: number;
 }
 
-const NODE_RADIUS = 20;
-const REPULSION = 4000;
-const ATTRACTION = 0.005;
+const NODE_RADIUS = 30;
+const REPULSION = 8000;
+const ATTRACTION = 0.003;
 const DAMPER = 0.85;
 
 const COLORS: Record<string, string> = {
@@ -81,8 +81,8 @@ function tick(nodes: PositionedNode[], edges: GraphEdgeData[]): boolean {
     b.vy -= fy;
   }
 
-  const centerX = 400;
-  const centerY = 300;
+  const centerX = 600;
+  const centerY = 400;
   const softness = 0.01;
   for (const n of nodes) {
     n.vx += (centerX - n.x) * softness;
@@ -118,8 +118,8 @@ export default function KnowledgeGraphPage() {
           const angle = (2 * Math.PI * i) / d.nodes.length;
           return {
             ...n,
-            x: 400 + 150 * Math.cos(angle),
-            y: 300 + 150 * Math.sin(angle),
+            x: 600 + 280 * Math.cos(angle),
+            y: 400 + 280 * Math.sin(angle),
             vx: 0,
             vy: 0,
           };
@@ -184,7 +184,7 @@ export default function KnowledgeGraphPage() {
   const edges = data?.edges ?? [];
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-text-primary">
@@ -217,8 +217,8 @@ export default function KnowledgeGraphPage() {
       {data && (
         <svg
           ref={svgRef}
-          viewBox="0 0 800 600"
-          className="w-full rounded-xl border border-border bg-surface-card"
+          viewBox="0 0 1200 800"
+          className="w-full h-[75vh] min-h-[500px] rounded-xl border border-border bg-surface-card"
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
@@ -317,27 +317,27 @@ export default function KnowledgeGraphPage() {
                   <>
                     <text
                       x={node.x}
-                      y={node.y + NODE_RADIUS + 16}
+                      y={node.y + NODE_RADIUS + 18}
                       textAnchor="middle"
-                      className="fill-zinc-700 text-[9px] font-semibold dark:fill-zinc-300"
+                      className="fill-zinc-700 text-[11px] font-semibold dark:fill-zinc-300"
                       pointerEvents="none"
                     >
                       {node.label}
                     </text>
                     <text
                       x={node.x}
-                      y={node.y + NODE_RADIUS + 28}
+                      y={node.y + NODE_RADIUS + 34}
                       textAnchor="middle"
-                      className="fill-zinc-400 text-[8px]"
+                      className="fill-zinc-400 text-[10px]"
                       pointerEvents="none"
                     >
                       {Math.round(node.confidence * 100)}% · {node.compliance_state.replace(/_/g, " ")}
                     </text>
                     <text
                       x={node.x}
-                      y={node.y + NODE_RADIUS + 40}
+                      y={node.y + NODE_RADIUS + 48}
                       textAnchor="middle"
-                      className="fill-zinc-400 text-[7px]"
+                      className="fill-zinc-400 text-[9px]"
                       pointerEvents="none"
                     >
                       {connected.size - 1} connection{connected.size - 1 !== 1 ? "s" : ""}
@@ -350,19 +350,19 @@ export default function KnowledgeGraphPage() {
 
           {nodes.length === 0 && !loading && (
             <>
-              <rect x="100" y="120" width="600" height="360" rx="12" fill="#fafafa" className="dark:fill-zinc-900" />
-              <text x={400} y={220} textAnchor="middle" className="fill-zinc-400 text-base font-semibold">
+              <rect x="200" y="220" width="800" height="360" rx="12" fill="#fafafa" className="dark:fill-zinc-900" />
+              <text x={600} y={320} textAnchor="middle" className="fill-zinc-400 text-lg font-semibold">
                 Your Knowledge Graph is Empty
               </text>
-              <text x={400} y={250} textAnchor="middle" className="fill-zinc-400 text-[11px]">
+              <text x={600} y={360} textAnchor="middle" className="fill-zinc-400 text-sm">
                 Complete an assessment to populate the graph.
               </text>
-              <text x={400} y={280} textAnchor="middle" className="fill-zinc-400 text-[10px]">
+              <text x={600} y={390} textAnchor="middle" className="fill-zinc-400 text-xs">
                 Each assessment becomes a node; shared deviations create edges.
               </text>
-              <foreignObject x={290} y={310} width={220} height={80}>
+              <foreignObject x={460} y={420} width={280} height={80}>
                  <div className="flex flex-col items-center gap-2">
-                   <a href="/" className="inline-flex items-center justify-center rounded-lg bg-brand px-5 py-2 text-xs font-medium text-white hover:bg-brand-dark transition-colors">
+                   <a href="/" className="inline-flex items-center justify-center rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white hover:bg-brand-dark transition-colors">
                      Start Assessment
                    </a>
                  </div>

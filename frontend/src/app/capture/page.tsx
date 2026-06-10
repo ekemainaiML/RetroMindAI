@@ -290,28 +290,45 @@ export default function CapturePage() {
           throw new Error(`Re-upload failed (${res.status}): ${text}`);
         }
       }
-    } catch {
-      await queueCapture(activeSlot, blob);
-      setPendingCount((c) => c + 1);
-      if (!offline && navigator.onLine && intakeId) {
-        const requiredKeys: SlotKey[] = ["left_side_profile", "right_side_profile", "rear_view"];
-        const nextCaptured = { ...captured, [activeSlot]: url };
-        const allRequiredDone = requiredKeys.every((k) => nextCaptured[k]);
-        if (allRequiredDone) {
-          try {
-            const key = getApiKey();
-            const h: Record<string, string> = {};
-            if (key) h["X-API-Key"] = key;
-            const analyzeRes = await fetch(
-              `${API_BASE}/intake/${intakeId}/analyze`,
-              { method: "POST", headers: h }
-            );
-            if (analyzeRes.ok) {
-              const analyzeData = await analyzeRes.json();
-              setJobId(analyzeData.job_id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      const isVehicleError =
+        msg.includes("vehicle") ||
+        msg.includes("classif") ||
+        msg.includes("ML model") ||
+        msg.includes("Upload failed (400)") ||
+        msg.includes("Re-upload failed (400)");
+      if (isVehicleError) {
+        setCaptured((prev) => {
+          const next = { ...prev };
+          delete next[activeSlot];
+          return next;
+        });
+        const detail = msg.match(/"detail":"((?:[^"\\]|\\.)*)"/)?.[1] || msg;
+        setError(detail);
+      } else {
+        await queueCapture(activeSlot, blob);
+        setPendingCount((c) => c + 1);
+        if (!offline && navigator.onLine && intakeId) {
+          const requiredKeys: SlotKey[] = ["left_side_profile", "right_side_profile", "rear_view"];
+          const nextCaptured = { ...captured, [activeSlot]: url };
+          const allRequiredDone = requiredKeys.every((k) => nextCaptured[k]);
+          if (allRequiredDone) {
+            try {
+              const key = getApiKey();
+              const h: Record<string, string> = {};
+              if (key) h["X-API-Key"] = key;
+              const analyzeRes = await fetch(
+                `${API_BASE}/intake/${intakeId}/analyze`,
+                { method: "POST", headers: h }
+              );
+              if (analyzeRes.ok) {
+                const analyzeData = await analyzeRes.json();
+                setJobId(analyzeData.job_id);
+              }
+            } catch {
+              // user can trigger from main page
             }
-          } catch {
-            // user can trigger from main page
           }
         }
       }

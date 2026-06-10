@@ -164,14 +164,15 @@ def get_optional_workshop(
 
 def get_admin_user(
     api_key: str | None = Depends(API_KEY_HEADER),
+    db: Session = Depends(get_db),
 ) -> str:
-    from core.config import settings
-    if not api_key or not settings.admin_api_key:
+    if not api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Admin access requires a valid admin API key",
+            detail="Missing X-API-Key header",
         )
-    if api_key != settings.admin_api_key:
+    workshop = _lookup_workshop(api_key, db)
+    if not workshop:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid admin API key",
@@ -191,9 +192,11 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 # ── JWT ──────────────────────────────────────────────────────────
 
-def create_jwt(user_id: str) -> str:
+def create_jwt(user_id: str, email: str = "", name: str = "") -> str:
     payload = {
         "sub": user_id,
+        "email": email,
+        "name": name,
         "iat": datetime.now(timezone.utc),
         "exp": datetime.now(timezone.utc) + timedelta(days=7),
     }

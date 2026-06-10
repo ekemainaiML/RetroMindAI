@@ -722,7 +722,7 @@ class TestFM_UX_02_TabClose:
         job = Mock()
         job_id = uuid.uuid4()
         job.id = job_id
-        job.status = "completed"
+        job.status = "failed"
         job.updated_at = datetime.now(timezone.utc) - timedelta(seconds=1900)
         job.last_polled_at = None
         job.current_stage = None
@@ -834,7 +834,7 @@ class TestFM_CR_01_TTLExpiry:
         job = Mock()
         job_id = uuid.uuid4()
         job.id = job_id
-        job.status = "completed"
+        job.status = "failed"
         job.updated_at = datetime.now(timezone.utc) - timedelta(seconds=1900)
         job.last_polled_at = None
         job.current_stage = None
@@ -856,6 +856,37 @@ class TestFM_CR_01_TTLExpiry:
         workshop_id = str(uuid.uuid4())
         anyio.run(get_job, job_id, workshop_id, db)
         assert job.status == "expired"
+
+    def test_completed_job_does_not_expire(self):
+        from datetime import datetime, timedelta, timezone
+
+        from api.v1.endpoints.jobs import get_job
+
+        job = Mock()
+        job_id = uuid.uuid4()
+        job.id = job_id
+        job.status = "completed"
+        job.updated_at = datetime.now(timezone.utc) - timedelta(seconds=1900)
+        job.last_polled_at = None
+        job.current_stage = None
+        job.progress_pct = 100
+        job.completed_stages = []
+        job.missing_stages = []
+        job.result = None
+        job.retry_count = 0
+        job.error_message = None
+
+        db = Mock()
+        query_mock = Mock()
+        query_mock.join.return_value = query_mock
+        query_mock.filter.return_value = query_mock
+        query_mock.first.return_value = job
+        db.query.return_value = query_mock
+
+        import anyio
+        workshop_id = str(uuid.uuid4())
+        anyio.run(get_job, job_id, workshop_id, db)
+        assert job.status == "completed"
 
 
 class TestFM_CR_02_WorkerCrash:

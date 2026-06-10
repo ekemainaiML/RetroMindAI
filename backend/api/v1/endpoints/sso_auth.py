@@ -96,7 +96,7 @@ async def sso_callback(
     user = _find_or_create_user(userinfo, db)
     workshop = _get_or_create_workshop(user, db)
 
-    jwt = create_jwt(str(user.id))
+    jwt = create_jwt(str(user.id), user.email, user.name)
 
     frontend_url = settings.frontend_url.rstrip("/")
     redirect_url = f"{frontend_url}/auth/callback?token={jwt}&workshop_id={workshop.id}"

@@ -8,6 +8,7 @@ from datetime import datetime, timezone as tz
 import numpy as np
 
 from sqlalchemy.orm import Session as DBSession, joinedload
+from sqlalchemy.orm.attributes import flag_modified
 
 from core.compliance import compute_compliance_state
 from core.confidence import ConfidenceEngine
@@ -574,6 +575,11 @@ def _notify_assessment_result(db: DBSession, job: object, intake: object, failed
         workshop = intake.workshop if intake else None
         if not workshop or not workshop.email:
             return
+        from infrastructure.email.preferences import get_notification_preferences
+        prefs = get_notification_preferences(db, str(workshop.id))
+        key = "assessment_failed" if failed else "assessment_complete"
+        if not prefs.get(key, True):
+            return
         from infrastructure.email.sender import get_email_sender
         sender = get_email_sender()
         report_url = f"{settings.frontend_url}/reports/{job.id}"
@@ -759,10 +765,6 @@ def run_assessment(intake_id: str) -> None:
                     wiring_guidance_data = wir_result
             except Exception:
                 logger.exception("Battery/wiring optimization failed (non-fatal)")
-        job.status = "completed"
-        job.current_stage = None
-        job.progress_pct = 100
-        _notify_assessment_result(db, job, intake, failed=False)
         try:
             job.result = _build_result(
                 factors,
@@ -777,10 +779,19 @@ def run_assessment(intake_id: str) -> None:
                 deviation_result,
                 degradations,
             )
+            job.status = "completed"
         except Exception:
             logger.exception("Error building result")
             job.result = None
             job.status = "failed"
+
+        if job.status == "completed":
+            job.current_stage = None
+            job.progress_pct = 100
+            _notify_assessment_result(db, job, intake, failed=False)
+        else:
+            job.current_stage = None
+            job.progress_pct = 100
             _notify_assessment_result(db, job, intake, failed=True)
 
         if job.result:
@@ -857,9 +868,11 @@ def run_assessment(intake_id: str) -> None:
                     job.result["tooling_required"] = rec_result["tooling_required"]
                     job.result["skill_level_required"] = rec_result["skill_level_required"]
                     job.result["estimated_days"] = rec_result["estimated_days"]
+                    flag_modified(job, "result")
                 else:
                     deg_mgr.register("recommendation_engine", 1, "Recommendation engine failed or timed out")
                     job.result["degradations"] = deg_mgr.get_degradation_summary()
+                    flag_modified(job, "result")
 
                 if rec_success and rec_result and battery_placement_data:
                     for rec in job.result.get("recommendations", []):
@@ -894,7 +907,8 @@ def run_assessment(intake_id: str) -> None:
                     _run_dt, "digital_twin", STAGE_TIMEOUTS["digital_twin"]
                 )
                 if dt_success and dt_result:
-                    job.result["digital_twin"] = dt_result
+                    logger.info("Digital twin generated successfully, keys=%s", list(dt_result.keys()))
+                    job.result["digital_twin"] = _make_json_safe(dt_result)
                 else:
                     logger.warning("Digital twin stage did not produce a result")
             except Exception:
@@ -915,6 +929,7 @@ def run_assessment(intake_id: str) -> None:
                     similar = graph_repo.find_similar_retrofits(intake_id)
                     if similar:
                         job.result["similar_retrofits"] = similar
+                        flag_modified(job, "result")
                 else:
                     deg_mgr.register("neo4j", 1, "Neo4j connection failed — graph features unavailable")
             except Exception:
@@ -922,6 +937,9 @@ def run_assessment(intake_id: str) -> None:
 
         job.result = _make_json_safe(job.result)
         job.updated_at = datetime.now(tz.utc)
+        logger.info("Pre-commit result keys: %s", list((job.result or {}).keys()))
+        has_dt = "digital_twin" in (job.result or {})
+        logger.info("digital_twin in result before commit: %s (type=%s)", has_dt, type(job.result.get("digital_twin")) if has_dt else "N/A")
         db.commit()
 
         from core.sse import publish_job_event

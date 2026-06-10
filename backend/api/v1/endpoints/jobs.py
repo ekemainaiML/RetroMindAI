@@ -86,7 +86,7 @@ async def get_job(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    if job.status in TERMINAL_STATUSES and job.updated_at:
+    if job.status in {"failed", "timed_out", "cancelled"} and job.updated_at:
         elapsed = (datetime.now(timezone.utc) - job.updated_at).total_seconds()
         if elapsed > EXPIRY_SECONDS and job.status != "expired":
             job.status = "expired"
