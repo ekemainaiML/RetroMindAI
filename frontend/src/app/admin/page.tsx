@@ -41,7 +41,7 @@ type Metrics = {
   unique_workshops_24h: number;
 };
 
-type Tab = "metrics" | "workshops" | "users" | "audit-logs" | "oem";
+type Tab = "metrics" | "workshops" | "users" | "audit-logs" | "oem" | "capabilities" | "training";
 
 type UserItem = {
   id: string;
@@ -87,6 +87,9 @@ export default function AdminPage() {
   const [logOffset, setLogOffset] = useState(0);
   const [adminKeyInput, setAdminKeyInput] = useState(getStoredAdminKey());
   const [authenticated, setAuthenticated] = useState(false);
+  const [capabilities, setCapabilities] = useState<any[]>([]);
+  const [trainingStatus, setTrainingStatus] = useState<any>(null);
+  const [trainingBusy, setTrainingBusy] = useState(false);
   const LOG_LIMIT = 50;
 
   const load = useCallback(async (keyOverride?: string) => {
@@ -110,6 +113,10 @@ export default function AdminPage() {
         const r = await apiFetch<{ logs: AuditLogItem[]; total: number }>(`/admin/audit-logs?${p}`, effectiveKey);
         setLogs(r.logs);
         setLogTotal(r.total);
+      } else if (tab === "capabilities") {
+        setCapabilities(await apiFetch<any>("/admin/capabilities", effectiveKey).then((r: any) => r.capabilities ?? []));
+      } else if (tab === "training") {
+        setTrainingStatus(await apiFetch<any>("/admin/training/status", effectiveKey));
       }
       setAuthenticated(true);
     } catch (e: unknown) {
@@ -129,6 +136,8 @@ export default function AdminPage() {
     { key: "users", label: "Users" },
     { key: "audit-logs", label: "Audit Logs" },
     { key: "oem", label: "OEM Data" },
+    { key: "capabilities", label: "Capabilities" },
+    { key: "training", label: "Training" },
   ];
 
   return (
@@ -871,6 +880,86 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
               </div>
             </Card>
           )}
+        </div>
+      )}
+
+      {authenticated && tab === "capabilities" && (
+        <div className="space-y-3">
+          <p className="text-xs text-text-secondary">Toggle feature flags for the entire instance. Overrides take effect immediately.</p>
+          <Card padding="none">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-xs uppercase tracking-wider text-text-tertiary">
+                  <TH>Capability</TH><TH>Label</TH><TH>Effective</TH><TH>Override</TH><TH>Dep</TH><TH>Actions</TH>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {capabilities.map((c: any) => (
+                  <tr key={c.name} className="hover:bg-surface-hover transition-colors">
+                    <TD className="font-mono text-xs text-text-primary">{c.name}</TD>
+                    <TD className="text-text-secondary">{c.label || "-"}</TD>
+                    <TD><Badge variant={c.effective ? "success" : "default"} size="sm">{c.effective ? "ON" : "OFF"}</Badge></TD>
+                    <TD className="text-xs text-text-tertiary">{c.runtime_override === null ? "—" : c.runtime_override ? "ON" : "OFF"}</TD>
+                    <TD className="text-xs text-text-tertiary">{c.dep_installed ? "✅" : "❌"} {c.dep}</TD>
+                    <TD>
+                      <Button size="sm" variant="ghost" onClick={async () => {
+                        const newVal = !c.effective;
+                        const key = getStoredAdminKey();
+                        await fetch(`${API_BASE}/admin/capabilities/${c.name}`, {
+                          method: "PUT",
+                          headers: { "X-API-Key": key, "Content-Type": "application/json" },
+                          body: JSON.stringify({ value: newVal }),
+                        });
+                        const r = await apiFetch<any>("/admin/capabilities", key);
+                        setCapabilities(r.capabilities ?? []);
+                      }}>{c.effective ? "Disable" : "Enable"}</Button>
+                    </TD>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {capabilities.length === 0 && <p className="px-4 py-6 text-center text-xs text-text-tertiary">No capabilities found.</p>}
+          </Card>
+        </div>
+      )}
+
+      {authenticated && tab === "training" && (
+        <div className="space-y-3">
+          <Card>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-text-primary">Model Training Status</h3>
+              <Button variant="primary" size="sm" disabled={trainingBusy} onClick={async () => {
+                setTrainingBusy(true);
+                try {
+                  const key = getStoredAdminKey();
+                  const res = await fetch(`${API_BASE}/admin/training/start`, {
+                    method: "POST",
+                    headers: { "X-API-Key": key },
+                  });
+                  if (!res.ok) throw new Error(await res.text());
+                  const result = await res.json();
+                  alert(result.message || "Training completed");
+                  setTrainingStatus(await apiFetch<any>("/admin/training/status", key));
+                } catch (e: any) {
+                  alert(`Training failed: ${e.message}`);
+                } finally {
+                  setTrainingBusy(false);
+                }
+              }}>{trainingBusy ? "Training…" : "Start Training"}</Button>
+            </div>
+            {trainingStatus ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm"><span className="text-text-secondary">Trained Model</span><span className="font-medium text-text-primary">{trainingStatus.has_trained_model ? "Yes" : "No"}</span></div>
+                {trainingStatus.accuracy != null && <div className="flex justify-between text-sm"><span className="text-text-secondary">Accuracy</span><span className="font-medium text-text-primary">{(trainingStatus.accuracy * 100).toFixed(1)}%</span></div>}
+                {trainingStatus.samples != null && <div className="flex justify-between text-sm"><span className="text-text-secondary">Samples</span><span className="font-medium text-text-primary">{trainingStatus.samples}</span></div>}
+                {trainingStatus.classes?.length > 0 && <div className="flex justify-between text-sm"><span className="text-text-secondary">Classes</span><span className="font-medium text-text-primary">{trainingStatus.classes.join(", ")}</span></div>}
+                {trainingStatus.trained_at && <div className="flex justify-between text-sm"><span className="text-text-secondary">Trained At</span><span className="font-medium text-text-primary">{new Date(trainingStatus.trained_at).toLocaleString()}</span></div>}
+                {trainingStatus.model_path && <div className="flex justify-between text-sm"><span className="text-text-secondary">Model Path</span><span className="font-mono text-xs text-text-tertiary">{trainingStatus.model_path}</span></div>}
+              </div>
+            ) : (
+              <p className="text-xs text-text-tertiary">Loading training status...</p>
+            )}
+          </Card>
         </div>
       )}
 

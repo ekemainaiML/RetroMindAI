@@ -99,6 +99,7 @@ export default function SettingsPage() {
   const [upgrading, setUpgrading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -334,6 +335,29 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      const key = getApiKey();
+      const res = await fetch(`${API_BASE}/workshop/export`, {
+        headers: { "X-API-Key": key },
+      });
+      if (!res.ok) throw new Error(`Export failed: ${await res.text()}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `workshop-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export data");
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
   const fetchMembers = useCallback(async () => {
     const key = getApiKey();
     if (!key) return;
@@ -556,6 +580,20 @@ export default function SettingsPage() {
           ) : (
             <p className="text-xs text-text-secondary">No usage data available.</p>
           )}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">Data Export</h2>
+        </CardHeader>
+        <div className="px-6 pb-6">
+          <p className="mb-3 text-xs text-text-secondary">
+            Download all workshop data — intakes, jobs, and metadata — as a JSON file.
+          </p>
+          <Button variant="secondary" onClick={handleExport} disabled={exporting} className="w-full sm:w-auto">
+            {exporting ? "Exporting…" : "Export Data"}
+          </Button>
         </div>
       </Card>
 
