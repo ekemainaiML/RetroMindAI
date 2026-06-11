@@ -352,42 +352,56 @@ export default function AdminPage() {
       )}
 
       {authenticated && tab === "training" && (
-        <div className="space-y-3">
-          <Card>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-text-primary">Model Training Status</h3>
-              <Button variant="primary" size="sm" disabled={trainingBusy} onClick={async () => {
-                setTrainingBusy(true);
-                try {
-                  const key = getStoredAdminKey();
-                  const res = await fetch(`${API_BASE}/admin/training/start`, {
-                    method: "POST",
-                    headers: { "X-API-Key": key },
-                  });
-                  if (!res.ok) throw new Error(await res.text());
-                  const result = await res.json();
-                  alert(result.message || "Training completed");
-                  setTrainingStatus(await apiFetch<any>("/admin/training/status", key));
-                } catch (e: any) {
-                  alert(`Training failed: ${e.message}`);
-                } finally {
-                  setTrainingBusy(false);
-                }
-              }}>{trainingBusy ? "Training…" : "Start Training"}</Button>
+        <div className="space-y-6">
+          <p className="text-xs text-text-secondary">Train the vehicle classification model from collected assessment data. Two model architectures are available.</p>
+          {trainingStatus ? (
+            <div className="grid gap-6 md:grid-cols-2">
+              <ModelTrainingCard
+                title="ONNX RandomForest"
+                description="Hand-crafted features (HOG, edges, color histograms) with a 100-tree RandomForest. Fast, low-memory, works without GPU."
+                info={trainingStatus.onnx}
+                busy={trainingBusy}
+                onTrain={async () => {
+                  setTrainingBusy(true);
+                  try {
+                    const key = getStoredAdminKey();
+                    const res = await fetch(`${API_BASE}/admin/training/start?model_type=onnx`, { method: "POST", headers: { "X-API-Key": key } });
+                    if (!res.ok) throw new Error(await res.text());
+                    const result = await res.json();
+                    alert(result.message);
+                    setTrainingStatus(await apiFetch<any>("/admin/training/status", key));
+                  } catch (e: any) {
+                    alert(`Training failed: ${e.message}`);
+                  } finally {
+                    setTrainingBusy(false);
+                  }
+                }}
+              />
+              <ModelTrainingCard
+                title="PyTorch MobileNetV3"
+                description="MobileNetV3-small CNN (~2.5M params). End-to-end learned features, higher accuracy with more data. Enable via Settings → Capabilities."
+                info={trainingStatus.pytorch}
+                busy={trainingBusy}
+                onTrain={async () => {
+                  setTrainingBusy(true);
+                  try {
+                    const key = getStoredAdminKey();
+                    const res = await fetch(`${API_BASE}/admin/training/start?model_type=pytorch`, { method: "POST", headers: { "X-API-Key": key } });
+                    if (!res.ok) throw new Error(await res.text());
+                    const result = await res.json();
+                    alert(result.message);
+                    setTrainingStatus(await apiFetch<any>("/admin/training/status", key));
+                  } catch (e: any) {
+                    alert(`Training failed: ${e.message}`);
+                  } finally {
+                    setTrainingBusy(false);
+                  }
+                }}
+              />
             </div>
-            {trainingStatus ? (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm"><span className="text-text-secondary">Trained Model</span><span className="font-medium text-text-primary">{trainingStatus.has_trained_model ? "Yes" : "No"}</span></div>
-                {trainingStatus.accuracy != null && <div className="flex justify-between text-sm"><span className="text-text-secondary">Accuracy</span><span className="font-medium text-text-primary">{(trainingStatus.accuracy * 100).toFixed(1)}%</span></div>}
-                {trainingStatus.samples != null && <div className="flex justify-between text-sm"><span className="text-text-secondary">Samples</span><span className="font-medium text-text-primary">{trainingStatus.samples}</span></div>}
-                {trainingStatus.classes?.length > 0 && <div className="flex justify-between text-sm"><span className="text-text-secondary">Classes</span><span className="font-medium text-text-primary">{trainingStatus.classes.join(", ")}</span></div>}
-                {trainingStatus.trained_at && <div className="flex justify-between text-sm"><span className="text-text-secondary">Trained At</span><span className="font-medium text-text-primary">{new Date(trainingStatus.trained_at).toLocaleString()}</span></div>}
-                {trainingStatus.model_path && <div className="flex justify-between text-sm"><span className="text-text-secondary">Model Path</span><span className="font-mono text-xs text-text-tertiary">{trainingStatus.model_path}</span></div>}
-              </div>
-            ) : (
-              <p className="text-xs text-text-tertiary">Loading training status...</p>
-            )}
-          </Card>
+          ) : (
+            <p className="text-xs text-text-tertiary">Loading training status...</p>
+          )}
         </div>
       )}
 
@@ -421,6 +435,33 @@ function TH({ children }: { children: React.ReactNode }) {
 
 function TD({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <td className={`px-4 py-3 ${className}`}>{children}</td>;
+}
+
+function ModelTrainingCard({ title, description, info, busy, onTrain }: {
+  title: string; description: string; info: any; busy: boolean; onTrain: () => Promise<void>;
+}) {
+  return (
+    <Card>
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
+          <p className="mt-1 text-xs text-text-secondary">{description}</p>
+        </div>
+        <Button variant="primary" size="sm" disabled={busy} onClick={onTrain}>
+          {busy ? "Training…" : "Train"}
+        </Button>
+      </div>
+      {info && (
+        <div className="space-y-1.5 border-t border-border pt-3 mt-3">
+          <div className="flex justify-between text-xs"><span className="text-text-secondary">Trained</span><span className="font-medium text-text-primary">{info.has_trained_model ? "Yes" : "No"}</span></div>
+          {info.accuracy != null && <div className="flex justify-between text-xs"><span className="text-text-secondary">Accuracy</span><span className="font-medium text-text-primary">{(info.accuracy * 100).toFixed(1)}%</span></div>}
+          {info.samples != null && <div className="flex justify-between text-xs"><span className="text-text-secondary">Samples</span><span className="font-medium text-text-primary">{info.samples}</span></div>}
+          {info.classes?.length > 0 && <div className="flex justify-between text-xs"><span className="text-text-secondary">Classes</span><span className="font-medium text-text-primary">{info.classes.join(", ")}</span></div>}
+          {info.trained_at && <div className="flex justify-between text-xs"><span className="text-text-secondary">Trained At</span><span className="font-medium text-text-primary">{new Date(info.trained_at).toLocaleString()}</span></div>}
+        </div>
+      )}
+    </Card>
+  );
 }
 
 function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string }) {

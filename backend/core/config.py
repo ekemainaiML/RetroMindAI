@@ -70,7 +70,9 @@ class Settings(BaseSettings):
     enable_cad_export: bool = False
 
     # Paths for optional models / services
-    torch_model_path: str = ""
+    torch_model_path: str = str(
+        Path(__file__).resolve().parent.parent / "ai" / "models" / "vehicle_classifier.pt"
+    )
     rllib_checkpoint_path: str = ""
     freecad_host: str = ""
     openai_api_key: str = ""
