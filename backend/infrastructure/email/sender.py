@@ -3,7 +3,6 @@ from dataclasses import dataclass, field
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
-from typing import Optional
 
 import aiosmtplib
 import jinja2
@@ -25,9 +24,9 @@ class EmailMessage:
     subject: str
     template_name: str
     context: dict = field(default_factory=dict)
-    cc: Optional[list[str]] = None
-    bcc: Optional[list[str]] = None
-    reply_to: Optional[str] = None
+    cc: list[str] | None = None
+    bcc: list[str] | None = None
+    reply_to: str | None = None
 
 
 class EmailSender:
@@ -159,7 +158,7 @@ class EmailSender:
         ))
 
 
-_sender: Optional[EmailSender] = None
+_sender: EmailSender | None = None
 
 
 def get_email_sender() -> EmailSender:

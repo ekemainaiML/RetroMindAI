@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 import numpy as np
 from gymnasium import Env, spaces
@@ -29,7 +28,7 @@ class RetroMindEnv(Env):
                         safety_escalation)
     """
 
-    def __init__(self, env_config: Optional[dict] = None):
+    def __init__(self, env_config: dict | None = None):
         super().__init__()
         env_config = env_config or {}
 
@@ -75,7 +74,7 @@ class RetroMindEnv(Env):
         safety = int(action_dict.get("safety_escalation", 0))
         return np.array([float(priority), cost, float(safety)], dtype=np.float32)
 
-    def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
+    def reset(self, *, seed: int | None = None, options: dict | None = None):
         super().reset(seed=seed)
         self._idx = 0
         if not self._states:

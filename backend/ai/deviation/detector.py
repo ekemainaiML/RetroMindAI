@@ -135,13 +135,13 @@ class DeviationDetector:
         ref = self.references.get(vehicle_type, self.references["three_wheeler"])
         side_path = self._best_side_profile(images)
         if side_path is None or not os.path.isfile(side_path):
-            result = {k: 0.0 for k in _STRUCTURAL_KEYS}
+            result = dict.fromkeys(_STRUCTURAL_KEYS, 0.0)
             result["_certainty"] = 0.0
             return result
 
         img = cv2.imread(side_path)
         if img is None:
-            result = {k: 0.0 for k in _STRUCTURAL_KEYS}
+            result = dict.fromkeys(_STRUCTURAL_KEYS, 0.0)
             result["_certainty"] = 0.0
             return result
 
@@ -151,7 +151,7 @@ class DeviationDetector:
             edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
         if not contours:
-            result = {k: 0.0 for k in _STRUCTURAL_KEYS}
+            result = dict.fromkeys(_STRUCTURAL_KEYS, 0.0)
             result["_certainty"] = 0.1
             return result
 

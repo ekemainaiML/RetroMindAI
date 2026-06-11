@@ -1,5 +1,4 @@
 import logging
-import os
 import uuid
 
 import structlog
@@ -24,7 +23,6 @@ def setup_logging(environment: str = "development"):
     )
 
     if environment == "development":
-        log_format = "%(message)s"
         handler = logging.StreamHandler()
         handler.setFormatter(structlog.stdlib.ProcessorFormatter(
             processor=structlog.dev.ConsoleRenderer(),

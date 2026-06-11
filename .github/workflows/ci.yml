@@ -18,7 +18,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install ruff
-      - run: ruff check .
+      - run: ruff check . --config ../pyproject.toml
 
   typecheck:
     runs-on: ubuntu-latest
@@ -96,6 +96,7 @@ jobs:
           npm audit --audit-level=high
 
   test:
+    needs: [lint]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -121,7 +122,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: DATABASE_URL=postgresql://retromind:retromind@localhost:5432/retromind python3 -m pytest tests/ -q
+      - run: DATABASE_URL=postgresql://retromind:retromind@localhost:5432/retromind python3 -m pytest tests/unit/ -q
         env:
           REDIS_URL: redis://localhost:6379/0
           NEO4J_URI: bolt://localhost:7687

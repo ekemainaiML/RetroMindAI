@@ -1,4 +1,3 @@
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -12,8 +11,8 @@ class IntakeResponse(BaseModel):
     swap_suspected: bool = False
     attempts: dict[str, int | None] = {}
     quality_scores: dict[str, float | None] = {}
-    failure_reason: Optional[str] = None
-    oem_model_id: Optional[str] = None
+    failure_reason: str | None = None
+    oem_model_id: str | None = None
 
 
 class AnalyzeResponse(BaseModel):
@@ -24,19 +23,19 @@ class AnalyzeResponse(BaseModel):
 class JobResponse(BaseModel):
     job_id: str
     status: str
-    current_stage: Optional[str] = None
+    current_stage: str | None = None
     progress_pct: int = 0
-    assessment_state: Optional[str] = None
+    assessment_state: str | None = None
     completed_stages: list[str] = []
     missing_stages: list[str] = []
-    result: Optional[dict] = None
+    result: dict | None = None
     retry_count: int = 0
     retry_available: bool = False
-    error_message: Optional[str] = None
+    error_message: str | None = None
     timed_out: bool = False
     infrastructure_degradation: list[dict] = []
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class ConfirmRequest(BaseModel):
@@ -51,12 +50,12 @@ class IdentifyVehicleResponse(BaseModel):
 
 
 class SetOemModelRequest(BaseModel):
-    oem_model_id: Optional[str] = None
+    oem_model_id: str | None = None
 
 
 class SetOemModelResponse(BaseModel):
     intake_id: str
-    oem_model_id: Optional[str] = None
+    oem_model_id: str | None = None
 
 
 class ViewSlotResponse(BaseModel):
@@ -71,4 +70,4 @@ class ViewSlotResponse(BaseModel):
     swap_suspected: bool = False
     attempts: dict[str, int | None] = {}
     quality_scores: dict[str, float | None] = {}
-    failure_reason: Optional[str] = None
+    failure_reason: str | None = None

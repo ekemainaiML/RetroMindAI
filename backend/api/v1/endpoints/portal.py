@@ -3,8 +3,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
-from pydantic import BaseModel, EmailStr
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 
@@ -17,7 +17,7 @@ from core.database import get_db
 from core.models import Intake, Job, PortalSession, Workshop
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from infrastructure.email.sender import EmailMessage, EmailSender
+    pass
 
 router = APIRouter()
 
@@ -154,7 +154,7 @@ async def view_portal_assessment(
         raise HTTPException(status_code=404, detail="Assessment not found")
 
     result = job.result
-    intake = db.query(Intake).filter(Intake.id == job.intake_id).first()
+    db.query(Intake).filter(Intake.id == job.intake_id).first()
 
     return {
         "portal": {
@@ -180,7 +180,6 @@ async def view_portal_assessment(
 
 def _record_portal_feedback(db: Session, action: str, session: "PortalSession"):
     try:
-        from core.models import RecommendationFeedback
 
         job = db.query(Job).filter(Job.id == session.job_id).first()
         if not job or not job.result:

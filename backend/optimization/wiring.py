@@ -133,24 +133,22 @@ def _identify_caution_zones(
         severity = dev.get("severity", "low")
         delta = abs(dev.get("delta_pct", 0))
 
-        if "wheel" in param or "suspension" in param:
-            if delta > 5:
-                zones.append({
-                    "zone_id": "wheel_well",
-                    "label": "Wheel Well Proximity",
-                    "risk": "moving_part_contact",
-                    "severity": severity,
-                    "message": f"{param} deviation ({delta:.0f}%) — increased clearance needed",
-                })
-        if "frame" in param or "chassis" in loc:
-            if severity in ("high", "critical"):
-                zones.append({
-                    "zone_id": "frame_rail_damage",
-                    "label": "Frame Rail Deformation",
-                    "risk": "structural_compromise",
-                    "severity": severity,
-                    "message": f"Frame deviation at {loc} — routing path may need offset",
-                })
+        if ("wheel" in param or "suspension" in param) and delta > 5:
+            zones.append({
+                "zone_id": "wheel_well",
+                "label": "Wheel Well Proximity",
+                "risk": "moving_part_contact",
+                "severity": severity,
+                "message": f"{param} deviation ({delta:.0f}%) — increased clearance needed",
+            })
+        if ("frame" in param or "chassis" in loc) and severity in ("high", "critical"):
+            zones.append({
+                "zone_id": "frame_rail_damage",
+                "label": "Frame Rail Deformation",
+                "risk": "structural_compromise",
+                "severity": severity,
+                "message": f"Frame deviation at {loc} — routing path may need offset",
+            })
         if "engine" in loc or "motor" in param:
             zones.append({
                 "zone_id": "heat_zone",

@@ -38,8 +38,7 @@ def download(url: str, dest: Path, desc: str = "") -> bool:
         r.raise_for_status()
         dest.parent.mkdir(parents=True, exist_ok=True)
         with open(dest, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
+            f.writelines(r.iter_content(chunk_size=8192))
         logger.info("Downloaded %s to %s (%d bytes)", desc, dest, dest.stat().st_size)
         return True
     except Exception as e:

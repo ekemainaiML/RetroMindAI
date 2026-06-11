@@ -93,6 +93,23 @@ export default function AdminPage() {
   const [optBusy, setOptBusy] = useState(false);
   const [rlStatus, setRlStatus] = useState<any>(null);
   const [rlBusy, setRlBusy] = useState(false);
+
+  useEffect(() => {
+    if (optStatus?.status !== "started") return;
+    const interval = setInterval(async () => {
+      const key = getStoredAdminKey();
+      if (!key) return clearInterval(interval);
+      try {
+        const res = await apiFetch<any>("/admin/optimization/status", key);
+        if (res?.status && res.status !== "started") {
+          setOptStatus(res);
+          clearInterval(interval);
+        }
+      } catch { /* ignore polling errors */ }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [optStatus?.status]);
+
   const LOG_LIMIT = 50;
 
   const load = useCallback(async (keyOverride?: string) => {
@@ -424,15 +441,14 @@ export default function AdminPage() {
               <h3 className="text-sm font-semibold text-text-primary">Hyperparameter Optimization</h3>
               <Button variant="primary" size="sm" disabled={optBusy} onClick={async () => {
                 setOptBusy(true);
+                setOptStatus({ status: "started" });
                 try {
                   const key = getStoredAdminKey();
                   const res = await fetch(`${API_BASE}/admin/optimization/run?n_trials=100`, { method: "POST", headers: { "X-API-Key": key } });
                   if (!res.ok) throw new Error(await res.text());
-                  const result = await res.json();
-                  alert(`Optimization started: ${result.status}`);
-                  setOptStatus(await apiFetch<any>("/admin/optimization/status", key));
                 } catch (e: any) {
                   alert(`Failed: ${e.message}`);
+                  setOptStatus(null);
                 } finally {
                   setOptBusy(false);
                 }

@@ -65,8 +65,7 @@ def train_rl_from_history(db_session, num_iterations: int = 100) -> dict:
         result = algo.train()
         reward_raw = result.get("episode_reward_mean", 0.0)
         reward = float(reward_raw) if reward_raw is not None else 0.0
-        if reward > best_reward:
-            best_reward = reward
+        best_reward = max(best_reward, reward)
         if (i + 1) % 10 == 0:
             logger.info(
                 "RL iteration %d/%d: reward_mean=%.4f (best=%.4f)",

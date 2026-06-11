@@ -161,7 +161,7 @@ async def job_events(
                     break
                 try:
                     message = await asyncio.wait_for(pubsub.get_message(timeout=None), timeout=1.0)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     yield ": keepalive\n\n"
                     continue
                 if message and message["type"] == "message":

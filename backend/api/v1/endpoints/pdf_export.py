@@ -301,7 +301,7 @@ def _render_section_html(section) -> str:
     )
     return f"""<h2>{section.title}</h2>
 <table>
-  {rows if rows else '<tr><td class="muted">No data available</td></tr>'}
+  {rows or '<tr><td class="muted">No data available</td></tr>'}
 </table>"""
 
 
@@ -326,7 +326,7 @@ def _render_report_html(sections, branding: dict | None = None, logo_data_uri: s
     body = "".join(_render_section_html(s) for s in sections)
     b = branding or {}
     primary = b.get("primary_color") or "#1a73e8"
-    secondary = b.get("secondary_color") or "#7c3aed"
+    b.get("secondary_color") or "#7c3aed"
     logo = logo_data_uri
     logo_html = f'<img src="{logo}" style="max-height:40px;margin-bottom:10px;" />' if logo else ""
     return f"""<!DOCTYPE html>

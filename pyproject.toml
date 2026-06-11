@@ -4,6 +4,101 @@ version = "1.0.0"
 description = "EV Retrofit Intelligence Network"
 requires-python = ">=3.12"
 
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "COM", "C4", "DTZ", "T20", "RET", "SLF", "SIM", "TID", "ARG", "PTH", "ERA", "PD", "PL", "TRY", "FLY", "PERF", "FURB", "LOG"]
+ignore = [
+    "E501",    # line too long (handled by formatter)
+    "N801",    # invalid class name (DB models)
+    "N802",    # function name should be lowercase (DB models)
+    "N803",    # argument name should be lowercase
+    "N806",    # variable in function should be lowercase
+    "N815",    # mixedCase variable in class scope (DB columns)
+    "SIM108",  # use ternary operator
+    "SIM115",  # use context manager for file
+    "ARG001",  # unused function argument
+    "ARG002",  # unused method argument
+    "SLF001",  # private member access
+    "PLR2004",  # magic number
+    "PLR0913",  # too many arguments
+    "PLR0912",  # too many branches
+    "PLR0915",  # too many statements
+    "PLR0911",  # too many return statements
+    "PLW0603",  # global statement
+    "PLW2901",  # redefined loop variable
+    "TRY003",   # long exception message
+    "ERA001",   # commented out code
+    "FBT001",   # boolean positional arg
+    "FBT002",   # boolean default value
+    "PD901",    # pandas df variable name
+    "RET504",   # unnecessary assignment
+    "PTH123",   # open() instead of pathlib
+    "LOG015",   # root logger call
+    "DTZ005",   # datetime without tz
+    "DTZ011",   # date without tz
+    "PLC0415",  # lazy imports (intentional pattern)
+    "COM812",   # trailing comma (too noisy)
+    "I001",     # import sorting (handled separately)
+    "PERF401",  # list comprehension (subjective)
+    "PERF102",  # .values() vs .items() (subjective)
+    "PTH",      # pathlib (too many changes, legacy code)
+    "UP017",    # datetime.UTC alias
+    "TRY300",   # else after try (subjective)
+    "TRY400",   # logging.exception (subjective)
+    "B007",     # unused loop variable
+    "ARG005",   # unused lambda argument
+    "S108",     # temp file (legacy)
+    "FIX002",   # TODO format
+    "B008",     # function call in default arg (SQLAlchemy models)
+    "S110",     # try-except-pass (intentional in some cases)
+    "E402",     # module import not at top
+    "T201",     # print (debug code)
+    "S105",     # hardcoded password (test fixtures)
+    "S106",     # hardcoded password func arg (test fixtures)
+    "S301",     # pickle (intentional)
+    "S607",     # partial path (legacy)
+    "UP031",    # printf formatting
+    "A002",     # builtin arg shadowing
+    "A004",     # builtin import shadowing
+    "B004",     # unreliable callable check
+    "B023",     # function uses loop variable
+    "B026",     # star arg unpacking
+    "B905",     # zip without strict
+    "F821",     # undefined name
+    "FURB171",  # single item membership
+    "N814",     # camelcase import as constant
+    "PLC0206",  # dict index missing items
+    "PLR1714",  # repeated equality
+    "PLW0602",  # global not assigned
+    "SIM105",   # suppressible exception
+    "SIM117",   # multiple with statements
+    "B017",     # assert raises exception
+    "B904",     # raise without from inside except (intentional)
+    "SIM102",   # collapsible if (readability preference)
+    "F841",     # unused variable (sometimes intentional)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/**" = ["S101", "PLR2004", "ARG001", "ARG002", "SLF001", "PLW0603", "PLR0913", "SIM115", "FBT001", "FBT002", "PLC0415"]
+"backend/alembic/**" = ["ALL"]
+"backend/seed_data/**" = ["ALL"]
+"seed_data/*" = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+markers = [
+    "slow: marks tests as slow (real image pipeline), run with --runslow",
+]
+
 [project.optional-dependencies]
 optuna = ["optuna>=4.0"]
 torch = ["torch>=2.1", "torchvision>=0.16"]

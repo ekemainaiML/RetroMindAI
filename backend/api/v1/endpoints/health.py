@@ -92,7 +92,7 @@ async def _check_object_store() -> dict:
         if data == b"ok":
             return {"status": "ok", "latency_ms": int((time.time() - start) * 1000)}
         return {"status": "degraded", "message": "read/write mismatch"}
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return {"status": "down", "latency_ms": int((time.time() - start) * 1000), "message": "object store check timed out"}
     except Exception as e:
         return {"status": "down", "latency_ms": int((time.time() - start) * 1000), "message": str(e)}

@@ -50,9 +50,8 @@ class Neo4jClient:
             return False
 
     def run_query(self, query: str, params: dict = None) -> list[dict]:  # type: ignore[assignment]
-        if self._driver is None:
-            if not self.connect():
-                return []
+        if self._driver is None and not self.connect():
+            return []
         try:
             with self._driver.session() as session:
                 result = session.run(query, parameters=params or {})

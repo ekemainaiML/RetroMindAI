@@ -1,4 +1,3 @@
-import logging
 import time
 import subprocess
 import uuid

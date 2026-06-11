@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -28,7 +27,7 @@ def get_notification_preferences(db: Session, workshop_id: str) -> dict:
 
 
 def update_notification_preferences(
-    db: Session, workshop_id: str, updates: dict, user_id: Optional[str] = None
+    db: Session, workshop_id: str, updates: dict, user_id: str | None = None
 ) -> dict:
     prefs = db.query(EmailPreferences).filter(
         EmailPreferences.workshop_id == workshop_id

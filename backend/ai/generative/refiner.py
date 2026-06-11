@@ -25,13 +25,13 @@ class GenerativeRefiner:
     def _make_json_safe(obj):
         if isinstance(obj, dict):
             return {k: GenerativeRefiner._make_json_safe(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
+        if isinstance(obj, list):
             return [GenerativeRefiner._make_json_safe(v) for v in obj]
-        elif isinstance(obj, np.floating):
+        if isinstance(obj, np.floating):
             return float(obj)
-        elif isinstance(obj, np.integer):
+        if isinstance(obj, np.integer):
             return int(obj)
-        elif isinstance(obj, np.ndarray):
+        if isinstance(obj, np.ndarray):
             return obj.tolist()
         return obj
 
@@ -116,7 +116,7 @@ class GenerativeRefiner:
                 max_tokens=2000,
             )
             return resp.choices[0].message.content or ""
-        elif "anthropic" in backend_name:
+        if "anthropic" in backend_name:
             resp = self._backend.messages.create(
                 model="claude-3-5-haiku-20241022",
                 max_tokens=2000,

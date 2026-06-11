@@ -47,9 +47,7 @@ def tune_confidence_weights(trial, db_session) -> float:
             had_confirmation = result.get("needs_confirmation", False)
             human_confirmed = result.get("vehicle_classification", {}).get("human_confirmed", False)
 
-            if score >= 75 and not had_confirmation:
-                correct += 1
-            elif score < 50 and had_confirmation:
+            if score >= 75 and not had_confirmation or score < 50 and had_confirmation:
                 correct += 1
             elif human_confirmed and score < 50:
                 correct += 0.5  # type: ignore[assignment]

@@ -1,5 +1,4 @@
 import uuid
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
@@ -134,8 +133,8 @@ def _routing_to_response(rp: OEMRoutingPath) -> RoutingPathResponse:
 def list_manufacturers(
     workshop_id: str | None = Depends(get_optional_workshop),
     db: Session = Depends(get_db),
-    search: Optional[str] = Query(None),
-    is_active: Optional[bool] = Query(None),
+    search: str | None = Query(None),
+    is_active: bool | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
@@ -235,10 +234,10 @@ def delete_manufacturer(
 def list_vehicle_models(
     workshop_id: str | None = Depends(get_optional_workshop),
     db: Session = Depends(get_db),
-    manufacturer_id: Optional[str] = Query(None),
-    vehicle_type: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
-    is_active: Optional[bool] = Query(None),
+    manufacturer_id: str | None = Query(None),
+    vehicle_type: str | None = Query(None),
+    search: str | None = Query(None),
+    is_active: bool | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
 ):
@@ -662,10 +661,10 @@ def delete_routing_path(
 def search_oem(
     workshop_id: str | None = Depends(get_optional_workshop),
     db: Session = Depends(get_db),
-    make: Optional[str] = Query(None),
-    model: Optional[str] = Query(None),
-    year: Optional[int] = Query(None),
-    vehicle_type: Optional[str] = Query(None),
+    make: str | None = Query(None),
+    model: str | None = Query(None),
+    year: int | None = Query(None),
+    vehicle_type: str | None = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):

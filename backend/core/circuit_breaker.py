@@ -44,9 +44,8 @@ class CircuitBreaker:
 
     @property
     def state(self) -> CircuitState:
-        if self._state == CircuitState.OPEN:
-            if time.time() - self._last_state_change >= self.recovery_timeout:
-                self._set_state(CircuitState.HALF_OPEN)
+        if self._state == CircuitState.OPEN and time.time() - self._last_state_change >= self.recovery_timeout:
+            self._set_state(CircuitState.HALF_OPEN)
         return self._state
 
     def _set_state(self, new_state: CircuitState):
@@ -85,7 +84,7 @@ class CircuitBreaker:
             result = fn(*args, **kwargs)
             self.record_success()
             return result
-        except Exception as e:
+        except Exception:
             self.record_failure()
             if current_state == CircuitState.HALF_OPEN:
                 self._set_state(CircuitState.OPEN)
@@ -112,7 +111,7 @@ class CircuitBreaker:
             result = await fn(*args, **kwargs)
             self.record_success()
             return result
-        except Exception as e:
+        except Exception:
             self.record_failure()
             if current_state == CircuitState.HALF_OPEN:
                 self._set_state(CircuitState.OPEN)

@@ -28,4 +28,4 @@ def downscale_image(image_path: str) -> str | None:
 
 def downscale_if_large(image_path: str) -> str:
     result = downscale_image(image_path)
-    return result if result else image_path
+    return result or image_path

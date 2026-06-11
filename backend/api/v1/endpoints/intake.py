@@ -2,7 +2,6 @@ import logging
 import os
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
@@ -102,7 +101,7 @@ UPLOAD_DIR = settings.upload_dir
 
 async def _process_uploaded_file(
     intake_dir: str, slot_name: str, file: UploadFile
-) -> Optional[str]:
+) -> str | None:
     ext = os.path.splitext(file.filename or ".jpg")[1]
     file_path = os.path.join(intake_dir, f"{slot_name}{ext}")
     content = await file.read()
@@ -195,7 +194,7 @@ async def create_intake(
     front_view: UploadFile = File(None),
     engine_bay: UploadFile = File(None),
     underbody: UploadFile = File(None),
-    oem_model_id: Optional[str] = None,
+    oem_model_id: str | None = None,
     db: Session = Depends(get_db),
 ):
     oem_model_uuid = None
@@ -232,7 +231,7 @@ async def create_intake(
         "underbody": underbody,
     }
 
-    view_slots: dict[str, Optional[str]] = {}
+    view_slots: dict[str, str | None] = {}
     for slot_name, file in slots.items():
         if file:
             file_path = await _process_uploaded_file(intake_dir, slot_name, file)

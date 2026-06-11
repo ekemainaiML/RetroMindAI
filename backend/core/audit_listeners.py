@@ -1,12 +1,9 @@
 import json
-import uuid
-from datetime import datetime, timezone
 
 from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 from core.audit import AuditLog
-from core.database import SessionLocal
 from core.models import Intake, Job, User, Workshop
 
 

@@ -87,14 +87,13 @@ class TestVehicleClassifierPyTorch:
                     "probabilities": [[0.8, 0.1, 0.05, 0.05]],
                 }
 
-                with patch("os.path.isfile", return_value=True):
-                    with patch(
-                        "ai.classification.classifier.preprocess_for_classification",
-                        return_value=np.ones((1, 3, 224, 224), dtype=np.float32),
-                    ):
-                        result = classifier.classify({"left_side_profile": "/fake.jpg"})
-                        assert result["vehicle_type"] == "three_wheeler"
-                        assert result["model_loaded"] is True
+                with patch("os.path.isfile", return_value=True), patch(
+                    "ai.classification.classifier.preprocess_for_classification",
+                    return_value=np.ones((1, 3, 224, 224), dtype=np.float32),
+                ):
+                    result = classifier.classify({"left_side_profile": "/fake.jpg"})
+                    assert result["vehicle_type"] == "three_wheeler"
+                    assert result["model_loaded"] is True
 
     def test_classify_pytorch_fallback_to_onnx(self):
         with patch("ai.classification.classifier.ONNXRunner") as mock_onnx:
@@ -110,14 +109,13 @@ class TestVehicleClassifierPyTorch:
             classifier._pytorch_runner = MagicMock()
             classifier._pytorch_runner.run.return_value = None
 
-            with patch("os.path.isfile", return_value=True):
-                with patch(
-                    "ai.classification.classifier.preprocess_for_classification",
-                    return_value=np.ones((1, 3, 224, 224), dtype=np.float32),
-                ):
-                    result = classifier.classify({"left_side_profile": "/fake.jpg"})
-                    assert result["vehicle_type"] == "motorcycle"
-                    assert result["model_loaded"] is True
+            with patch("os.path.isfile", return_value=True), patch(
+                "ai.classification.classifier.preprocess_for_classification",
+                return_value=np.ones((1, 3, 224, 224), dtype=np.float32),
+            ):
+                result = classifier.classify({"left_side_profile": "/fake.jpg"})
+                assert result["vehicle_type"] == "motorcycle"
+                assert result["model_loaded"] is True
 
     def test_classify_onnx_fallback_to_heuristic(self):
         with patch("ai.classification.classifier.ONNXRunner") as mock_onnx:
@@ -127,14 +125,13 @@ class TestVehicleClassifierPyTorch:
             mock_onnx.return_value = mock_onnx_instance
             classifier = VehicleClassifier()
 
-            with patch("os.path.isfile", return_value=True):
-                with patch(
-                    "ai.classification.classifier.preprocess_for_classification",
-                    return_value=np.ones((1, 3, 224, 224), dtype=np.float32),
-                ):
-                    result = classifier.classify({"left_side_profile": "/fake.jpg"})
-                    assert "vehicle_type" in result
-                    assert result["human_confirmed"] is False
+            with patch("os.path.isfile", return_value=True), patch(
+                "ai.classification.classifier.preprocess_for_classification",
+                return_value=np.ones((1, 3, 224, 224), dtype=np.float32),
+            ):
+                result = classifier.classify({"left_side_profile": "/fake.jpg"})
+                assert "vehicle_type" in result
+                assert result["human_confirmed"] is False
 
 
 class TestTrainPyTorch:

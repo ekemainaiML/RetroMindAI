@@ -1,8 +1,12 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'deploy' to confirm manual deployment"
+        required: true
+        default: ""
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -12,6 +16,12 @@ jobs:
   secrets-check:
     runs-on: ubuntu-latest
     steps:
+      - name: Validate confirmation input
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "deploy" ]; then
+            echo "::error::Type 'deploy' to confirm the deployment"
+            exit 1
+          fi
       - name: Validate required secrets
         run: |
           MISSING=""
@@ -22,17 +32,13 @@ jobs:
           done
           if [ -n "$MISSING" ]; then
             echo "::error::Missing required secrets:$MISSING"
-            echo "::error::Add these secrets in GitHub repository Settings > Secrets and variables > Actions"
+            echo "::error::Add these secrets in GitHub Repository Settings > Secrets and variables > Actions"
             exit 1
           fi
           echo "All required secrets are present"
 
-  test:
-    uses: ./.github/workflows/ci.yml
-    needs: [secrets-check]
-
   deploy:
-    needs: [test]
+    needs: [secrets-check]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

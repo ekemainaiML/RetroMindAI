@@ -43,12 +43,12 @@ class TestComputeScore:
         assert score == expected
 
     def test_clamps_above_100(self):
-        factors = {k: 200 for k in ConfidenceEngine.WEIGHTS}
+        factors = dict.fromkeys(ConfidenceEngine.WEIGHTS, 200)
         score = ConfidenceEngine.compute_score(factors)
         assert score == 100.0
 
     def test_clamps_below_0(self):
-        factors = {k: -50 for k in ConfidenceEngine.WEIGHTS}
+        factors = dict.fromkeys(ConfidenceEngine.WEIGHTS, -50)
         score = ConfidenceEngine.compute_score(factors)
         assert score == 0.0
 
