@@ -548,7 +548,7 @@ function ModelTrainingCard({ title, description, info, busy, onTrain }: {
           {info.trained_at && <div className="flex justify-between text-xs"><span className="text-text-secondary">Trained At</span><span className="font-medium text-text-primary">{new Date(info.trained_at).toLocaleString()}</span></div>}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
