@@ -100,6 +100,7 @@ export default function SettingsPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [keyInfo, setKeyInfo] = useState<{ prefix: string; expires_at: string | null; revoked_at: string | null; is_active: boolean; days_remaining: number | null } | null>(null);
 
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
@@ -135,10 +136,21 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const fetchKeyInfo = useCallback(async () => {
+    try {
+      const key = getApiKey();
+      const res = await fetch(`${API_BASE}/auth/key-info`, {
+        headers: { "X-API-Key": key ?? "" },
+      });
+      if (res.ok) setKeyInfo(await res.json());
+    } catch { /* best-effort */ }
+  }, []);
+
   useEffect(() => {
     fetchProfile();
     fetchCapabilities();
-  }, [fetchProfile, fetchCapabilities]);
+    fetchKeyInfo();
+  }, [fetchProfile, fetchCapabilities, fetchKeyInfo]);
 
   const handleRenew = useCallback(async () => {
     setRenewing(true);
@@ -710,6 +722,15 @@ export default function SettingsPage() {
         <CardHeader>
           <h2 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">API Key</h2>
         </CardHeader>
+        {keyInfo && (
+          <div className="mb-4 space-y-1 rounded-lg border border-border bg-surface-muted px-4 py-3">
+            <div className="flex justify-between text-xs"><span className="text-text-secondary">Prefix</span><span className="font-mono font-medium text-text-primary">{keyInfo.prefix}...</span></div>
+            {keyInfo.expires_at && <div className="flex justify-between text-xs"><span className="text-text-secondary">Expires</span><span className="font-medium text-text-primary">{new Date(keyInfo.expires_at).toLocaleDateString()}</span></div>}
+            {keyInfo.days_remaining != null && <div className="flex justify-between text-xs"><span className="text-text-secondary">Days Remaining</span><span className={`font-medium ${keyInfo.days_remaining < 7 ? "text-danger" : "text-text-primary"}`}>{keyInfo.days_remaining}</span></div>}
+            <div className="flex justify-between text-xs"><span className="text-text-secondary">Status</span><span className={`font-medium ${keyInfo.is_active ? "text-success" : "text-danger"}`}>{keyInfo.is_active ? "Active" : "Inactive"}</span></div>
+            {keyInfo.revoked_at && <div className="flex justify-between text-xs"><span className="text-text-secondary">Revoked</span><span className="font-medium text-danger">{new Date(keyInfo.revoked_at).toLocaleString()}</span></div>}
+          </div>
+        )}
         <p className="mb-4 text-xs text-text-secondary">
           Renewing your API key will immediately invalidate the current key. Services using the old key will need to be updated.
         </p>
