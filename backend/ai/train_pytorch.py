@@ -1,5 +1,6 @@
 import logging
 import os
+import pickle
 from datetime import datetime, timezone
 
 import cv2
@@ -127,7 +128,7 @@ def train_pytorch(
     scripted_model.save(model_output_path)
     logger.info("PyTorch model saved to %s (accuracy=%.4f)", model_output_path, accuracy)
 
-    return {
+    metadata = {
         "success": True,
         "accuracy": round(accuracy, 4),
         "samples": len(dataset),
@@ -136,3 +137,9 @@ def train_pytorch(
         "model_path": model_output_path,
         "device": str(device),
     }
+
+    meta_path = os.path.join(os.path.dirname(model_output_path), "torch_training_metadata.pkl")
+    with open(meta_path, "wb") as f:
+        pickle.dump(metadata, f)
+
+    return metadata
