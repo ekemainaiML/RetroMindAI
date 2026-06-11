@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 logger = logging.getLogger(__name__)
 
 from core.auth import get_current_workshop_obj
+from infrastructure.feedback_store import FeedbackStore
 from core.config import settings
 from core.database import get_db
 from core.models import Intake, Job, PortalSession, Workshop
@@ -177,6 +178,42 @@ async def view_portal_assessment(
     }
 
 
+def _record_portal_feedback(db: Session, action: str, session: "PortalSession"):
+    try:
+        from core.models import RecommendationFeedback
+
+        job = db.query(Job).filter(Job.id == session.job_id).first()
+        if not job or not job.result:
+            return
+        recommendations = job.result.get("recommendations", [])
+        if not recommendations:
+            return
+        vc = job.result.get("vehicle_classification", {}) or {}
+        state_features = [
+            {"type": vc.get("type", "unknown"), "confidence": vc.get("confidence", 0)},
+        ]
+        was_accepted = action == "approved"
+        store = FeedbackStore(db)
+        for rec in recommendations:
+            store.log_feedback(
+                assessment_id=str(job.id),
+                state_features=state_features,
+                action_taken={
+                    "recommendation_id": rec.get("id", ""),
+                    "title": rec.get("title", ""),
+                    "priority": rec.get("priority", "medium"),
+                    "cost_inr": rec.get("cost_inr", 0),
+                },
+                was_accepted=was_accepted,
+            )
+        logger.info(
+            "Recorded %d feedback entries for assessment %s (action=%s)",
+            len(recommendations), job.id, action,
+        )
+    except Exception:
+        logger.exception("Failed to record portal feedback")
+
+
 @router.post("/portal/{token}/respond")
 async def respond_portal_assessment(
     token: str,
@@ -207,6 +244,8 @@ async def respond_portal_assessment(
         session.rejection_reason = body.rejection_reason
     db.commit()
     db.refresh(session)
+
+    _record_portal_feedback(db, body.action, session)
 
     workshop = db.query(Workshop).filter(Workshop.id == session.workshop_id).first()
     if workshop and workshop.email:
