@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAssessment } from "@/hooks/useAssessment";
 import { STAGE_LABELS, type OEMSearchResult, type OEMSearchResponse } from "@/types/assessment";
-import { apiPost, apiGet, ensureApiKey, getApiKey, clearApiKey, setApiKey } from "@/utils/api";
+import { API_BASE, apiPost, apiGet, ensureApiKey, getApiKey, clearApiKey, setApiKey } from "@/utils/api";
 import Tooltip from "@/components/ui/Tooltip";
 import AssessmentResult from "@/components/assessment/AssessmentResult";
 import type { IdentifyVehicleResponse } from "@/types/assessment";
@@ -514,7 +514,7 @@ export default function Home() {
         const h: Record<string, string> = {};
         if (key) h["X-API-Key"] = key;
         const res = await fetch(
-          `http://localhost:8000/api/v1/intake/${targetIntakeId}/analyze`,
+          `${API_BASE}/intake/${targetIntakeId}/analyze`,
           { method: "POST", headers: h }
         );
 
@@ -559,7 +559,7 @@ export default function Home() {
         ? concurrentBlocking.existing_intake_id
         : intakeId;
       await fetch(
-        `http://localhost:8000/api/v1/intake/${cancelTarget}/cancel-analysis`,
+        `${API_BASE}/intake/${cancelTarget}/cancel-analysis`,
         { method: "POST", headers: h }
       );
       setConcurrentBlocking(null);
@@ -588,7 +588,7 @@ export default function Home() {
       const h: Record<string, string> = {};
       const key = await ensureApiKey();
       if (key) h["X-API-Key"] = key;
-      const res = await fetch("http://localhost:8000/api/v1/intake", {
+      const res = await fetch(`${API_BASE}/intake`, {
         method: "POST",
         headers: h,
         body: buildFormData(),
@@ -679,7 +679,7 @@ export default function Home() {
       formData.append("file", file);
 
       const res = await fetch(
-        `http://localhost:8000/api/v1/intake/${intakeId}/views/${slotKey}`,
+        `${API_BASE}/intake/${intakeId}/views/${slotKey}`,
         { method: "PUT", headers: h, body: formData }
       );
 
@@ -756,7 +756,7 @@ export default function Home() {
       const h: Record<string, string> = {};
       const key = getApiKey();
       if (key) h["X-API-Key"] = key;
-      await fetch(`http://localhost:8000/api/v1/intake/${intakeId}/swap-views`, {
+      await fetch(`${API_BASE}/intake/${intakeId}/swap-views`, {
         method: "POST",
         headers: h,
       });
@@ -916,7 +916,7 @@ export default function Home() {
                             const key = await ensureApiKey();
                             if (key) h["X-API-Key"] = key;
                             await fetch(
-                              `http://localhost:8000/api/v1/intake/${concurrentBlocking.existing_intake_id}/cancel-analysis`,
+                              `${API_BASE}/intake/${concurrentBlocking.existing_intake_id}/cancel-analysis`,
                               { method: "POST", headers: h }
                             );
                             setConcurrentBlocking(null);

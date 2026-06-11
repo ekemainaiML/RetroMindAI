@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { getApiKey, setApiKey } from "@/utils/api";
+import { API_BASE, getApiKey, setApiKey } from "@/utils/api";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Logo from "@/components/Logo";
@@ -23,7 +23,7 @@ export default function AuthPage() {
     setFetchingDemo(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/setup/demo-key");
+      const res = await fetch(`${API_BASE}/setup/demo-key`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.api_key) {
@@ -43,7 +43,7 @@ export default function AuthPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/history", {
+      const res = await fetch(`${API_BASE}/history`, {
         headers: { "X-API-Key": key },
       });
       if (!res.ok) {

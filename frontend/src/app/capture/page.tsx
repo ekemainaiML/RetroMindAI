@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { captureFrame, detectBlur } from "@/lib/blurDetection";
 import { queueCapture, getPendingCaptures, getCaptureCount } from "@/lib/db";
-import { getApiKey } from "@/utils/api";
+import { API_BASE, getApiKey } from "@/utils/api";
 import Link from "next/link";
 
 type SlotKey =
@@ -66,8 +66,6 @@ const SLOTS: SlotDef[] = [
     overlay: "underbody",
   },
 ];
-
-const API_BASE = "http://localhost:8000/api/v1";
 
 function drawOverlay(
   ctx: CanvasRenderingContext2D,

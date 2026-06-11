@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { getApiKey } from "@/utils/api";
+import { API_BASE, getApiKey } from "@/utils/api";
 import Link from "next/link";
 
 interface BatchJobEntry {
@@ -38,7 +38,7 @@ export default function BatchPage() {
       const headers: Record<string, string> = {};
       if (key) headers["X-API-Key"] = key;
 
-      const res = await fetch("http://localhost:8000/api/v1/batch/intake", {
+      const res = await fetch(`${API_BASE}/batch/intake`, {
         method: "POST",
         headers,
         body: fd,

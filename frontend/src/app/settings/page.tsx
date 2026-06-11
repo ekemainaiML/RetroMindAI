@@ -1,14 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { apiGet, apiPost, ensureApiKey, getApiKey, setApiKey } from "@/utils/api";
+import { API_BASE, apiGet, apiPost, ensureApiKey, getApiKey, setApiKey } from "@/utils/api";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/contexts/UserContext";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import Card, { CardHeader } from "@/components/ui/Card";
 
-const API_BASE = "http://localhost:8000/api/v1";
+
 
 interface Profile {
   id: string;

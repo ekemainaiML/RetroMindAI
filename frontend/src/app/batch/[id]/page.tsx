@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { getApiKey } from "@/utils/api";
+import { API_BASE, getApiKey } from "@/utils/api";
 import Link from "next/link";
 
 interface BatchJobEntry {
@@ -36,7 +36,7 @@ export default function BatchDashboardPage() {
       const headers: Record<string, string> = {};
       if (key) headers["X-API-Key"] = key;
       const res = await fetch(
-        `http://localhost:8000/api/v1/batch/${batchId}`,
+        `${API_BASE}/batch/${batchId}`,
         { headers }
       );
       if (!res.ok) {

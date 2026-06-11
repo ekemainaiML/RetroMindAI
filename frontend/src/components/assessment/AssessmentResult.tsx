@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { AssessmentData } from "@/types/assessment";
-import { getApiKey } from "@/utils/api";
+import { API_BASE, BACKEND_URL, getApiKey } from "@/utils/api";
 import {
   ASSESSMENT_STATE_LABELS,
   ASSESSMENT_STATE_COLORS,
@@ -274,7 +274,7 @@ export default function AssessmentResult({
     try {
       const key = getApiKey();
       const res = await fetch(
-        `http://localhost:8000/api/v1/cad/export/${jobId}?format=${format}`,
+        `${API_BASE}/cad/export/${jobId}?format=${format}`,
         { headers: key ? { "X-API-Key": key } : {} }
       );
       if (!res.ok) {
@@ -310,7 +310,7 @@ export default function AssessmentResult({
       const key = getApiKey();
       const headers: Record<string, string> = {};
       if (key) headers["X-API-Key"] = key;
-      await fetch(`http://localhost:8000/api/v1/jobs/${jobId}/confirm-timeout`, {
+      await fetch(`${API_BASE}/jobs/${jobId}/confirm-timeout`, {
         method: "POST",
         headers,
       });
@@ -599,7 +599,7 @@ export default function AssessmentResult({
                     <div className="flex-1">
                       <p className="mb-1 text-[10px] text-zinc-400 uppercase tracking-wide">Original</p>
                       <img
-                        src={`http://localhost:8000${ev.original_url}`}
+                        src={`${BACKEND_URL}${ev.original_url}`}
                         alt={`Original ${ev.view}`}
                         className="w-full rounded border border-zinc-200 object-cover dark:border-zinc-700"
                         style={{ aspectRatio: "4/3" }}
@@ -609,7 +609,7 @@ export default function AssessmentResult({
                     <div className="flex-1">
                       <p className="mb-1 text-[10px] text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Enhanced</p>
                       <img
-                        src={`http://localhost:8000${ev.enhanced_url}`}
+                        src={`${BACKEND_URL}${ev.enhanced_url}`}
                         alt={`Enhanced ${ev.view}`}
                         className="w-full rounded border border-emerald-300 object-cover dark:border-emerald-700"
                         style={{ aspectRatio: "4/3" }}

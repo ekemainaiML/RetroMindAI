@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { useJobPolling, type JobState } from "@/app/hooks/useJobPolling";
-import { ensureApiKey } from "@/utils/api";
+import { API_BASE, ensureApiKey } from "@/utils/api";
 import type { AssessmentData } from "@/types/assessment";
 
 function parseResult(
@@ -24,7 +24,7 @@ export function useAssessment(jobId: string | null) {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (key) headers["X-API-Key"] = key;
       const res = await fetch(
-        `http://localhost:8000/api/v1/jobs/${jobId}/confirm`,
+        `${API_BASE}/jobs/${jobId}/confirm`,
         {
           method: "POST",
           headers,

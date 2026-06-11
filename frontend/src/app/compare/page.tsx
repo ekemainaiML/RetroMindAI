@@ -2,12 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getApiKey } from "@/utils/api";
+import { API_BASE, getApiKey } from "@/utils/api";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import PageHeader from "@/components/ui/PageHeader";
-
-const API_BASE = "http://localhost:8000/api/v1";
 
 interface ComparisonJob {
   job_id: string;

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { apiGet, apiPost, getApiKey } from "@/utils/api";
+import { API_BASE, apiGet, apiPost, getApiKey } from "@/utils/api";
 import DnaGraph from "@/components/DnaGraph";
 
 interface ReportSection {
@@ -642,7 +642,7 @@ export default function ReportPage() {
     try {
       const key = getApiKey();
       const res = await fetch(
-        `http://localhost:8000/api/v1/cad/export/${jobId}?format=${format}`,
+        `${API_BASE}/cad/export/${jobId}?format=${format}`,
         { headers: key ? { "X-API-Key": key } : {} }
       );
       if (!res.ok) {
@@ -683,7 +683,7 @@ export default function ReportPage() {
     const key = getApiKey();
     try {
       const res = await fetch(
-        `http://localhost:8000/api/v1/reports/${jobId}/pdf`,
+        `${API_BASE}/reports/${jobId}/pdf`,
         { headers: key ? { "X-API-Key": key } : {} }
       );
       if (!res.ok) {

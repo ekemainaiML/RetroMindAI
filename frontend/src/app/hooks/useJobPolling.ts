@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ensureApiKey, recoverWithDemoKey } from "@/utils/api";
+import { API_BASE, ensureApiKey, recoverWithDemoKey } from "@/utils/api";
 
 export type JobState = {
   job_id: string;
@@ -67,7 +67,7 @@ export function useJobPolling(jobId: string | null) {
         const headers: Record<string, string> = {};
         if (key) headers["X-API-Key"] = key;
         const res = await fetch(
-          `http://localhost:8000/api/v1/jobs/${jobId}`,
+          `${API_BASE}/jobs/${jobId}`,
           { headers }
         );
         if (!res.ok) {
