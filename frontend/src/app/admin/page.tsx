@@ -41,7 +41,7 @@ type Metrics = {
   unique_workshops_24h: number;
 };
 
-type Tab = "metrics" | "workshops" | "users" | "audit-logs" | "oem" | "capabilities" | "training";
+type Tab = "metrics" | "workshops" | "users" | "audit-logs" | "oem" | "training";
 
 type UserItem = {
   id: string;
@@ -87,7 +87,6 @@ export default function AdminPage() {
   const [logOffset, setLogOffset] = useState(0);
   const [adminKeyInput, setAdminKeyInput] = useState(getStoredAdminKey());
   const [authenticated, setAuthenticated] = useState(false);
-  const [capabilities, setCapabilities] = useState<any[]>([]);
   const [trainingStatus, setTrainingStatus] = useState<any>(null);
   const [trainingBusy, setTrainingBusy] = useState(false);
   const LOG_LIMIT = 50;
@@ -113,8 +112,6 @@ export default function AdminPage() {
         const r = await apiFetch<{ logs: AuditLogItem[]; total: number }>(`/admin/audit-logs?${p}`, effectiveKey);
         setLogs(r.logs);
         setLogTotal(r.total);
-      } else if (tab === "capabilities") {
-        setCapabilities(await apiFetch<any>("/admin/capabilities", effectiveKey).then((r: any) => r.capabilities ?? []));
       } else if (tab === "training") {
         setTrainingStatus(await apiFetch<any>("/admin/training/status", effectiveKey));
       }
@@ -136,7 +133,6 @@ export default function AdminPage() {
     { key: "users", label: "Users" },
     { key: "audit-logs", label: "Audit Logs" },
     { key: "oem", label: "OEM Data" },
-    { key: "capabilities", label: "Capabilities" },
     { key: "training", label: "Training" },
   ];
 
@@ -352,46 +348,6 @@ export default function AdminPage() {
               Next
             </Button>
           </div>
-        </div>
-      )}
-
-      {authenticated && tab === "capabilities" && (
-        <div className="space-y-3">
-          <p className="text-xs text-text-secondary">Toggle feature flags for the entire instance. Overrides take effect immediately.</p>
-          <Card padding="none">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-xs uppercase tracking-wider text-text-tertiary">
-                  <TH>Capability</TH><TH>Label</TH><TH>Effective</TH><TH>Override</TH><TH>Dep</TH><TH>Actions</TH>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {capabilities.map((c: any) => (
-                  <tr key={c.name} className="hover:bg-surface-hover transition-colors">
-                    <TD className="font-mono text-xs text-text-primary">{c.name}</TD>
-                    <TD className="text-text-secondary">{c.label || "-"}</TD>
-                    <TD><Badge variant={c.effective ? "success" : "default"} size="sm">{c.effective ? "ON" : "OFF"}</Badge></TD>
-                    <TD className="text-xs text-text-tertiary">{c.runtime_override === null ? "—" : c.runtime_override ? "ON" : "OFF"}</TD>
-                    <TD className="text-xs text-text-tertiary">{c.dep_installed ? "✅" : "❌"} {c.dep}</TD>
-                    <TD>
-                      <Button size="sm" variant="ghost" onClick={async () => {
-                        const newVal = !c.effective;
-                        const key = getStoredAdminKey();
-                        await fetch(`${API_BASE}/admin/capabilities/${c.name}`, {
-                          method: "PUT",
-                          headers: { "X-API-Key": key, "Content-Type": "application/json" },
-                          body: JSON.stringify({ value: newVal }),
-                        });
-                        const r = await apiFetch<any>("/admin/capabilities", key);
-                        setCapabilities(r.capabilities ?? []);
-                      }}>{c.effective ? "Disable" : "Enable"}</Button>
-                    </TD>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {capabilities.length === 0 && <p className="px-4 py-6 text-center text-xs text-text-tertiary">No capabilities found.</p>}
-          </Card>
         </div>
       )}
 
