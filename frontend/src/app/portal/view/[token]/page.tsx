@@ -80,6 +80,20 @@ export default function PortalViewPage() {
     fetchAssessment();
   }, [fetchAssessment]);
 
+  useEffect(() => {
+    if (!token || loading || responded || data?.portal.status !== "pending") return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE}/portal/${token}/status`);
+        if (res.ok) {
+          const s = await res.json();
+          if (s.status !== "pending") fetchAssessment();
+        }
+      } catch { /* ignore */ }
+    }, 10_000);
+    return () => clearInterval(interval);
+  }, [token, loading, responded, data?.portal.status, fetchAssessment]);
+
   const handleRespond = async (action: "approved" | "rejected") => {
     const reason = action === "rejected"
       ? prompt("Please provide a reason for rejection:") || undefined
