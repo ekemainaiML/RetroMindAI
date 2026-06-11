@@ -1,8 +1,6 @@
 # RetroMind AI — Workshop Operator Guide
 
 > **RetroMind AI** — EV retrofit intelligence platform deployed on Oracle Cloud Free Tier.
-/main
-/main
 
 This guide walks you through using RetroMind AI for your EV retrofit assessments, from first login to generating compliance reports.
 
@@ -22,12 +20,20 @@ This guide walks you through using RetroMind AI for your EV retrofit assessments
 9. [Knowledge Graph](#9-knowledge-graph)
 10. [History & Comparisons](#10-history--comparisons)
 11. [Workshop Settings](#11-workshop-settings)
-12. [Analytics](#12-analytics)
-13. [Data Export](#13-data-export)
-14. [CAD Export](#14-cad-export)
-15. [CLIP Vehicle Identification](#15-clip-vehicle-identification)
-16. [OEM Data Browser](#16-oem-data-browser)
-17. [Troubleshooting](#17-troubleshooting)
+    - [Profile Information](#111-profile-information)
+    - [Renewing API Key](#112-renewing-your-api-key)
+    - [White-Labeling](#113-white-labeling-branding)
+    - [Email Notifications](#114-email-notifications)
+    - [Billing & Subscription](#115-billing--subscription)
+    - [Team Management](#116-team-management)
+12. [Customer Portal](#12-customer-portal)
+13. [Analytics](#13-analytics)
+14. [Data Export](#14-data-export)
+15. [CAD Export](#15-cad-export)
+16. [Optional AI Capabilities](#16-optional-ai-capabilities)
+17. [CLIP Vehicle Identification](#17-clip-vehicle-identification)
+18. [OEM Data Browser](#18-oem-data-browser)
+19. [Troubleshooting](#19-troubleshooting)
 
 ---
 
@@ -239,8 +245,8 @@ After clicking **"Start Assessment"**, the pipeline runs:
 ### 4.2 Progress Updates
 
 The frontend polls the job status endpoint for live updates. If your browser supports Server-Sent Events (SSE), real-time streaming is used instead.
-/main
-/main
+
+
 
 ### 4.3 Timeout Handling
 
@@ -287,7 +293,7 @@ The system reports the detected vehicle type:
 - **Motorcycle**
 - **Scooter**
 - **Commercial**
-/main
+
 - **Unknown** (insufficient evidence)
 
 Each classification includes a confidence percentage. If confidence is below a threshold, you'll be asked to **confirm the classification** (see section 6).
@@ -341,8 +347,8 @@ When the system is uncertain about the vehicle type, a confirmation dialog appea
 To confirm via API:
 ```bash
 curl -X POST https://api.your-domain.com/api/v1/jobs/{job_id}/confirm \
-/main
-/main
+
+
   -H "X-API-Key: rm_..." \
   -H "Content-Type: application/json" \
   -d '{"confirmation_type": "vehicle_classification", "selection": "three_wheeler"}'
@@ -442,12 +448,83 @@ Navigate to `/settings` to manage your workshop:
 1. Click **"Renew API Key"**
 2. Read the warning — this invalidates the current key
 3. Click **"Yes, Renew Key"** to confirm
-4. **Copy the new key immediately** — it's shown only once
+4. **Copy the new key immediately** — it's shown only once (a success card with Copy button appears)
 5. Update any services or scripts using the old key
+
+### 11.3 White-Labeling (Branding)
+
+Customize RetroMind AI with your workshop's branding:
+
+1. Navigate to the **Branding** section in Settings
+2. **Logo**: Upload a PNG or SVG logo (max 2MB). It replaces the default header logo in the UI, emails, and PDF reports.
+3. **Colors**: Pick primary and secondary brand colors. These are applied throughout the UI, including header.
+4. **Custom Domain** (Enterprise tier): Configure a custom domain (e.g., `assessments.myworkshop.com`). Update your DNS CNAME to point to the platform, and TLS is provisioned automatically via Caddy.
+5. Click **Save Changes** — branding updates in real-time.
+
+### 11.4 Email Notifications
+
+Configure which events trigger email notifications:
+
+1. Navigate to the **Notifications** section in Settings
+2. Toggle each event type: Assessment Complete, Assessment Failed, API Key Expiring, Team Invitation, Payment Receipt, Portal Invite
+3. Click **Save Preferences**
+4. Click **Send Test Email** to verify your inbox receives emails correctly
+
+Emails are sent via a configurable SMTP backend (SendGrid, SES, or custom SMTP). Contact support to change the SMTP configuration.
+
+### 11.5 Billing & Subscription
+
+View and manage your subscription:
+
+1. Navigate to the **Billing** section in Settings
+2. **Current Plan**: Shows your active tier (Free / Pro / Enterprise) and monthly usage stats
+3. **Usage Metering**: Tracks assessments completed, API calls, storage bytes, images uploaded
+4. **Upgrade**: Click "Upgrade Plan" to open the Stripe checkout for a higher tier
+5. **Manage Billing**: Click "Billing Portal" to manage payment methods, view invoices, and change billing cycles
+6. Tier limits are enforced at the API level. Exceeding limits returns a clear upgrade prompt.
+
+### 11.6 Team Management
+
+Invite team members to your workshop:
+
+1. Navigate to the **Team** section in Settings
+2. Click **Invite Member** and enter their email address
+3. The invitee receives an email with a signup link (expires after 72 hours)
+4. Once accepted, assign a role: Admin, Operator, or Viewer
+5. To remove a member, click the remove button next to their name
 
 ---
 
-## 12. Analytics
+## 12. Customer Portal
+
+> **Enterprise feature.** Requires at least Pro tier.
+
+Share assessment results with vehicle owners for digital approval:
+
+### Creating a Portal Link
+
+1. Open any completed assessment from the **History** page
+2. Click **"Share with Customer"**
+3. Copy the generated portal link
+4. Share this link with your customer via email, SMS, or QR code
+
+### Customer Experience
+
+The customer portal (no login required):
+
+- Shows vehicle details, current status, and feasibility score
+- Displays key findings in non-technical language
+- Lists the recommendation summary
+- Customer can **Approve** or **Request Changes**
+- Changes request sends a notification back to your workshop
+
+### Managing Portal Sessions
+
+- View all active portal sessions under History → "Shared Links" table
+- Revoke access at any time
+- Portal sessions are tracked per assessment with timestamp and status
+
+## 13. Analytics
 
 Navigate to `/analytics` for workshop performance metrics:
 
@@ -479,15 +556,13 @@ Use the dropdown to switch between 6, 12, 24, or 36 months of data.
 
 ---
 
-## 13. Data Export
+## 14. Data Export
 
 Download all your workshop data from `/api/v1/workshop/export`:
 
 ```bash
 curl -H "X-API-Key: rm_..." \
   https://api.your-domain.com/api/v1/workshop/export \
-/main
-/main
   -o my-workshop-export.json
 ```
 
@@ -502,94 +577,6 @@ Use this for:
 - Compliance/record-keeping
 
 ---
-
-## 14. CAD Export
-
-When the FreeCAD worker container is running, completed assessments can be exported as STEP or STL 3D model files. FreeCAD runs natively on ARM64 (Ubuntu apt package).
-
-### 14.1 Starting the FreeCAD Worker
-
-Included by default in the production stack (`docker-compose.prod.yml`). No manual action needed.
-
-### 14.2 Exporting a Model
-
-```bash
-# STEP format (default)
-curl -X GET "https://api.your-domain.com/api/v1/cad/export/{job_id}" \
-/main
-## 14. Optional Capabilities
-
-RetroMind AI includes several optional AI and engineering capabilities that are disabled by default. Workshop administrators can enable them by setting the appropriate environment variables and installing dependencies.
-
-### 14.1 PyTorch CNN Classifier (Phase 1)
-
-Replaces the heuristic vehicle classifier with a MobileNetV3-small CNN.
-
-**Setup:**
-```bash
-pip install retromind[torch]
-export ENABLE_PYTORCH=True
-export TORCH_MODEL_PATH=/app/ai/models/vehicle_classifier.pt
-```
-
-**Behavior:** The classifier attempts PyTorch inference first. If unavailable or failed, it falls back to ONNX Runtime, then to the heuristic classifier.
-
-### 14.2 RLlib Adaptive Recommendations (Phase 2)
-
-Adjusts recommendation priorities and cost estimates using a PPO agent trained on historical confirmation data.
-
-**Setup:**
-```bash
-pip install retromind[rllib]
-export ENABLE_RL_RECOMMENDATIONS=True
-```
-
-**Admin endpoints:**
-```bash
-# Trigger training from historical feedback
-curl -X POST http://localhost:8000/api/v1/admin/rl/train \
-  -H "X-API-Key: dev-admin-key"
-
-# Check agent status
-curl http://localhost:8000/api/v1/admin/rl/status \
-  -H "X-API-Key: dev-admin-key"
-```
-
-### 14.3 Generative AI Refinement (Phase 3)
-
-Uses OpenAI GPT-4o-mini or Anthropic Claude 3.5 Haiku to refine battery zone placement and wiring routing recommendations.
-
-**Setup:**
-```bash
-pip install retromind[genai]
-export ENABLE_GENERATIVE_DESIGN=True
-export OPENAI_API_KEY=sk-...    # or ANTHROPIC_API_KEY
-```
-
-When enabled, battery zone priorities and wiring route recommendations are passed through an LLM for expert-level review. Falls back to template values on any API failure.
-
-### 14.4 Hyperparameter Optimization (Phase 0.5)
-
-Uses Optuna to tune confidence weights, deviation thresholds, and stage timeouts against historical assessment data.
-
-**Setup:**
-```bash
-pip install retromind[optuna]
-```
-
-**Admin endpoint:**
-```bash
-curl -X POST "http://localhost:8000/api/v1/admin/optimization/run?n_trials=100" \
-  -H "X-API-Key: dev-admin-key"
-```
-
-Results are saved to `best_params.json` and applied automatically at runtime.
-
-### 14.5 Continuous Learning (Phase 5)
-
-Automatically retrains the PyTorch classifier from human-confirmed assessments on a 1-hour schedule.
-
-**Setup:** Deployed as the `training-scheduler` Docker service (included in `docker-compose.yml`). No manual configuration needed — runs automatically when PyTorch is enabled.
 
 ## 15. CAD Export
 
@@ -615,9 +602,6 @@ export FREECAD_HOST=http://freecad-worker:8100
 ```bash
 # STEP format (default)
 curl -X GET "http://localhost:8000/api/v1/cad/export/{job_id}" \
-/main
-/main
-/main
   -H "X-API-Key: rm_..." \
   -o assessment.stl
 ```
@@ -631,7 +615,83 @@ The exported model includes:
 
 ---
 
-## 15. CLIP Vehicle Identification
+## 16. Optional AI Capabilities
+
+RetroMind AI includes several optional AI and engineering capabilities that are disabled by default. Workshop administrators can enable them by setting the appropriate environment variables and installing dependencies.
+
+### 16.1 PyTorch CNN Classifier (Phase 1)
+
+Replaces the heuristic vehicle classifier with a MobileNetV3-small CNN.
+
+**Setup:**
+```bash
+pip install retromind[torch]
+export ENABLE_PYTORCH=True
+export TORCH_MODEL_PATH=/app/ai/models/vehicle_classifier.pt
+```
+
+**Behavior:** The classifier attempts PyTorch inference first. If unavailable or failed, it falls back to ONNX Runtime, then to the heuristic classifier.
+
+### 16.2 RLlib Adaptive Recommendations (Phase 2)
+
+Adjusts recommendation priorities and cost estimates using a PPO agent trained on historical confirmation data.
+
+**Setup:**
+```bash
+pip install retromind[rllib]
+export ENABLE_RL_RECOMMENDATIONS=True
+```
+
+**Admin endpoints:**
+```bash
+# Trigger training from historical feedback
+curl -X POST http://localhost:8000/api/v1/admin/rl/train \
+  -H "X-API-Key: dev-admin-key"
+
+# Check agent status
+curl http://localhost:8000/api/v1/admin/rl/status \
+  -H "X-API-Key: dev-admin-key"
+```
+
+### 16.3 Generative AI Refinement (Phase 3)
+
+Uses OpenAI GPT-4o-mini or Anthropic Claude 3.5 Haiku to refine battery zone placement and wiring routing recommendations.
+
+**Setup:**
+```bash
+pip install retromind[genai]
+export ENABLE_GENERATIVE_DESIGN=True
+export OPENAI_API_KEY=sk-...    # or ANTHROPIC_API_KEY
+```
+
+When enabled, battery zone priorities and wiring route recommendations are passed through an LLM for expert-level review. Falls back to template values on any API failure.
+
+### 16.4 Hyperparameter Optimization (Phase 0.5)
+
+Uses Optuna to tune confidence weights, deviation thresholds, and stage timeouts against historical assessment data.
+
+**Setup:**
+```bash
+pip install retromind[optuna]
+```
+
+**Admin endpoint:**
+```bash
+curl -X POST "http://localhost:8000/api/v1/admin/optimization/run?n_trials=100" \
+  -H "X-API-Key: dev-admin-key"
+```
+
+Results are saved to `best_params.json` and applied automatically at runtime.
+
+### 16.5 Continuous Learning (Phase 5)
+
+Automatically retrains the PyTorch classifier from human-confirmed assessments on a 1-hour schedule.
+
+**Setup:** Deployed as the `training-scheduler` Docker service (included in `docker-compose.yml`). No manual configuration needed — runs automatically when PyTorch is enabled.
+
+---
+
+## 17. CLIP Vehicle Identification
 
 RetroMind AI includes a zero-shot vehicle classifier powered by OpenAI CLIP (ViT-B/32). This does not require training data — it can identify any vehicle type from text prompts alone.
 
@@ -658,7 +718,7 @@ No dataset or training is needed — CLIP works out of the box with any vehicle 
 
 ---
 
-## 16. OEM Data Browser
+## 18. OEM Data Browser
 
 The system includes a database of OEM makes, models, generations, trims, and specifications. This data is used to inform recommendations and improve vehicle identification.
 
@@ -682,9 +742,9 @@ Navigate to the OEM Admin page to view, add, or edit OEM specifications for vari
 
 ---
 
-## 17. Troubleshooting
-/main
-/main
+## 19. Troubleshooting
+
+
 
 ### Common Issues
 
@@ -705,17 +765,7 @@ The compliance report includes an **Infrastructure Degradation** section showing
 
 ```bash
 # API health
-curl https://api.your-domain.com/api/v1/health
-/main
-| SSE not working | Proxy stripping `text/event-stream` | Frontend auto-falls back to polling |
-
-### Checking Service Health
-
-```bash
-# API health
 curl http://localhost:8000/api/v1/health
-/main
-/main
 
 # Container status
 docker compose ps

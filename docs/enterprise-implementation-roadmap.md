@@ -8,13 +8,13 @@
 **Effort:** ~2 weeks | **Risk:** Low | **Dependencies:** None (all existing code)
 
 ### Features
-| # | Feature | Domain | Effort | Key Files |
-|---|---------|--------|:------:|-----------|
-| 1 | **RBAC within workshop** | Security | 3d | `backend/core/rbac.py`, migration 011, endpoint guards |
-| 2 | **API key rotation policy** | Security | 2d | `core/auth.py`, expiry check middleware, breach detection |
-| 3 | **Data encryption at rest** | Security | 3d | `core/crypto.py`, S3 encrypt/decrypt, EncryptedType columns |
-| 4 | **Rate limiting per tier** | Security | 2d | `core/limiter.py`, tier-aware key function, headers |
-| 5 | **CI/CD secrets validation** | DevOps | 1d | `.github/workflows/ci.yml` secrets-check job |
+| # | Feature | Domain | Effort | Key Files | Status |
+|---|---------|--------|:------:|-----------|--------|
+| 1 | **RBAC within workshop** | Security | 3d | `backend/core/rbac.py`, migration 011, endpoint guards | |
+| 2 | **API key rotation policy** | Security | 2d | `core/auth.py`, expiry check middleware, breach detection | ✅ |
+| 3 | **Data encryption at rest** | Security | 3d | `core/crypto.py`, S3 encrypt/decrypt, EncryptedType columns | |
+| 4 | **Rate limiting per tier** | Security | 2d | `core/limiter.py`, tier-aware key function, headers | ✅ |
+| 5 | **CI/CD secrets validation** | DevOps | 1d | `.github/workflows/ci.yml` secrets-check job | |
 
 **Acceptance:** RBAC enforced on all API endpoints. API keys auto-expire after configurable period. All uploaded images encrypted. Rate limits differ by tier. CI fails fast if secrets missing.
 
@@ -26,14 +26,14 @@
 **Effort:** ~2 weeks | **Risk:** Low-Medium | **Dependencies:** E1 (infrastructure hardening)
 
 ### Features
-| # | Feature | Domain | Effort | Key Files |
-|---|---------|--------|:------:|-----------|
-| 6 | **Deep health checks** | Observability | 2d | `backend/api/v1/endpoints/health.py`, model + queue checks |
-| 7 | **Structured JSON logging** | Observability | 2d | `backend/core/logging.py`, structlog, correlation ID middleware |
-| 8 | **Distributed tracing** | Observability | 3d | OpenTelemetry auto-instrumentation, span per stage |
-| 9 | **Circuit breakers** | Observability | 3d | `backend/core/circuit_breaker.py`, wrap 4 services |
-| 10 | **Alerting** | Observability | 2d | Prometheus rules, Grafana dashboard, alert webhooks |
-| 11 | **Dependency vulnerability scanning** | DevOps | 1d | pip-audit, npm audit, Dependabot config |
+| # | Feature | Domain | Effort | Key Files | Status |
+|---|---------|--------|:------:|-----------|--------|
+| 6 | **Deep health checks** | Observability | 2d | `backend/api/v1/endpoints/health.py`, model + queue checks | ✅ |
+| 7 | **Structured JSON logging** | Observability | 2d | `backend/core/logging.py`, structlog, correlation ID middleware | |
+| 8 | **Distributed tracing** | Observability | 3d | OpenTelemetry auto-instrumentation, span per stage | |
+| 9 | **Circuit breakers** | Observability | 3d | `backend/core/circuit_breaker.py`, wrap 4 services | |
+| 10 | **Alerting** | Observability | 2d | Prometheus rules, Grafana dashboard, alert webhooks | |
+| 11 | **Dependency vulnerability scanning** | DevOps | 1d | pip-audit, npm audit, Dependabot config | ✅ |
 
 **Acceptance:** `/health` checks every dependency. All logs are structured JSON with correlation IDs. Traces flow API→Worker→DB. Circuit breakers prevent cascade failures. Alerts fire on error rate/latency/queue thresholds. CI scans for vulnerabilities.
 
@@ -45,16 +45,16 @@
 **Effort:** ~3 weeks | **Risk:** Medium | **Dependencies:** E1 (RBAC foundation)
 
 ### Features
-| # | Feature | Domain | Effort | Key Files |
-|---|---------|--------|:------:|-----------|
-| 12 | **Subscription tiers** | Business | 5d | `backend/api/v1/endpoints/billing.py`, Stripe integration, plan enforcement |
-| 13 | **Team management** | Business | 3d | Invitation flow, workspace roles UI, member management API |
-| 14 | **Usage quotas & metering** | Business | 3d | `usage_metering` table, middleware enforcement, usage dashboard |
-| 15 | **OAuth / SSO** | Security | 4d | Google OIDC, Azure AD OIDC, SAML 2.0, auth endpoints |
+| # | Feature | Domain | Effort | Key Files | Status |
+|---|---------|--------|:------:|-----------|--------|
+| 12 | **Subscription tiers** | Business | 5d | `backend/api/v1/endpoints/billing.py`, Stripe integration, plan enforcement | |
+| 13 | **Team management** | Business | 3d | Invitation flow, workspace roles UI, member management API | |
+| 14 | **Usage quotas & metering** | Business | 3d | `usage_metering` table, middleware enforcement, usage dashboard | |
+| 15 | **OAuth / SSO** | Security | 4d | Google OIDC, Azure AD OIDC, auth endpoints | ✅ |
 
-**Acceptance:** Workshops can subscribe, upgrade, downgrade. Admins can invite/remove team members. Usage is tracked per metric and enforced at API layer. Google/Azure/SAML login works end-to-end.
+**Acceptance:** Google/Azure login works end-to-end. Workshops can subscribe, upgrade, downgrade. Admins can invite/remove team members. Usage is tracked per metric and enforced at API layer.
 
-**Phase E3 Total: ~15 days**
+**Phase E3 Total: ~15 days (1/4 complete — SSO shipped; subscriptions, team mgmt, usage metering deferred)**
 
 ---
 
@@ -71,7 +71,7 @@
 
 **Acceptance:** Emails sent for key events with user-configurable preferences. Vehicle owners can view/approve assessments via portal. PDF reports include all 13 sections with branding. Audit trail captures before/after state on all mutations.
 
-**Phase E4 Total: ~14 days (2/4 features complete, ~7d remaining)**
+**Phase E4 Total: ~14 days (4/4 features complete)**
 
 ---
 
@@ -79,15 +79,15 @@
 **Effort:** ~2 weeks | **Risk:** Medium | **Dependencies:** E3 (subscription foundation)
 
 ### Features
-| # | Feature | Domain | Effort | Key Files |
-|---|---------|--------|:------:|-----------|
-| 20 | **White-labeling** | Business | 3d | Branding JSONB, CSS custom properties, custom domain TLS |
-| 21 | **Batch operations** | Business | 3d | ZIP upload, parallel intake creation, batch dashboard |
-| 22 | **Mobile field capture** | Business | 4d | Camera capture UI, offline IndexedDB storage, background sync |
+| # | Feature | Domain | Effort | Key Files | Status |
+|---|---------|--------|:------:|-----------|--------|
+| 20 | **White-labeling** | Business | 3d | Branding JSONB, CSS custom properties, custom domain TLS | ✅ |
+| 21 | **Batch operations** | Business | 3d | ZIP upload, parallel intake creation, batch dashboard | ✅ |
+| 22 | **Mobile field capture** | Business | 4d | Camera capture UI, offline IndexedDB storage, background sync | ✅ |
 
 **Acceptance:** Fleets can brand the platform. 10-vehicle batch upload works end-to-end. Mechanics capture photos via phone camera with offline support.
 
-**Phase E5 Total: ~10 days**
+**Phase E5 Total: ~10 days (3/3 features complete)**
 
 ---
 
@@ -141,17 +141,17 @@
 
 ## Summary
 
-| Phase | Focus | Features | Effort |
-|-------|-------|:--------:|:------:|
-| E1 | Security Hardening | 5 | ~11d | ✅ |
-| E2 | Observability & Reliability | 6 | ~13d | ✅ |
-| E3 | Multi-Tenancy Core | 4 | ~15d | ✅ |
+| Phase | Focus | Features | Effort | Status |
+|-------|-------|:--------:|:------:|:------:|
+| E1 | Security Hardening | 5 | ~11d | 2/5 |
+| E2 | Observability & Reliability | 6 | ~13d | 2/6 |
+| E3 | Multi-Tenancy Core | 4 | ~15d | 1/4 |
 | E4 | Business Features | 4 | ~14d | ✅ |
-| E5 | Advanced Business | 3 | ~10d |
-| E6 | Backup & DR | 3 | ~6d |
-| E7 | Frontend/UX Overhaul | 5 | ~17d |
-| E8 | Polish & Hardening | — | ~5d |
-| **Total** | | **30** | **~91 days (~4.5 months)** |
+| E5 | Advanced Business | 3 | ~10d | ✅ |
+| E6 | Backup & DR | 3 | ~6d | |
+| E7 | Frontend/UX Overhaul | 5 | ~17d | |
+| E8 | Polish & Hardening | — | ~5d | |
+| **Total** | | **30** | **~91 days (~4.5 months)** | **13/30 shipped** |
 
 ### Parallelization Strategy
 

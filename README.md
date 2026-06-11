@@ -67,7 +67,10 @@ docker compose build freecad-worker && docker compose up -d freecad-worker
 | Database        | PostgreSQL 16 (SQLAlchemy ORM, Alembic)       |
 | Cache / Queue   | Redis 7 + RQ (background workers)             |
 | Graph           | Neo4j (knowledge graph)                       |
-| Object Storage  | S3-compatible (MinIO / OCI Object Storage)    |
+| Object Storage  | S3-compatible (MinIO / R2 / OCI Object Storage) |
+| Mail            | MailHog (dev) / SendGrid, SES, SMTP (prod)    |
+| SSO             | Google OAuth, Microsoft Azure AD              |
+| Reverse Proxy   | Caddy (auto TLS)                              |
 
 ## Core Features
 
@@ -79,6 +82,20 @@ docker compose build freecad-worker && docker compose up -d freecad-worker
 | Wiring route planning        | Template-based path router                           | ✅ Active  |
 | Report generation            | 13-section compliance report builder                 | ✅ Active  |
 | OEM data models              | SQLAlchemy + Alembic (Phase 1-2)                     | ✅ Active  |
+| **Enterprise Features**      |                                                      |            |
+| PDF export                   | WeasyPrint-based PDF report generation               | ✅ Active  |
+| White-labeling               | Custom logo, brand colors, custom domain             | ✅ Active  |
+| Customer portal              | Token-based customer approval portal                 | ✅ Active  |
+| Batch operations             | ZIP upload for multi-vehicle fleet assessment        | ✅ Active  |
+| Mobile field capture         | Camera UI with 6-view guidance, offline queue        | ✅ Active  |
+| Email notifications          | Configurable SMTP, per-event preferences             | ✅ Active  |
+| SSO (Google / Azure AD)      | OAuth-based single sign-on                           | ✅ Active  |
+| Subscription billing         | Stripe integration with tiered plans                 | ✅ Active  |
+| Usage metering               | Per-workshop usage tracking with tier enforcement    | ✅ Active  |
+| Audit trail                  | Before/after state logging for all mutations         | ✅ Active  |
+| Circuit breakers             | Graceful degradation on downstream failure           | ✅ Active  |
+| API key rotation             | Expiry dates, IP-based breach detection              | ✅ Active  |
+| Rate limiting per tier       | Configurable rate limits with 429 responses          | ✅ Active  |
 
 ## Optional Phases (feature-flag-gated, off by default)
 
@@ -119,7 +136,9 @@ docker compose --profile freecad up   # Phase 4 FreeCAD worker
 │       └── utils/          # API helpers (apiFetch, apiGet, etc.)
 ├── backend/
 │   ├── api/                # FastAPI routes (v1, v2)
-│   │   └── v1/endpoints/   # auth, user_auth, intake, jobs, reports, etc.
+│   │   └── v1/endpoints/   # auth, user_auth, intake, jobs, reports,
+│   │                       #    billing, branding, portal, batch,
+│   │                       #    notifications, oem, health, admin
 │   ├── ai/                 # Classification, CLIP, deviation, geometry,
 │   │                       #   digital twin, recommendations, generative
 │   ├── core/               # Config, auth, database, models, feature flags
@@ -142,20 +161,26 @@ docker compose --profile freecad up   # Phase 4 FreeCAD worker
 ## Architecture
 
 ```
-┌──────────┐     ┌──────────────┐     ┌─────────────────────┐
-│ Next.js  │────▶│ FastAPI API  │────▶│ PostgreSQL 16       │
-│ Frontend │     │ (v1 REST +   │     │ Redis 7 + RQ       │
-│ :3000    │     │  SSE events) │     │ Neo4j               │
-└──────────┘     │ :8000        │     └─────────────────────┘
-                 └──────┬───────┘
+┌──────────┐     ┌──────────────┐     ┌──────────────────────┐
+│ Next.js  │────▶│ FastAPI API  │────▶│ PostgreSQL 16        │
+│ Frontend │     │ (v1 REST +   │     │ Redis 7 + RQ         │
+│ :3000    │     │  SSE events) │     │ Neo4j (knowledge gr) │
+└──────────┘     │ :8000        │     │ MailHog / SendGrid   │
+                 └──────┬───────┘     └──────────────────────┘
                         │
-           ┌────────────┼────────────┐
-           ▼            ▼            ▼
-    ┌──────────┐ ┌──────────┐ ┌──────────┐
-    │ Worker   │ │ Training │ │ FreeCAD  │
-    │ (RQ)     │ │Scheduler │ │ Worker   │
-    │          │ │ (P5)     │ │ (P4)     │
+           ┌────────────┼────────────┬───────────┐
+           ▼            ▼            ▼           ▼
+    ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+    │ Worker   │ │ Training │ │ FreeCAD  │ │ Stripe   │
+    │ (RQ)     │ │Scheduler │ │ Worker   │ │ (billing)│
+    │          │ │ (P5)     │ │ (P4)     │ └──────────┘
     └──────────┘ └──────────┘ └──────────┘
+           │
+           ▼
+    ┌──────────────────┐
+    │ SSO Providers    │
+    │ Google / Azure AD│
+    └──────────────────┘
 ```
 
 ## Testing

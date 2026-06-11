@@ -22,14 +22,27 @@ graph TB
             FE[Frontend<br/>Next.js Standalone<br/>:3000]
             API[Backend API<br/>FastAPI uvicorn<br/>:8000]
             WK[Worker<br/>RQ Multi-Process<br/>Concurrency=N]
+            Sched[Training Scheduler<br/>P5 Continuous Learning]
 
             PG[(PostgreSQL 16<br/>:5432)]
             RD[(Redis 7<br/>:6379)]
             N4J[(Neo4j Community<br/>:7687 / :7474)]
+            MH[MailHog<br/>SMTP :1025 / UI :8025]
+        end
+
+        subgraph OptionalServices["Optional (profiles/feature flags)"]
+            FC[FreeCAD Worker<br/>STEP/STL Export<br/>:8100]
         end
 
         UV[Local Upload Storage<br/>/app/uploads/]
         AI[ONNX Runtime<br/>+ OpenCV<br/>in-worker]
+
+        subgraph ExternalServices["External Integrations"]
+            SSO[SSO Providers<br/>Google / Azure AD]
+            STRIPE[Stripe<br/>Payment Processing]
+            OBJSTORAGE[Object Storage<br/>R2 / OCI / MinIO]
+            SMTP_PROD[SendGrid / SES<br/>Production Email]
+        end
     end
 
     User -->|HTTPS :443| CADDY
@@ -45,6 +58,16 @@ graph TB
     WK -->|read| UV
     API -->|read| UV
     WK -->|onnx inference| AI
+    API -->|send email| MH
+    WK -->|send email| MH
+    API -->|send email| SMTP_PROD
+    WK -->|send email| SMTP_PROD
+    API -->|OAuth callbacks| SSO
+    API -->|charge / webhook| STRIPE
+    API -->|store artifacts| OBJSTORAGE
+    WK -->|store artifacts| OBJSTORAGE
+    API -->|CAD requests| FC
+    Sched -->|retrain models| AI
 
     style FE fill:#c084fc,stroke:#6b21a8
     style API fill:#f472b6,stroke:#9d174d

@@ -27,6 +27,39 @@ interface Capability {
   dep_installed: boolean;
 }
 
+interface SubscriptionResponse {
+  plan: {
+    id: string;
+    tier: string;
+    name: string;
+    price_monthly: number;
+    price_yearly: number;
+    max_users: number | null;
+    max_assessments: number | null;
+    max_storage_mb: number | null;
+    features: string[];
+  } | null;
+  status: string;
+  billing_period_start: string | null;
+  billing_period_end: string | null;
+  cancel_at_period_end: boolean;
+}
+
+interface UsageItem {
+  metric: string;
+  total: number;
+  limit: number | null;
+}
+
+interface MemberItem {
+  user_id: string;
+  email: string;
+  name: string;
+  role: string;
+  accepted_at: string | null;
+  invited_at: string | null;
+}
+
 const phaseLabel: Record<string, string> = {
   vision: "Phase 1",
   classification: "Phase 1",
@@ -58,6 +91,18 @@ export default function SettingsPage() {
   const [notifLoading, setNotifLoading] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<string | null>(null);
+
+  const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
+  const [subLoading, setSubLoading] = useState(false);
+  const [usage, setUsage] = useState<UsageItem[]>([]);
+  const [usageLoading, setUsageLoading] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
+
+  const [members, setMembers] = useState<MemberItem[]>([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -218,9 +263,142 @@ export default function SettingsPage() {
     }
   }, []);
 
+  const fetchSubscription = useCallback(async () => {
+    setSubLoading(true);
+    try {
+      const data = await apiGet<SubscriptionResponse>("/billing/subscription");
+      setSubscription(data);
+    } catch {
+    } finally {
+      setSubLoading(false);
+    }
+  }, []);
+
+  const fetchUsage = useCallback(async () => {
+    setUsageLoading(true);
+    try {
+      const data = await apiGet<{ usage: UsageItem[] }>("/billing/usage");
+      setUsage(data.usage);
+    } catch {
+    } finally {
+      setUsageLoading(false);
+    }
+  }, []);
+
+  const handleUpgrade = useCallback(async (priceId: string) => {
+    setBillingError(null);
+    setUpgrading(true);
+    try {
+      const data = await apiPost<{ url: string }>("/billing/create-checkout", {
+        price_id: priceId,
+        success_url: window.location.href,
+        cancel_url: window.location.href,
+      });
+      window.location.href = data.url;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("501") || msg.includes("Billing not configured")) {
+        setBillingError("Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET in production.");
+      } else {
+        setBillingError(msg || "Failed to open checkout");
+      }
+    } finally {
+      setUpgrading(false);
+    }
+  }, []);
+
+  const handleBillingPortal = useCallback(async () => {
+    setBillingError(null);
+    setPortalLoading(true);
+    try {
+      const key = getApiKey();
+      const res = await fetch(`${API_BASE}/billing/portal`, {
+        method: "POST",
+        headers: { "X-API-Key": key, "Content-Type": "application/json" },
+        body: JSON.stringify({ return_url: window.location.href }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        if (res.status === 501 || text.includes("Billing not configured")) {
+          setBillingError("Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET in production.");
+          return;
+        }
+        throw new Error(text || "Failed to open billing portal");
+      }
+      const data = await res.json();
+      window.location.href = data.url;
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : "Failed to open billing portal");
+    } finally {
+      setPortalLoading(false);
+    }
+  }, []);
+
+  const fetchMembers = useCallback(async () => {
+    const key = getApiKey();
+    if (!key) return;
+    setMembersLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/workshop/members`, {
+        headers: { "X-API-Key": key },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMembers(data.members);
+      }
+    } catch {
+    } finally {
+      setMembersLoading(false);
+    }
+  }, []);
+
+  const handleRemoveMember = useCallback(async (userId: string) => {
+    if (!jwt) return;
+    setRemovingId(userId);
+    try {
+      const res = await fetch(`${API_BASE}/workshop/members/${userId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${jwt}` },
+      });
+      if (res.ok) {
+        setMembers((prev) => prev.filter((m) => m.user_id !== userId));
+      } else {
+        const text = await res.text();
+        setError(text || "Failed to remove member");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to remove member");
+    } finally {
+      setRemovingId(null);
+    }
+  }, [jwt]);
+
+  const handleUpdateRole = useCallback(async (userId: string, role: string) => {
+    if (!jwt) return;
+    try {
+      const res = await fetch(`${API_BASE}/workshop/members/${userId}/role`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${jwt}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ role }),
+      });
+      if (res.ok) {
+        setMembers((prev) => prev.map((m) => (m.user_id === userId ? { ...m, role } : m)));
+      }
+    } catch {
+    }
+  }, [jwt]);
+
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+
   useEffect(() => {
     fetchNotifPrefs();
-  }, [fetchNotifPrefs]);
+    fetchSubscription();
+    fetchUsage();
+  }, [fetchNotifPrefs, fetchSubscription, fetchUsage]);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
@@ -270,6 +448,177 @@ export default function SettingsPage() {
           <p className="text-xs text-text-secondary">Could not load profile.</p>
         )}
       </Card>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">Billing & Plan</h2>
+        </CardHeader>
+        {subLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+          </div>
+        ) : subscription ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-text-primary">
+                  {subscription.plan?.name || subscription.status}
+                </p>
+                <p className="text-xs text-text-tertiary">
+                  {subscription.plan
+                    ? `$${subscription.plan.price_monthly}/mo or $${subscription.plan.price_yearly}/yr`
+                    : "No active plan"}
+                </p>
+              </div>
+              <Badge variant={subscription.status === "active" ? "success" : subscription.status === "past_due" ? "danger" : "default"}>
+                {subscription.status}
+              </Badge>
+            </div>
+
+            {subscription.plan && subscription.plan.features.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {subscription.plan.features.map((f) => (
+                  <Badge key={f} variant="info">{f}</Badge>
+                ))}
+              </div>
+            )}
+
+            {subscription.billing_period_end && (
+              <p className="text-xs text-text-secondary">
+                Current period ends: {new Date(subscription.billing_period_end).toLocaleDateString()}
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleUpgrade(subscription.plan?.id || "")}
+                variant="brand"
+                size="sm"
+                loading={upgrading}
+                disabled={!subscription.plan}
+              >
+                {subscription.plan?.tier === "enterprise" ? "Contact Sales" : "Upgrade Plan"}
+              </Button>
+              <Button
+                onClick={handleBillingPortal}
+                variant="secondary"
+                size="sm"
+                loading={portalLoading}
+              >
+                Manage Billing
+              </Button>
+            </div>
+            {billingError && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800 px-3 py-2">
+                {billingError}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-text-secondary">Could not load billing info.</p>
+        )}
+
+        <div className="mt-4 border-t border-border pt-4">
+          <h3 className="mb-3 text-xs font-medium text-text-secondary">Monthly Usage</h3>
+          {usageLoading ? (
+            <div className="flex items-center justify-center py-3">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+            </div>
+          ) : usage.length > 0 ? (
+            <div className="space-y-2">
+              {usage.map((u) => (
+                <div key={u.metric}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-text-secondary">
+                      {u.metric.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </span>
+                    <span className="text-xs font-medium text-text-primary">
+                      {u.total}{u.limit !== null ? ` / ${u.limit}` : ""}
+                    </span>
+                  </div>
+                  {u.limit !== null && (
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-border">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          u.total / u.limit > 0.8
+                            ? "bg-danger"
+                            : u.total / u.limit > 0.5
+                            ? "bg-warning"
+                            : "bg-brand"
+                        }`}
+                        style={{ width: `${Math.min(100, (u.total / u.limit) * 100)}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-text-secondary">No usage data available.</p>
+          )}
+        </div>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-text-tertiary">Team Members</h2>
+        </CardHeader>
+          {membersLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+            </div>
+          ) : members.length > 0 ? (
+            <div className="space-y-2">
+              {members.map((m) => (
+                <div key={m.user_id} className="flex items-center justify-between rounded-lg border border-border px-4 py-3">
+                  <div className="min-w-0 flex-1 pr-4">
+                    <p className="text-sm font-medium text-text-primary">{m.name || m.email}</p>
+                    <p className="text-xs text-text-tertiary">{m.email}</p>
+                    {m.invited_at && !m.accepted_at && (
+                      <p className="text-xs text-warning">Invited — awaiting acceptance</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={m.role}
+                      onChange={(e) => handleUpdateRole(m.user_id, e.target.value)}
+                      className="rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand/30"
+                    >
+                      <option value="admin">Admin</option>
+                      <option value="operator">Operator</option>
+                      <option value="viewer">Viewer</option>
+                    </select>
+                    {confirmRemoveId === m.user_id ? (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          loading={removingId === m.user_id}
+                          onClick={() => handleRemoveMember(m.user_id)}
+                        >
+                          Confirm
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setConfirmRemoveId(null)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirmRemoveId(m.user_id)}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-text-secondary">No team members.</p>
+          )}
+        </Card>
 
       {jwt && (
         <Card>

@@ -380,7 +380,8 @@ function TD({ children, className = "" }: { children: React.ReactNode; className
 
 function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string }) {
   const ak = apiKey;
-  const h = { "X-API-Key": ak };
+  const h: Record<string, string> = { "X-API-Key": ak };
+  const JSON_H = { ...h, "Content-Type": "application/json" };
   type OEMTab = "manufacturers" | "models";
   const [oemTab, setOemTab] = useState<OEMTab>("manufacturers");
   const [manus, setManus] = useState<any[]>([]);
@@ -388,16 +389,32 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
   const [search, setSearch] = useState("");
   const [modelSearch, setModelSearch] = useState("");
   const [manuId, setManuId] = useState<string | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [formName, setFormName] = useState("");
-  const [formCountry, setFormCountry] = useState("");
-  const [formYear, setFormYear] = useState("");
+  const [manuOpen, setManuOpen] = useState(false);
+  const [manuName, setManuName] = useState("");
+  const [manuCountry, setManuCountry] = useState("");
+  const [manuYear, setManuYear] = useState("");
   const [formError, setFormError] = useState("");
-  const [specs, setSpecs] = useState<any | null>(null);
+  const [specs, setSpecs] = useState<any[] | null>(null);
+  const [mounts, setMounts] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<any[]>([]);
   const [specsModelId, setSpecsModelId] = useState<string | null>(null);
-  const [mountCount, setMountCount] = useState(0);
-  const [routeCount, setRouteCount] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  const [modelOpen, setModelOpen] = useState(false);
+  const [editModelId, setEditModelId] = useState<string | null>(null);
+  const [modelForm, setModelForm] = useState({ model_name: "", generation: "", vehicle_type: "auto_rickshaw", year_start: "", year_end: "" });
+
+  const [specOpen, setSpecOpen] = useState(false);
+  const [editSpecId, setEditSpecId] = useState<string | null>(null);
+  const [specForm, setSpecForm] = useState<Record<string, string>>({});
+
+  const [mountOpen, setMountOpen] = useState(false);
+  const [editMountId, setEditMountId] = useState<string | null>(null);
+  const [mountForm, setMountForm] = useState({ point_name: "", point_type: "", position_x_mm: "", position_y_mm: "", position_z_mm: "", bolt_pattern: "", torque_spec_nm: "", notes: "" });
+
+  const [routeOpen, setRouteOpen] = useState(false);
+  const [editRouteId, setEditRouteId] = useState<string | null>(null);
+  const [routeForm, setRouteForm] = useState({ path_name: "", path_type: "", start_point: "", end_point: "", length_estimate_mm: "", notes: "" });
 
   const loadManus = useCallback(async () => {
     setLoading(true);
@@ -413,6 +430,7 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
   const loadModels = useCallback(async (mid: string) => {
     setManuId(mid);
     setLoading(true);
+    setSpecs(null); setSpecsModelId(null);
     try {
       const q = modelSearch ? `?search=${encodeURIComponent(modelSearch)}` : `?manufacturer_id=${mid}`;
       const r = await fetch(`${apiBase}/oem/models${q}`, { headers: h });
@@ -422,31 +440,31 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
 
   const loadDetail = useCallback(async (mid: string) => {
     try {
-      const [s, mp, rp] = await Promise.all([
+      const [sRes, mpRes, rpRes] = await Promise.all([
         fetch(`${apiBase}/oem/models/${mid}/specifications`, { headers: h }),
         fetch(`${apiBase}/oem/mounting-points?model_id=${mid}`, { headers: h }),
         fetch(`${apiBase}/oem/routing-paths?model_id=${mid}`, { headers: h }),
       ]);
-      setSpecs(s.ok ? await s.json() : null);
+      setSpecs(sRes.ok ? await sRes.json() : []);
+      setMounts(mpRes.ok ? await mpRes.json() : []);
+      setRoutes(rpRes.ok ? await rpRes.json() : []);
       setSpecsModelId(mid);
-      setMountCount(mp.ok ? (await mp.json()).length : 0);
-      setRouteCount(rp.ok ? (await rp.json()).length : 0);
     } catch { setSpecs(null); }
   }, [apiBase]);
 
   const createManu = useCallback(async () => {
     setFormError("");
-    if (!formName.trim()) { setFormError("Name is required"); return; }
+    if (!manuName.trim()) { setFormError("Name is required"); return; }
     try {
       const r = await fetch(`${apiBase}/oem/manufacturers`, {
-        method: "POST", headers: { ...h, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: formName.trim(), country: formCountry.trim() || null, founded_year: formYear ? parseInt(formYear) : null }),
+        method: "POST", headers: JSON_H,
+        body: JSON.stringify({ name: manuName.trim(), country: manuCountry.trim() || null, founded_year: manuYear ? parseInt(manuYear) : null }),
       });
       if (!r.ok) throw new Error(await r.text());
-      setFormOpen(false); setFormName(""); setFormCountry(""); setFormYear("");
+      setManuOpen(false); setManuName(""); setManuCountry(""); setManuYear("");
       loadManus();
     } catch (e: unknown) { setFormError(e instanceof Error ? e.message : "Failed"); }
-  }, [formName, formCountry, formYear, loadManus]);
+  }, [manuName, manuCountry, manuYear, loadManus]);
 
   const delManu = useCallback(async (id: string) => {
     if (!confirm("Delete this manufacturer and all associated models?")) return;
@@ -457,16 +475,223 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
     } catch (e: unknown) { alert(e instanceof Error ? e.message : "Delete failed"); }
   }, [loadManus]);
 
+  const saveModel = useCallback(async () => {
+    setFormError("");
+    if (!modelForm.model_name.trim()) { setFormError("Model name is required"); return; }
+    if (!manuId) { setFormError("No manufacturer selected"); return; }
+    try {
+      const body: Record<string, any> = {
+        model_name: modelForm.model_name.trim(),
+        vehicle_type: modelForm.vehicle_type,
+      };
+      if (editModelId) {
+        if (modelForm.generation) body.generation = modelForm.generation;
+        if (modelForm.year_start) body.year_start = parseInt(modelForm.year_start);
+        if (modelForm.year_end) body.year_end = parseInt(modelForm.year_end);
+      } else {
+        body.manufacturer_id = manuId;
+        body.generation = modelForm.generation || null;
+        if (modelForm.year_start) body.year_start = parseInt(modelForm.year_start);
+        if (modelForm.year_end) body.year_end = parseInt(modelForm.year_end);
+      }
+
+      const url = editModelId ? `${apiBase}/oem/models/${editModelId}` : `${apiBase}/oem/models`;
+      const method = editModelId ? "PUT" : "POST";
+      const r = await fetch(url, { method, headers: JSON_H, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(await r.text());
+      setModelOpen(false); setEditModelId(null);
+      setModelForm({ model_name: "", generation: "", vehicle_type: "auto_rickshaw", year_start: "", year_end: "" });
+      loadModels(manuId);
+    } catch (e: unknown) { setFormError(e instanceof Error ? e.message : "Failed"); }
+  }, [modelForm, manuId, editModelId, loadModels]);
+
   const delModel = useCallback(async (id: string) => {
     if (!confirm("Delete this vehicle model?")) return;
     try {
       const r = await fetch(`${apiBase}/oem/models/${id}`, { method: "DELETE", headers: h });
       if (!r.ok) throw new Error(await r.text());
       if (manuId) loadModels(manuId);
+      if (specsModelId === id) { setSpecs(null); setSpecsModelId(null); }
     } catch (e: unknown) { alert(e instanceof Error ? e.message : "Delete failed"); }
-  }, [manuId, loadModels]);
+  }, [manuId, loadModels, specsModelId]);
 
-  const manuName = manuId ? manus.find((m: any) => m.id === manuId)?.name || "Unknown" : "";
+  const openModelModal = useCallback((model?: any) => {
+    if (model) {
+      setEditModelId(model.id);
+      setModelForm({
+        model_name: model.model_name || "",
+        generation: model.generation || "",
+        vehicle_type: model.vehicle_type || "auto_rickshaw",
+        year_start: model.year_start?.toString() || "",
+        year_end: model.year_end?.toString() || "",
+      });
+    } else {
+      setEditModelId(null);
+      setModelForm({ model_name: "", generation: "", vehicle_type: "auto_rickshaw", year_start: "", year_end: "" });
+    }
+    setFormError("");
+    setModelOpen(true);
+  }, []);
+
+  const saveSpec = useCallback(async () => {
+    setFormError("");
+    if (!specsModelId) return;
+    const numFields = ["wheelbase_mm", "overall_length_mm", "overall_width_mm", "overall_height_mm", "ground_clearance_mm", "cargo_length_mm", "cargo_width_mm", "kerb_weight_kg", "gross_weight_kg", "payload_kg", "seating_capacity", "engine_cc"];
+    const body: Record<string, any> = {};
+    if (!editSpecId) body.model_id = specsModelId;
+    for (const [k, v] of Object.entries(specForm)) {
+      if (v !== "" && v !== undefined) body[k] = numFields.includes(k) ? Number(v) : v;
+    }
+    try {
+      const url = editSpecId ? `${apiBase}/oem/specifications/${editSpecId}` : `${apiBase}/oem/models/${specsModelId}/specifications`;
+      const method = editSpecId ? "PUT" : "POST";
+      const r = await fetch(url, { method, headers: JSON_H, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(await r.text());
+      setSpecOpen(false); setEditSpecId(null); setSpecForm({});
+      loadDetail(specsModelId);
+    } catch (e: unknown) { setFormError(e instanceof Error ? e.message : "Failed"); }
+  }, [specForm, specsModelId, editSpecId, loadDetail]);
+
+  const openSpecModal = useCallback((spec?: any) => {
+    if (spec) {
+      setEditSpecId(spec.id);
+      const f: Record<string, string> = {};
+      for (const k of ["wheelbase_mm", "overall_length_mm", "overall_width_mm", "overall_height_mm", "ground_clearance_mm", "cargo_length_mm", "cargo_width_mm", "kerb_weight_kg", "gross_weight_kg", "payload_kg", "seating_capacity", "engine_cc", "fuel_type", "notes"]) {
+        if (spec[k] !== null && spec[k] !== undefined) f[k] = String(spec[k]);
+      }
+      setSpecForm(f);
+    } else {
+      setEditSpecId(null);
+      setSpecForm({});
+    }
+    setFormError("");
+    setSpecOpen(true);
+  }, []);
+
+  const delSpec = useCallback(async (id: string) => {
+    if (!confirm("Delete this specification?")) return;
+    try {
+      await fetch(`${apiBase}/oem/specifications/${id}`, { method: "DELETE", headers: h });
+      if (specsModelId) loadDetail(specsModelId);
+    } catch {}
+  }, [specsModelId, loadDetail]);
+
+  const saveMount = useCallback(async () => {
+    setFormError("");
+    if (!specsModelId || !mountForm.point_name.trim()) { setFormError("Name is required"); return; }
+    const body: Record<string, any> = {};
+    if (editMountId) {
+      body.point_name = mountForm.point_name.trim();
+      if (mountForm.point_type) body.point_type = mountForm.point_type;
+    } else {
+      body.model_id = specsModelId;
+      body.point_name = mountForm.point_name.trim();
+      body.point_type = mountForm.point_type || "standard";
+    }
+    if (mountForm.position_x_mm) body.position_x_mm = Number(mountForm.position_x_mm);
+    if (mountForm.position_y_mm) body.position_y_mm = Number(mountForm.position_y_mm);
+    if (mountForm.position_z_mm) body.position_z_mm = Number(mountForm.position_z_mm);
+    if (mountForm.bolt_pattern) body.bolt_pattern = mountForm.bolt_pattern;
+    if (mountForm.torque_spec_nm) body.torque_spec_nm = Number(mountForm.torque_spec_nm);
+    if (mountForm.notes) body.notes = mountForm.notes;
+    try {
+      const url = editMountId ? `${apiBase}/oem/mounting-points/${editMountId}` : `${apiBase}/oem/models/${specsModelId}/mounting-points`;
+      const method = editMountId ? "PUT" : "POST";
+      const r = await fetch(url, { method, headers: JSON_H, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(await r.text());
+      setMountOpen(false); setEditMountId(null);
+      setMountForm({ point_name: "", point_type: "", position_x_mm: "", position_y_mm: "", position_z_mm: "", bolt_pattern: "", torque_spec_nm: "", notes: "" });
+      loadDetail(specsModelId);
+    } catch (e: unknown) { setFormError(e instanceof Error ? e.message : "Failed"); }
+  }, [mountForm, specsModelId, editMountId, loadDetail]);
+
+  const openMountModal = useCallback((mount?: any) => {
+    if (mount) {
+      setEditMountId(mount.id);
+      setMountForm({
+        point_name: mount.point_name || "", point_type: mount.point_type || "",
+        position_x_mm: mount.position_x_mm?.toString() || "", position_y_mm: mount.position_y_mm?.toString() || "", position_z_mm: mount.position_z_mm?.toString() || "",
+        bolt_pattern: mount.bolt_pattern || "", torque_spec_nm: mount.torque_spec_nm?.toString() || "",
+        notes: mount.notes || "",
+      });
+    } else {
+      setEditMountId(null);
+      setMountForm({ point_name: "", point_type: "", position_x_mm: "", position_y_mm: "", position_z_mm: "", bolt_pattern: "", torque_spec_nm: "", notes: "" });
+    }
+    setFormError("");
+    setMountOpen(true);
+  }, []);
+
+  const delMount = useCallback(async (id: string) => {
+    if (!confirm("Delete this mounting point?")) return;
+    try {
+      await fetch(`${apiBase}/oem/mounting-points/${id}`, { method: "DELETE", headers: h });
+      if (specsModelId) loadDetail(specsModelId);
+    } catch {}
+  }, [specsModelId, loadDetail]);
+
+  const saveRoute = useCallback(async () => {
+    setFormError("");
+    if (!specsModelId || !routeForm.path_name.trim()) { setFormError("Name is required"); return; }
+    const body: Record<string, any> = {};
+    if (editRouteId) {
+      body.path_name = routeForm.path_name.trim();
+      if (routeForm.path_type) body.path_type = routeForm.path_type;
+    } else {
+      body.model_id = specsModelId;
+      body.path_name = routeForm.path_name.trim();
+      body.path_type = routeForm.path_type || "cable";
+    }
+    if (routeForm.start_point) body.start_point = routeForm.start_point;
+    if (routeForm.end_point) body.end_point = routeForm.end_point;
+    if (routeForm.length_estimate_mm) body.length_estimate_mm = Number(routeForm.length_estimate_mm);
+    if (routeForm.notes) body.notes = routeForm.notes;
+    try {
+      const url = editRouteId ? `${apiBase}/oem/routing-paths/${editRouteId}` : `${apiBase}/oem/models/${specsModelId}/routing-paths`;
+      const method = editRouteId ? "PUT" : "POST";
+      const r = await fetch(url, { method, headers: JSON_H, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error(await r.text());
+      setRouteOpen(false); setEditRouteId(null);
+      setRouteForm({ path_name: "", path_type: "", start_point: "", end_point: "", length_estimate_mm: "", notes: "" });
+      loadDetail(specsModelId);
+    } catch (e: unknown) { setFormError(e instanceof Error ? e.message : "Failed"); }
+  }, [routeForm, specsModelId, editRouteId, loadDetail]);
+
+  const openRouteModal = useCallback((route?: any) => {
+    if (route) {
+      setEditRouteId(route.id);
+      setRouteForm({
+        path_name: route.path_name || "",
+        path_type: route.path_type || "",
+        start_point: route.start_point || "",
+        end_point: route.end_point || "",
+        length_estimate_mm: route.length_estimate_mm?.toString() || "",
+        notes: route.notes || "",
+      });
+    } else {
+      setEditRouteId(null);
+      setRouteForm({ path_name: "", path_type: "", start_point: "", end_point: "", length_estimate_mm: "", notes: "" });
+    }
+    setFormError("");
+    setRouteOpen(true);
+  }, []);
+
+  const delRoute = useCallback(async (id: string) => {
+    if (!confirm("Delete this routing path?")) return;
+    try {
+      await fetch(`${apiBase}/oem/routing-paths/${id}`, { method: "DELETE", headers: h });
+      if (specsModelId) loadDetail(specsModelId);
+    } catch {}
+  }, [specsModelId, loadDetail]);
+
+  const currentManuName = manuId ? manus.find((m: any) => m.id === manuId)?.name || "Unknown" : "";
+  const specFieldLabels: Record<string, string> = {
+    wheelbase_mm: "Wheelbase (mm)", overall_length_mm: "Length (mm)", overall_width_mm: "Width (mm)",
+    overall_height_mm: "Height (mm)", ground_clearance_mm: "Ground Clearance (mm)",
+    cargo_length_mm: "Cargo Length (mm)", cargo_width_mm: "Cargo Width (mm)",
+    kerb_weight_kg: "Kerb Weight (kg)", gross_weight_kg: "Gross Weight (kg)", payload_kg: "Payload (kg)",
+    seating_capacity: "Seating", engine_cc: "Engine CC", fuel_type: "Fuel Type", notes: "Notes",
+  };
 
   return (
     <div className="space-y-4">
@@ -475,7 +700,7 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
           <button type="button" onClick={() => setOemTab("manufacturers")} className={`rounded-md px-4 py-1.5 text-xs font-medium transition-all ${oemTab === "manufacturers" ? "bg-surface-card text-text-primary shadow-sm border border-border" : "text-text-tertiary hover:text-text-secondary"}`}>Manufacturers</button>
           <button type="button" onClick={() => setOemTab("models")} className={`rounded-md px-4 py-1.5 text-xs font-medium transition-all ${oemTab === "models" ? "bg-surface-card text-text-primary shadow-sm border border-border" : "text-text-tertiary hover:text-text-secondary"}`}>Vehicle Models</button>
         </div>
-        {oemTab === "manufacturers" && <Button size="sm" onClick={() => setFormOpen(true)}>+ Add Manufacturer</Button>}
+        {oemTab === "manufacturers" && <Button size="sm" onClick={() => { setManuOpen(true); setFormError(""); }}>+ Add Manufacturer</Button>}
       </div>
 
       {oemTab === "manufacturers" && (
@@ -485,12 +710,7 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-xs uppercase tracking-wider text-text-tertiary">
-                  <TH>Name</TH>
-                  <TH>Country</TH>
-                  <TH>Founded</TH>
-                  <TH>Models</TH>
-                  <TH>Active</TH>
-                  <TH>Actions</TH>
+                  <TH>Name</TH><TH>Country</TH><TH>Founded</TH><TH>Models</TH><TH>Active</TH><TH>Actions</TH>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -517,23 +737,19 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
 
       {oemTab === "models" && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setOemTab("manufacturers")} className="text-xs text-brand underline underline-offset-2 hover:text-brand-dark">&larr; Back to Manufacturers</button>
-            {manuId && <span className="text-xs text-text-tertiary">{manuName}</span>}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setOemTab("manufacturers")} className="text-xs text-brand underline underline-offset-2 hover:text-brand-dark">&larr; Back to Manufacturers</button>
+              {manuId && <span className="text-xs text-text-tertiary">{currentManuName}</span>}
+            </div>
+            {manuId && <Button size="sm" onClick={() => openModelModal()}>+ Add Model</Button>}
           </div>
           <Input value={modelSearch} onChange={(e) => setModelSearch(e.target.value)} placeholder="Search models..." className="max-w-xs" />
           <Card padding="none">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-xs uppercase tracking-wider text-text-tertiary">
-                  <TH>Model</TH>
-                  <TH>Generation</TH>
-                  <TH>Type</TH>
-                  <TH>Years</TH>
-                  <TH>Specs</TH>
-                  <TH>Mount</TH>
-                  <TH>Routing</TH>
-                  <TH>Actions</TH>
+                  <TH>Model</TH><TH>Generation</TH><TH>Type</TH><TH>Years</TH><TH>Specs</TH><TH>Mount</TH><TH>Routing</TH><TH>Actions</TH>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -545,12 +761,15 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
                     <TD className="text-xs text-text-tertiary">{m.year_start || "?"}{m.year_end ? `-${m.year_end}` : ""}</TD>
                     <TD>
                       <button type="button" onClick={() => loadDetail(m.id)} className="text-xs text-brand underline underline-offset-2 hover:text-brand-dark">
-                        {m.spec_count || 0} {specsModelId === m.id ? "(viewing)" : ""}
+                        {(specsModelId === m.id ? (specs?.length ?? 0) : m.spec_count || 0)} spec{(specsModelId === m.id ? ((specs?.length ?? 0) !== 1) : (m.spec_count || 0) !== 1) ? "s" : ""}
                       </button>
                     </TD>
-                    <TD className="text-xs text-text-tertiary">{specsModelId === m.id ? mountCount : "-"}</TD>
-                    <TD className="text-xs text-text-tertiary">{specsModelId === m.id ? routeCount : "-"}</TD>
-                    <TD><button type="button" onClick={() => delModel(m.id)} className="text-xs text-danger underline underline-offset-2">Delete</button></TD>
+                    <TD className="text-xs text-text-tertiary">{specsModelId === m.id ? mounts.length : (m.mounting_point_count || "-")}</TD>
+                    <TD className="text-xs text-text-tertiary">{specsModelId === m.id ? routes.length : (m.routing_path_count || "-")}</TD>
+                    <TD className="flex gap-2">
+                      <button type="button" onClick={() => openModelModal(m)} className="text-xs text-brand underline underline-offset-2">Edit</button>
+                      <button type="button" onClick={() => delModel(m.id)} className="text-xs text-danger underline underline-offset-2">Delete</button>
+                    </TD>
                   </tr>
                 ))}
               </tbody>
@@ -558,53 +777,225 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
             {models.length === 0 && <p className="px-4 py-6 text-center text-xs text-text-tertiary">{loading ? "Loading..." : "No models found"}</p>}
           </Card>
 
-          {specs && specsModelId && (
+          {specsModelId && specs !== null && (
             <Card>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-semibold text-text-primary">Specifications</h3>
+                <h3 className="text-sm font-semibold text-text-primary">
+                  Details for {models.find((m: any) => m.id === specsModelId)?.model_name || ""}
+                </h3>
                 <button type="button" onClick={() => { setSpecs(null); setSpecsModelId(null); }} className="text-xs text-text-tertiary underline underline-offset-2">Close</button>
               </div>
-              {Array.isArray(specs) && specs.length === 0 && <p className="text-xs text-text-tertiary">No specifications</p>}
-              {Array.isArray(specs) && specs.map((spec: any, idx: number) => (
-                <div key={idx} className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {Object.entries(spec).filter(([k]) => !["id", "model_id", "created_at", "notes"].includes(k)).map(([k, v]) => v != null ? (
-                    <div key={k}>
-                      <p className="text-[10px] uppercase tracking-wider text-text-tertiary">{k.replace(/_/g, " ")}</p>
-                      <p className="text-sm font-semibold text-text-primary">{String(v)}{k.includes("mm") ? " mm" : k.includes("kg") ? " kg" : ""}</p>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-medium text-text-secondary uppercase tracking-wider">Specifications</h4>
+                    <Button size="sm" variant="ghost" onClick={() => openSpecModal()}>+ Add</Button>
+                  </div>
+                  {specs.length === 0 ? <p className="text-xs text-text-tertiary">No specifications</p> : (
+                    <div className="space-y-2">
+                      {specs.map((spec: any) => (
+                        <div key={spec.id} className="rounded-lg border border-border p-3">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {Object.entries(spec).filter(([k]) => !["id", "model_id", "created_at", "notes"].includes(k)).map(([k, v]) => v != null ? (
+                              <div key={k}>
+                                <p className="text-[10px] uppercase tracking-wider text-text-tertiary">{k.replace(/_/g, " ")}</p>
+                                <p className="text-sm font-semibold text-text-primary">{String(v)}{k.includes("mm") ? " mm" : k.includes("kg") ? " kg" : ""}</p>
+                              </div>
+                            ) : null)}
+                          </div>
+                          {spec.notes && <p className="mt-1 text-xs text-text-tertiary">{spec.notes}</p>}
+                          <div className="mt-2 flex gap-2">
+                            <button type="button" onClick={() => openSpecModal(spec)} className="text-xs text-brand underline underline-offset-2">Edit</button>
+                            <button type="button" onClick={() => delSpec(spec.id)} className="text-xs text-danger underline underline-offset-2">Delete</button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ) : null)}
+                  )}
                 </div>
-              ))}
-              {!Array.isArray(specs) && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {Object.entries(specs).filter(([k]) => !["id", "model_id", "created_at", "notes"].includes(k)).map(([k, v]) => v != null ? (
-                    <div key={k}>
-                      <p className="text-[10px] uppercase tracking-wider text-text-tertiary">{k.replace(/_/g, " ")}</p>
-                      <p className="text-sm font-semibold text-text-primary">{String(v)}{k.includes("mm") ? " mm" : k.includes("kg") ? " kg" : ""}</p>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-medium text-text-secondary uppercase tracking-wider">Mounting Points ({mounts.length})</h4>
+                    <Button size="sm" variant="ghost" onClick={() => openMountModal()}>+ Add</Button>
+                  </div>
+                  {mounts.length === 0 ? <p className="text-xs text-text-tertiary">No mounting points</p> : (
+                    <div className="space-y-1">
+                      {mounts.map((mp: any) => (
+                        <div key={mp.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                          <div>
+                            <span className="text-sm font-medium text-text-primary">{mp.point_name}</span>
+                            {mp.point_type && <Badge variant="default" size="sm" className="ml-2">{mp.point_type}</Badge>}
+                            <span className="ml-2 text-xs text-text-tertiary font-mono">
+                              {mp.position_x_mm != null && `${mp.position_x_mm}, ${mp.position_y_mm}, ${mp.position_z_mm} mm`}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => openMountModal(mp)} className="text-xs text-brand underline underline-offset-2">Edit</button>
+                            <button type="button" onClick={() => delMount(mp.id)} className="text-xs text-danger underline underline-offset-2">Delete</button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ) : null)}
+                  )}
                 </div>
-              )}
-              {mountCount > 0 && <p className="mt-3 text-xs text-text-tertiary">{mountCount} mounting point(s)</p>}
-              {routeCount > 0 && <p className="text-xs text-text-tertiary">{routeCount} routing path(s)</p>}
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-xs font-medium text-text-secondary uppercase tracking-wider">Routing Paths ({routes.length})</h4>
+                    <Button size="sm" variant="ghost" onClick={() => openRouteModal()}>+ Add</Button>
+                  </div>
+                  {routes.length === 0 ? <p className="text-xs text-text-tertiary">No routing paths</p> : (
+                    <div className="space-y-1">
+                      {routes.map((rp: any) => (
+                        <div key={rp.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                          <div>
+                            <span className="text-sm font-medium text-text-primary">{rp.path_name}</span>
+                            {rp.path_type && <Badge variant="default" size="sm" className="ml-2">{rp.path_type}</Badge>}
+                            <span className="ml-2 text-xs text-text-tertiary">
+                              {rp.start_point && `${rp.start_point} → ${rp.end_point || "?"}`}
+                              {rp.length_estimate_mm && ` (${rp.length_estimate_mm} mm)`}
+                            </span>
+                            {rp.notes && <span className="ml-2 text-xs text-text-tertiary">- {rp.notes}</span>}
+                          </div>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => openRouteModal(rp)} className="text-xs text-brand underline underline-offset-2">Edit</button>
+                            <button type="button" onClick={() => delRoute(rp.id)} className="text-xs text-danger underline underline-offset-2">Delete</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </Card>
           )}
         </div>
       )}
 
-      {formOpen && (
+      {manuOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-md rounded-xl bg-surface-card p-6 shadow-xl border border-border">
             <h3 className="text-sm font-semibold text-text-primary mb-4">Add Manufacturer</h3>
             <div className="space-y-3">
-              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Manufacturer name *" />
-              <Input value={formCountry} onChange={(e) => setFormCountry(e.target.value)} placeholder="Country (optional)" />
-              <Input value={formYear} onChange={(e) => setFormYear(e.target.value)} placeholder="Founded year (optional)" type="number" />
+              <Input value={manuName} onChange={(e) => setManuName(e.target.value)} placeholder="Manufacturer name *" />
+              <Input value={manuCountry} onChange={(e) => setManuCountry(e.target.value)} placeholder="Country (optional)" />
+              <Input value={manuYear} onChange={(e) => setManuYear(e.target.value)} placeholder="Founded year (optional)" type="number" />
               {formError && <p className="text-xs text-danger">{formError}</p>}
             </div>
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => { setFormOpen(false); setFormError(""); }}>Cancel</Button>
+              <Button variant="secondary" onClick={() => { setManuOpen(false); setFormError(""); }}>Cancel</Button>
               <Button variant="primary" onClick={createManu}>Create</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modelOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-xl bg-surface-card p-6 shadow-xl border border-border">
+            <h3 className="text-sm font-semibold text-text-primary mb-4">{editModelId ? "Edit Model" : "Add Model"}</h3>
+            <div className="space-y-3">
+              <Input value={modelForm.model_name} onChange={(e) => setModelForm({ ...modelForm, model_name: e.target.value })} placeholder="Model name *" />
+              <Input value={modelForm.generation} onChange={(e) => setModelForm({ ...modelForm, generation: e.target.value })} placeholder="Generation (e.g. Mk2)" />
+              <div>
+                <label className="block text-xs font-medium text-text-secondary mb-1">Vehicle Type</label>
+                <select value={modelForm.vehicle_type} onChange={(e) => setModelForm({ ...modelForm, vehicle_type: e.target.value })}
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand/30">
+                  <option value="auto_rickshaw">Auto Rickshaw</option>
+                  <option value="hatchback">Hatchback</option>
+                  <option value="sedan">Sedan</option>
+                  <option value="suv">SUV</option>
+                  <option value="pickup">Pickup</option>
+                  <option value="van">Van</option>
+                  <option value="truck">Truck</option>
+                  <option value="bus">Bus</option>
+                  <option value="motorcycle">Motorcycle</option>
+                  <option value="bicycle">Bicycle</option>
+                  <option value="three_wheeler_goods">Three Wheeler Goods</option>
+                  <option value="tractor">Tractor</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="flex gap-3">
+                <Input value={modelForm.year_start} onChange={(e) => setModelForm({ ...modelForm, year_start: e.target.value })} placeholder="Year start" type="number" />
+                <Input value={modelForm.year_end} onChange={(e) => setModelForm({ ...modelForm, year_end: e.target.value })} placeholder="Year end" type="number" />
+              </div>
+              {formError && <p className="text-xs text-danger">{formError}</p>}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => { setModelOpen(false); setFormError(""); }}>Cancel</Button>
+              <Button variant="primary" onClick={saveModel}>{editModelId ? "Save" : "Create"}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {specOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-lg rounded-xl bg-surface-card p-6 shadow-xl border border-border max-h-[90vh] overflow-y-auto">
+            <h3 className="text-sm font-semibold text-text-primary mb-4">{editSpecId ? "Edit Specification" : "Add Specification"}</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {Object.entries(specFieldLabels).map(([k, label]) => (
+                <Input key={k} label={label} value={specForm[k] ?? ""} onChange={(e) => setSpecForm({ ...specForm, [k]: e.target.value })}
+                  type={k === "notes" ? "text" : k === "fuel_type" ? "text" : "number"} />
+              ))}
+            </div>
+            {formError && <p className="mt-2 text-xs text-danger">{formError}</p>}
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => { setSpecOpen(false); setFormError(""); }}>Cancel</Button>
+              <Button variant="primary" onClick={saveSpec}>{editSpecId ? "Save" : "Create"}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mountOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-md rounded-xl bg-surface-card p-6 shadow-xl border border-border">
+            <h3 className="text-sm font-semibold text-text-primary mb-4">{editMountId ? "Edit Mounting Point" : "Add Mounting Point"}</h3>
+            <div className="space-y-3">
+              <Input value={mountForm.point_name} onChange={(e) => setMountForm({ ...mountForm, point_name: e.target.value })} placeholder="Name *" />
+              <Input value={mountForm.point_type} onChange={(e) => setMountForm({ ...mountForm, point_type: e.target.value })} placeholder="Type (e.g. engine, battery, body)" />
+              <div className="flex gap-3">
+                <Input value={mountForm.position_x_mm} onChange={(e) => setMountForm({ ...mountForm, position_x_mm: e.target.value })} placeholder="X (mm)" type="number" />
+                <Input value={mountForm.position_y_mm} onChange={(e) => setMountForm({ ...mountForm, position_y_mm: e.target.value })} placeholder="Y (mm)" type="number" />
+                <Input value={mountForm.position_z_mm} onChange={(e) => setMountForm({ ...mountForm, position_z_mm: e.target.value })} placeholder="Z (mm)" type="number" />
+              </div>
+              <div className="flex gap-3">
+                <Input value={mountForm.bolt_pattern} onChange={(e) => setMountForm({ ...mountForm, bolt_pattern: e.target.value })} placeholder="Bolt pattern (e.g. 4x100)" />
+                <Input value={mountForm.torque_spec_nm} onChange={(e) => setMountForm({ ...mountForm, torque_spec_nm: e.target.value })} placeholder="Torque (Nm)" type="number" />
+              </div>
+              <Input value={mountForm.notes} onChange={(e) => setMountForm({ ...mountForm, notes: e.target.value })} placeholder="Notes (optional)" />
+              {formError && <p className="text-xs text-danger">{formError}</p>}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => { setMountOpen(false); setFormError(""); }}>Cancel</Button>
+              <Button variant="primary" onClick={saveMount}>{editMountId ? "Save" : "Create"}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {routeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-lg rounded-xl bg-surface-card p-6 shadow-xl border border-border">
+            <h3 className="text-sm font-semibold text-text-primary mb-4">{editRouteId ? "Edit Routing Path" : "Add Routing Path"}</h3>
+            <div className="space-y-3">
+              <Input value={routeForm.path_name} onChange={(e) => setRouteForm({ ...routeForm, path_name: e.target.value })} placeholder="Path name *" />
+              <Input value={routeForm.path_type} onChange={(e) => setRouteForm({ ...routeForm, path_type: e.target.value })} placeholder="Path type (e.g. cable, hose)" />
+              <div className="flex gap-3">
+                <Input value={routeForm.start_point} onChange={(e) => setRouteForm({ ...routeForm, start_point: e.target.value })} placeholder="Start point" />
+                <Input value={routeForm.end_point} onChange={(e) => setRouteForm({ ...routeForm, end_point: e.target.value })} placeholder="End point" />
+              </div>
+              <Input value={routeForm.length_estimate_mm} onChange={(e) => setRouteForm({ ...routeForm, length_estimate_mm: e.target.value })} placeholder="Length estimate (mm)" type="number" />
+              <Input value={routeForm.notes} onChange={(e) => setRouteForm({ ...routeForm, notes: e.target.value })} placeholder="Notes (optional)" />
+              {formError && <p className="text-xs text-danger">{formError}</p>}
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => { setRouteOpen(false); setFormError(""); }}>Cancel</Button>
+              <Button variant="primary" onClick={saveRoute}>{editRouteId ? "Save" : "Create"}</Button>
             </div>
           </div>
         </div>

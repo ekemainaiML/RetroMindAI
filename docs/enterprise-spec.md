@@ -6,9 +6,13 @@ This specification covers architecture, data models, API contracts, and implemen
 
 ---
 
+> **Implementation key:** ✅ = shipped | 📋 = planned | 🚧 = in progress
+
+---
+
 ## 2. Security Architecture
 
-### 2.1 Role-Based Access Control (RBAC)
+### 2.1 Role-Based Access Control (RBAC) 📋
 
 #### Data Model
 
@@ -52,7 +56,7 @@ Add to existing `User` model: `current_workshop_id` (UUID nullable) for multi-wo
 - Existing endpoints: audit and add `require_role` where needed. Admin endpoints get `require_role(..., ["admin"])`.
 - Migration `011_add_workspace_roles.py`.
 
-### 2.2 OAuth / SSO
+### 2.2 OAuth / SSO ✅
 
 #### Providers
 
@@ -94,7 +98,7 @@ POST /api/v1/auth/sso/link
      -> 200 { "status": "linked" }
 ```
 
-### 2.3 Data Encryption at Rest
+### 2.3 Data Encryption at Rest 📋
 
 #### Storage Encryption
 
@@ -121,7 +125,7 @@ def decrypt_file(encrypted: bytes) -> bytes:
 - Use `sqlalchemy-utils` `EncryptedType` for PII columns: `workshops.name`, `workshops.email`, `users.name`, `users.email`.
 - Key: same `ENCRYPTION_KEY` environment variable.
 
-### 2.4 Audit Trail — Before/After State
+### 2.4 Audit Trail — Before/After State ✅
 
 #### Data Model
 
@@ -153,7 +157,7 @@ CREATE INDEX idx_audit_entity ON audit_events(entity_type, entity_id);
 - Serialize before/after state as JSONB. Truncate to 4KB if payload exceeds threshold.
 - Expose via: `GET /api/v1/admin/audit-log?workshop_id=...&entity_type=...&from=...&to=...`
 
-### 2.5 API Key Rotation & Breach Detection
+### 2.5 API Key Rotation & Breach Detection ✅
 
 #### Key Rotation
 
@@ -169,7 +173,7 @@ CREATE INDEX idx_audit_entity ON audit_events(entity_type, entity_id);
 - Revocation: set `api_key_revoked_at = NOW()`, send alert email.
 - Allowlisted IPs stored in `api_key_ip_allowlist` JSONB column.
 
-### 2.6 Rate Limiting Per Tier
+### 2.6 Rate Limiting Per Tier ✅
 
 #### Tier Limits
 
@@ -190,7 +194,7 @@ CREATE INDEX idx_audit_entity ON audit_events(entity_type, entity_id);
 
 ## 3. Observability Architecture
 
-### 3.1 Deep Health Checks
+### 3.1 Deep Health Checks ✅
 
 ```
 GET /health
@@ -213,7 +217,7 @@ GET /health/ready
 -> 503 { "status": "not_ready", "failing": ["postgresql"] }
 ```
 
-### 3.2 Structured JSON Logging
+### 3.2 Structured JSON Logging 📋
 
 #### Log Format
 
@@ -249,7 +253,7 @@ async def add_correlation_id(request: Request, call_next):
         return response
 ```
 
-### 3.3 Distributed Tracing
+### 3.3 Distributed Tracing 📋
 
 #### Dependencies
 
@@ -277,7 +281,7 @@ POST /api/v1/intake/{id}/analyze
       └── digital_twin
 ```
 
-### 3.4 Circuit Breakers
+### 3.4 Circuit Breakers ✅
 
 #### Circuit Breaker Pattern
 
@@ -325,7 +329,7 @@ class CircuitBreaker:
 | Anthropic | Skip generative refinement |
 | Object Storage | Return cached/empty result |
 
-### 3.5 Backup & DR
+### 3.5 Backup & DR 📋
 
 #### Infrastructure
 
@@ -346,7 +350,7 @@ backup/
 | Neo4j full | Daily 03:00 UTC | 30 daily + 12 monthly |
 | WAL archiving | Continuous (if enabled) | 7 days |
 
-### 3.6 Alerting
+### 3.6 Alerting 📋
 
 #### Prometheus Rules (`infra/prometheus/alerts.yml`)
 
@@ -392,7 +396,7 @@ Provided as `infra/grafana/dashboard.json` (exportable JSON model) with panels:
 
 ## 4. Multi-Tenancy Architecture
 
-### 4.1 Subscription & Billing
+### 4.1 Subscription & Billing 📋
 
 #### Data Model
 
@@ -432,7 +436,7 @@ CREATE TABLE pricing_plans (
 - On `invoice.payment_failed`: set `subscription_status = 'past_due'`, send email, 7-day grace period.
 - After 7 days past due: downgrade to Free tier.
 
-### 4.2 Team Management
+### 4.2 Team Management 📋
 
 #### Invitation Flow
 
@@ -453,44 +457,57 @@ GET    /api/v1/workshop/invitations                  -> list pending invitations
 DELETE /api/v1/workshop/invitations/{invitation_id}  -> revoke invitation
 ```
 
-### 4.3 Email Notifications
+### 4.3 Email Notifications ✅
 
 #### Email Service
 
 ```
-INFRASTRUCTURE/
-├── email/
-    ├── sender.py         # SMTP/SendGrid/SES abstraction
-    ├── templates/
-    │   ├── assessment_complete.html
-    │   ├── assessment_failed.html
-    │   ├── compliance_pass.html
-    │   ├── compliance_fail.html
-    │   ├── api_key_expiring.html
-    │   ├── team_invitation.html
-    │   ├── payment_receipt.html
-    │   ├── payment_failed.html
-    │   └── daily_digest.html
-    └── scheduler.py      # RQ job for daily digest
+backend/infrastructure/email/
+├── sender.py              # aiosmtplib SMTP sender, Jinja2 templates
+├── preferences.py         # per-workshop JSONB preferences (CRUD)
+├── templates/
+│   ├── assessment_complete.html
+│   ├── assessment_failed.html
+│   ├── key_expiring.html
+│   ├── team_invite.html
+│   ├── portal_invite.html
+│   ├── payment_receipt.html
+│   └── daily_digest.html
 ```
 
-#### Email Preferences Model
+#### API Endpoints
+
+```
+GET  /api/v1/notifications/preferences     -> { "preferences": { ... } }
+PUT  /api/v1/notifications/preferences     -> Body: { "assessment_complete": true, ... }
+POST /api/v1/notifications/test            -> Sends test email to workshop email
+```
+
+#### Email Preferences Model (actual)
 
 ```sql
 CREATE TABLE email_preferences (
-    user_id             UUID PRIMARY KEY REFERENCES users(id),
-    assessment_complete BOOLEAN DEFAULT TRUE,
-    assessment_failed   BOOLEAN DEFAULT TRUE,
-    compliance_alerts   BOOLEAN DEFAULT TRUE,
-    api_key_expiry      BOOLEAN DEFAULT TRUE,
-    team_invitations    BOOLEAN DEFAULT TRUE,
-    billing             BOOLEAN DEFAULT TRUE,
-    daily_digest        BOOLEAN DEFAULT FALSE,
-    digest_frequency    VARCHAR(10) DEFAULT 'daily'
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workshop_id     UUID NOT NULL REFERENCES workshops(id) ON DELETE CASCADE UNIQUE,
+    preferences     JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_by      UUID REFERENCES users(id),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Default preferences dict:
+-- {
+--   "assessment_complete": true,
+--   "assessment_failed":   true,
+--   "key_expiring":        true,
+--   "team_invite":         true,
+--   "payment_receipt":     true,
+--   "daily_digest":        false,
+--   "portal_invite":       true
+-- }
 ```
 
-### 4.4 Usage Quotas & Metering
+### 4.4 Usage Quotas & Metering 📋
 
 #### Metering Data Model
 
@@ -523,7 +540,7 @@ GROUP BY workshop_id, metric, DATE_TRUNC('month', recorded_at);
 | `images_uploaded` | count | Image upload |
 | `recommendations_generated` | count | Assessment completes |
 
-### 4.5 White-Labeling
+### 4.5 White-Labeling ✅
 
 #### Data Model
 
@@ -532,56 +549,107 @@ ALTER TABLE workshops ADD COLUMN branding JSONB DEFAULT '{}'::jsonb;
 -- { "logo_url": "...", "primary_color": "#2563eb", "secondary_color": "#7c3aed", "custom_domain": "..." }
 ```
 
+#### API Endpoints
+
+```
+GET /api/v1/workshop/branding     -> { "logo_url": "...", "primary_color": "...", "secondary_color": "...", "custom_domain": "..." }
+PUT /api/v1/workshop/branding     -> Body: { "logo_url": "...", "primary_color": "...", ... }
+```
+
 #### Implementation
 
-- CSS custom properties (`--brand-primary`, `--brand-secondary`) injected via API response + stored in localStorage.
-- Logo URL returned in `GET /api/v1/workshop/settings` and applied to header/email templates/reports.
+- `BrandingInit` component fetches branding on app mount and sets CSS custom properties on `:root`.
+- CSS custom properties: `--brand-primary`, `--brand-secondary` injected via runtime styles.
+- Logo URL returned in branding API and applied to header, email templates, PDF reports.
+- PDF reports: logo fetched server-side via `httpx` and embedded as `data:` URI (weasyprint cannot resolve external URLs).
+- `BrandingForm` component in Settings page provides a UI for customizing.
 - Custom domain: Caddy automatically provisions TLS certs. Workshop's DNS must CNAME to platform domain.
-- PDF reports: logo + brand colors applied via WeasyPrint or Playwright PDF.
 
-### 4.6 Customer Portal
+### 4.6 Customer Portal ✅
 
-#### Data Model
+#### Data Model (actual)
 
 ```sql
-ALTER TABLE jobs ADD COLUMN customer_token VARCHAR(64) UNIQUE;
-ALTER TABLE jobs ADD COLUMN customer_status VARCHAR(20) DEFAULT 'pending'
-    CHECK (customer_status IN ('pending', 'viewed', 'approved', 'changes_requested'));
-ALTER TABLE jobs ADD COLUMN customer_approved_at TIMESTAMPTZ;
-ALTER TABLE jobs ADD COLUMN customer_notes TEXT;
+ALTER TABLE intakes ADD COLUMN portal_token VARCHAR(64) UNIQUE;
+ALTER TABLE intakes ADD COLUMN portal_status VARCHAR(20) DEFAULT 'pending'
+    CHECK (portal_status IN ('pending', 'viewed', 'approved', 'changes_requested'));
+ALTER TABLE intakes ADD COLUMN portal_approved_at TIMESTAMPTZ;
+ALTER TABLE intakes ADD COLUMN portal_notes TEXT;
+```
+
+#### API Endpoints
+
+```
+GET  /api/v1/portal/sessions                    -> List portal sessions for workshop
+POST /api/v1/intake/{id}/portal                  -> Create portal session, return shareable link
+POST /api/v1/portal/{token}/respond              -> Customer approves/rejects ({ "action": "approved"|"changes_requested", "notes": "..." })
 ```
 
 #### Portal Page
 
-- Route: `GET /customer/{token}` (no auth required).
+- Route: `/portal/view/{token}` (no auth required).
 - Renders: vehicle summary, status, feasibility score (non-technical), recommendation summary, approve/request changes buttons.
 - Token is a random 64-char hex string (sha256 hashed in DB for storage).
-- Token expires after 30 days of inactivity.
+- A "Shared Links" table on the report page shows all portal sessions for that assessment.
 
-### 4.7 PDF Report Export
+### 4.7 PDF Report Export ✅
 
 #### Flow
 
 1. User clicks "Download PDF" on report page.
 2. Frontend calls `POST /api/v1/reports/{assessment_id}/export-pdf`.
 3. Backend enqueues PDF generation job (RQ worker).
-4. Worker uses Playwright (headless Chromium) or WeasyPrint to render HTML → PDF.
-5. PDF is uploaded to object storage. Job status updated to `ready` with download URL.
-6. If generation >30s: email notification with download link.
+4. Worker uses WeasyPrint to render HTML → PDF server-side (Python, no headless browser needed).
+5. PDF is returned directly to the client or uploaded to object storage.
+
+#### Implementation Notes
+
+- Uses `weasyprint` for server-side HTML-to-PDF rendering (no Playwright/Chromium dependency).
+- Report sections use `build_report_sections()` to produce structured section data.
+- Dedicated renderers exist for all 14 section types.
+- Logo is embedded as `data:` URI (server-side fetch via `httpx`) since weasyprint cannot resolve external URLs.
+- Workshop branding (colors, logo) are applied to PDF header.
 
 #### Endpoints
 
 ```
-POST   /api/v1/reports/{assessment_id}/export-pdf
-       -> 202 { "export_job_id": "uuid", "status": "processing" }
-
-GET    /api/v1/reports/{assessment_id}/export-pdf/{export_job_id}
-       -> 200 { "status": "ready", "download_url": "..." }
-       -> 200 { "status": "processing" }
-       -> 404
+POST /api/v1/reports/{intake_id}/export-pdf  -> StreamingResponse (PDF bytes)
 ```
 
-### 4.8 Batch Operations
+### 4.8 Batch Operations ✅
+
+#### Data Model
+
+```sql
+CREATE TABLE batches (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    workshop_id     UUID NOT NULL REFERENCES workshops(id),
+    total           INTEGER NOT NULL DEFAULT 0,
+    completed       INTEGER NOT NULL DEFAULT 0,
+    failed          INTEGER NOT NULL DEFAULT 0,
+    status          VARCHAR(20) DEFAULT 'processing',
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE batch_jobs (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    batch_id        UUID NOT NULL REFERENCES batches(id),
+    intake_id       UUID REFERENCES intakes(id),
+    vehicle_name    VARCHAR(255),
+    status          VARCHAR(20) DEFAULT 'pending',
+    error_message   TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+#### API Endpoints
+
+```
+POST /api/v1/batch/intake              -> Multipart ZIP upload, creates intakes + enqueues jobs
+GET  /api/v1/batch/{batch_id}          -> Batch summary with job list
+GET  /api/v1/batches                    -> List all batches for the workshop
+```
 
 #### Batch Flow
 
@@ -596,39 +664,35 @@ Content-Type: multipart/form-data
     "jobs": [
         { "vehicle_name": "vehicle_01", "intake_id": "uuid", "status": "created" },
         { "vehicle_name": "vehicle_02", "intake_id": "uuid", "status": "created" },
-        { "vehicle_name": "vehicle_03", "intake_id": "uuid", "status": "validation_failed", "error": "Missing mandatory view: left_side_profile" }
+        ...
     ]
 }
 ```
 
-#### Batch Dashboard
+#### Frontend
 
-```
-GET /api/v1/batch/{batch_id}
--> 200 {
-    "batch_id": "uuid",
-    "total": 10,
-    "completed": 5,
-    "failed": 1,
-    "avg_feasibility": 72.3,
-    "jobs": [ ... ]
-}
-```
+- `/batch` page shows list of batches with status, progress, and per-job detail.
+- Upload step: file picker + submit button.
+- Results step: summary card (total / completed / failed / avg feasibility) + expandable job table.
 
-### 4.9 Mobile Field Capture
+### 4.9 Mobile Field Capture ✅
 
 #### Camera Capture UI
 
+- Route: `/capture`
 - Uses `MediaDevices.getUserMedia` with `facingMode: "environment"`.
+- 6 view selector tabs: front bumper, rear bumper, left side, right side, dashboard, underbody.
 - View-specific overlay guides: rectangle outline for each mandatory view.
 - After capture: image is validated client-side (blur detection via Laplacian variance), shows retake prompt if blurry.
+- After 3rd required view, analysis auto-triggers.
+- Vehicle validation (type check) runs on uploaded images; invalid vehicles show error overlay with "Try Again".
 - Upload: `POST /api/v1/intake` with captured blob.
 
 #### Offline Support
 
-- Service worker caches: app shell, assessment history (IndexedDB), captured photos (IndexedDB, up to 50MB quota).
+- IndexedDB-based offline queue stores captured photos when offline.
 - Background sync: when connectivity returns, queued photos are uploaded and pending intakes are submitted.
-- Offline indicator in header: "Offline — X photos pending sync".
+- No separate service worker cache for capture page; relies on IndexedDB for offline photo storage.
 
 ---
 
@@ -851,17 +915,22 @@ services:
 
 ## 7. Database Migrations Summary
 
-| Migration | Description |
-|-----------|-------------|
-| 011 | `workspace_roles` table, RBAC support |
-| 012 | SSO fields on users, OAuth state cache |
-| 013 | `audit_events` table with before/after state |
-| 014 | API key expiry, breach detection columns |
-| 015 | Pricing plans, billing fields, usage metering |
-| 016 | Email preferences, notification templates |
-| 017 | Batch operations tracking |
-| 018 | Customer portal fields, invite tokens |
-| 019 | Workshop branding config (JSONB) |
+| Migration | Description | Status |
+|-----------|-------------|--------|
+| 003 | Add `workshops.email`, `workshops.tier` | ✅ |
+| 005 | Add `intakes.portal_token`, `intakes.portal_status` | ✅ |
+| 008 | Add `jobs.max_retries`, `jobs.retry_count` | ✅ |
+| 014 | Create `email_preferences` table | ✅ |
+| 015 | Add `workshops.billing_*` fields, create `usage_metering` | ✅ |
+| 016 | Add `OEM*` vehicle database tables | ✅ |
+| 017 | Add `workshops.name` unique constraint cleanup | ✅ |
+| 018 | Create `batches`, `batch_jobs` tables | ✅ |
+| 011 | `workspace_roles` table, RBAC support | 📋 |
+| 012 | SSO fields on users, OAuth state cache | 📋 |
+| 013 | `audit_events` table with before/after state | 📋 |
+| 019 | Workshop branding config (JSONB) | ✅ |
+| — | Pricing plans, billing fields, usage metering | 📋 |
+| — | Customer portal fields, invite tokens | ✅ |
 
 ---
 

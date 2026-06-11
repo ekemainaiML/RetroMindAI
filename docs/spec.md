@@ -42,8 +42,12 @@ RetroMind AI: a self-learning EV retrofit intelligence network for imperfect rea
 | Optimization | Template-based | Battery placement, wiring guidance |
 | Primary DB | PostgreSQL 16 | Jobs, assessments, risks, compliance reports, entity state |
 | Knowledge Graph | Neo4j (AuraDB Free Tier) | Retrofit DNA, cross-retrofit similarity, pattern learning |
-| Object Storage | OCI Object Storage (S3-compatible) | Vehicle images, assessment artifacts, report exports |
+| Object Storage | R2 / OCI Object Storage (S3-compatible) | Vehicle images, assessment artifacts, report exports |
 | Reverse Proxy | Caddy | Let's Encrypt auto TLS, frontend + API routing |
+| Mail Server | MailHog (dev) / SendGrid (prod) | Email notifications, portal invites, digests |
+| CAD Engine | FreeCAD (headless) | 3D model generation for digital twin |
+| SSO | Google OAuth + Microsoft Azure AD | Enterprise single sign-on |
+| Search | Meilisearch (optional) | Full-text search across assessments |
 
 ---
 
@@ -63,8 +67,16 @@ RetroMind AI: a self-learning EV retrofit intelligence network for imperfect rea
 | `risks` | Risk record management (subdomain of `assessments`) | No |
 | `compliance` | Compliance state tracking (subdomain of `assessments`) | No |
 | `retrofits` | Retrofit lifecycle management (deferred to v2) | No |
+| `billing` | Subscription tiers, Stripe payments, usage metering | Yes |
+| `portal` | Customer-facing assessment portal (token-based) | Yes |
+| `branding` | White-label config (logo, colors, custom domain) | Yes |
+| `batch` | Multi-vehicle ZIP upload workflow | Yes |
+| `notifications` | Email preferences, notification dispatch | Yes |
+| `auth` | SSO (Google, Azure AD), session management | Yes |
 
-Workflow composition for v1: `intake -> assessment -> recommendation -> report`
+Enterprise workflow additions: `batch intake -> assessments -> portal sharing`, `SSO -> billing -> branding`.
+
+Core workflow composition for v1: `intake -> assessment -> recommendation -> report`
 
 ---
 
@@ -395,6 +407,62 @@ POST /api/v1/intake/{intake_id}/analyze
 ```
 GET /api/v1/reports/{assessment_id}
 -> 200 { /* 13-section compliance report */ }
+
+POST /api/v1/reports/{intake_id}/export-pdf
+-> StreamingResponse (PDF bytes via WeasyPrint)
+```
+
+### 7.7 Enterprise API
+
+The following API endpoints support enterprise features. Full documentation in [`docs/enterprise-spec.md`](enterprise-spec.md).
+
+#### Authentication & SSO
+```
+GET  /api/v1/auth/sso/{provider}      -> Redirect to SSO provider (google/microsoft)
+GET  /api/v1/auth/sso/{provider}/callback  -> SSO callback
+GET  /api/v1/auth/me                   -> Current user profile with workshop context
+PUT  /api/v1/auth/password             -> Change password
+POST /api/v1/auth/logout               -> Invalidate session
+```
+
+#### Billing & Subscriptions
+```
+GET  /api/v1/billing/subscription      -> Current subscription details
+POST /api/v1/billing/create-checkout   -> Create Stripe checkout session
+GET  /api/v1/billing/portal            -> Stripe customer portal link
+POST /api/v1/billing/stripe-webhook    -> Stripe event webhook
+```
+
+#### Email Notifications
+```
+GET  /api/v1/notifications/preferences      -> Get notification preferences
+PUT  /api/v1/notifications/preferences      -> Update notification preferences
+POST /api/v1/notifications/test             -> Send test email
+```
+
+#### White-Labeling (Branding)
+```
+GET  /api/v1/workshop/branding         -> Get branding config (logo, colors)
+PUT  /api/v1/workshop/branding         -> Update branding config
+```
+
+#### Customer Portal
+```
+GET  /api/v1/portal/sessions           -> List portal sessions for workshop
+POST /api/v1/intake/{id}/portal         -> Create portal session, return shareable link
+POST /api/v1/portal/{token}/respond     -> Customer approves/rejects assessment
+```
+
+#### Batch Operations
+```
+POST /api/v1/batch/intake              -> Upload ZIP batch of vehicle photos
+GET  /api/v1/batch/{batch_id}          -> Batch summary with job list
+GET  /api/v1/batches                   -> List all batches for workshop
+```
+
+#### Audit Trail
+```
+GET  /api/v1/admin/audit-log           -> Query audit events (paginated, filterable)
 ```
 
 ---
