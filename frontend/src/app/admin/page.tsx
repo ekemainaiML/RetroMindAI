@@ -41,7 +41,7 @@ type Metrics = {
   unique_workshops_24h: number;
 };
 
-type Tab = "metrics" | "workshops" | "users" | "audit-logs" | "oem" | "training";
+type Tab = "metrics" | "workshops" | "users" | "audit-logs" | "oem" | "training" | "optimization" | "rl";
 
 type UserItem = {
   id: string;
@@ -89,6 +89,10 @@ export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [trainingStatus, setTrainingStatus] = useState<any>(null);
   const [trainingModelBusy, setTrainingModelBusy] = useState<string | null>(null);
+  const [optStatus, setOptStatus] = useState<any>(null);
+  const [optBusy, setOptBusy] = useState(false);
+  const [rlStatus, setRlStatus] = useState<any>(null);
+  const [rlBusy, setRlBusy] = useState(false);
   const LOG_LIMIT = 50;
 
   const load = useCallback(async (keyOverride?: string) => {
@@ -114,6 +118,10 @@ export default function AdminPage() {
         setLogTotal(r.total);
       } else if (tab === "training") {
         setTrainingStatus(await apiFetch<any>("/admin/training/status", effectiveKey));
+      } else if (tab === "optimization") {
+        setOptStatus(await apiFetch<any>("/admin/optimization/status", effectiveKey));
+      } else if (tab === "rl") {
+        setRlStatus(await apiFetch<any>("/admin/rl/status", effectiveKey));
       }
       setAuthenticated(true);
     } catch (e: unknown) {
@@ -134,6 +142,8 @@ export default function AdminPage() {
     { key: "audit-logs", label: "Audit Logs" },
     { key: "oem", label: "OEM Data" },
     { key: "training", label: "Training" },
+    { key: "optimization", label: "Optimization" },
+    { key: "rl", label: "RL Training" },
   ];
 
   return (
@@ -404,6 +414,82 @@ export default function AdminPage() {
           ) : (
             <p className="text-xs text-text-tertiary">Loading training status...</p>
           )}
+        </div>
+      )}
+
+      {authenticated && tab === "optimization" && (
+        <div className="space-y-3">
+          <Card>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-text-primary">Hyperparameter Optimization</h3>
+              <Button variant="primary" size="sm" disabled={optBusy} onClick={async () => {
+                setOptBusy(true);
+                try {
+                  const key = getStoredAdminKey();
+                  const res = await fetch(`${API_BASE}/admin/optimization/run?n_trials=100`, { method: "POST", headers: { "X-API-Key": key } });
+                  if (!res.ok) throw new Error(await res.text());
+                  const result = await res.json();
+                  alert(`Optimization started: ${result.status}`);
+                  setOptStatus(await apiFetch<any>("/admin/optimization/status", key));
+                } catch (e: any) {
+                  alert(`Failed: ${e.message}`);
+                } finally {
+                  setOptBusy(false);
+                }
+              }}>{optBusy ? "Running…" : "Run 100 Trials"}</Button>
+            </div>
+            {optStatus ? (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs"><span className="text-text-secondary">Status</span><span className="font-medium text-text-primary">{optStatus.status}</span></div>
+                {optStatus.results && (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium text-text-secondary mb-1">Best Parameters</p>
+                    <pre className="rounded-lg border border-border bg-surface-muted p-3 text-xs font-mono text-text-primary overflow-x-auto">
+                      {JSON.stringify(optStatus.results, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-text-tertiary">Loading optimization status...</p>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {authenticated && tab === "rl" && (
+        <div className="space-y-3">
+          <Card>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-text-primary">RL Recommendation Agent</h3>
+              <Button variant="primary" size="sm" disabled={rlBusy} onClick={async () => {
+                setRlBusy(true);
+                try {
+                  const key = getStoredAdminKey();
+                  const res = await fetch(`${API_BASE}/admin/rl/train?num_iterations=100`, { method: "POST", headers: { "X-API-Key": key } });
+                  if (!res.ok) throw new Error(await res.text());
+                  const result = await res.json();
+                  alert(`RL training started: ${result.status}`);
+                  setRlStatus(await apiFetch<any>("/admin/rl/status", key));
+                } catch (e: any) {
+                  alert(`Failed: ${e.message}`);
+                } finally {
+                  setRlBusy(false);
+                }
+              }}>{rlBusy ? "Training…" : "Train (100 iterations)"}</Button>
+            </div>
+            {rlStatus ? (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs"><span className="text-text-secondary">RLlib Available</span><span className={`font-medium ${rlStatus.rllib_available ? "text-success" : "text-danger"}`}>{rlStatus.rllib_available ? "Yes" : "No"}</span></div>
+                <div className="flex justify-between text-xs"><span className="text-text-secondary">RLlib Probed</span><span className="font-medium text-text-primary">{rlStatus.rllib_probed ? "Yes" : "No"}</span></div>
+                {!rlStatus.rllib_available && (
+                  <p className="mt-2 text-xs text-warning">ray[rllib] is not installed. Install with: pip install retromind[rllib]</p>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-text-tertiary">Loading RL status...</p>
+            )}
+          </Card>
         </div>
       )}
 
