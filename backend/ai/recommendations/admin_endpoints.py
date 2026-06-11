@@ -20,11 +20,15 @@ def train_rl(
     db: Session = Depends(get_db),
 ):
     """Train RL recommendation agent from historical feedback data."""
-    if not CapabilityRegistry.has("rllib"):
+    try:
+        import ray  # noqa: F401
+        from ray.rllib.algorithms.ppo import PPOConfig  # noqa: F401
+    except ImportError:
         raise HTTPException(
             status_code=400,
             detail="ray[rllib] not available. Install with: pip install retromind[rllib]",
         )
+    CapabilityRegistry.probe("rllib", True, lambda: True)
 
     from ai.recommendations.train_rl import train_rl_from_history
 
@@ -51,7 +55,14 @@ def train_rl(
 @router.get("/admin/rl/status")
 def rl_training_status():
     """Check if RL agent is loaded and capability status."""
+    rllib_available = False
+    try:
+        import ray  # noqa: F401
+        from ray.rllib.algorithms.ppo import PPOConfig  # noqa: F401
+        rllib_available = True
+    except ImportError:
+        pass
     return {
-        "rllib_available": CapabilityRegistry.has("rllib"),
+        "rllib_available": rllib_available,
         "rllib_probed": CapabilityRegistry.has("rllib_probed"),
     }
