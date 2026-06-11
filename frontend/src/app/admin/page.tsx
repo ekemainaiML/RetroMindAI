@@ -548,6 +548,48 @@ function ModelTrainingCard({ title, description, info, busy, onTrain }: {
           {info.trained_at && <div className="flex justify-between text-xs"><span className="text-text-secondary">Trained At</span><span className="font-medium text-text-primary">{new Date(info.trained_at).toLocaleString()}</span></div>}
         </div>
       )}
+    </div>
+  );
+}
+
+function OemSearchResults({ apiBase, apiKey, make, model, year }: { apiBase: string; apiKey: string; make: string; model: string; year: string }) {
+  const [results, setResults] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (make) params.set("make", make);
+    if (model) params.set("model", model);
+    if (year) params.set("year", year);
+    fetch(`${apiBase}/oem/search?${params}`, { headers: { "X-API-Key": apiKey } })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => setResults(d?.results ?? []))
+      .finally(() => setLoading(false));
+  }, [apiBase, apiKey, make, model, year]);
+  if (loading) return <p className="text-xs text-text-tertiary">Searching...</p>;
+  if (!results) return null;
+  if (results.length === 0) return <p className="text-xs text-text-tertiary">No results found.</p>;
+  return (
+    <Card padding="none">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border text-xs uppercase tracking-wider text-text-tertiary">
+            <TH>Make</TH><TH>Model</TH><TH>Generation</TH><TH>Type</TH><TH>Years</TH>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {results.map((r: any) => (
+            <tr key={r.id} className="hover:bg-surface-hover transition-colors">
+              <TD className="font-medium text-text-primary">{r.manufacturer_name || r.make || "-"}</TD>
+              <TD className="text-text-primary">{r.model_name}</TD>
+              <TD className="text-text-tertiary">{r.generation || "-"}</TD>
+              <TD><Badge variant="default" size="sm">{(r.vehicle_type || "").replace(/_/g, " ")}</Badge></TD>
+              <TD className="text-xs text-text-tertiary">{r.year_start || "?"}{r.year_end ? `-${r.year_end}` : ""}</TD>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="border-t border-border px-4 py-2 text-xs text-text-tertiary">{results.length} result(s)</div>
     </Card>
   );
 }
@@ -556,7 +598,7 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
   const ak = apiKey;
   const h: Record<string, string> = { "X-API-Key": ak };
   const JSON_H = { ...h, "Content-Type": "application/json" };
-  type OEMTab = "manufacturers" | "models";
+  type OEMTab = "manufacturers" | "models" | "search";
   const [oemTab, setOemTab] = useState<OEMTab>("manufacturers");
   const [manus, setManus] = useState<any[]>([]);
   const [models, setModels] = useState<any[]>([]);
@@ -573,6 +615,9 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
   const [routes, setRoutes] = useState<any[]>([]);
   const [specsModelId, setSpecsModelId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [searchMake, setSearchMake] = useState("");
+  const [searchModel, setSearchModel] = useState("");
+  const [searchYear, setSearchYear] = useState("");
 
   const [modelOpen, setModelOpen] = useState(false);
   const [editModelId, setEditModelId] = useState<string | null>(null);
@@ -873,6 +918,7 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
         <div className="flex gap-1 rounded-lg bg-surface-muted p-1 border border-border">
           <button type="button" onClick={() => setOemTab("manufacturers")} className={`rounded-md px-4 py-1.5 text-xs font-medium transition-all ${oemTab === "manufacturers" ? "bg-surface-card text-text-primary shadow-sm border border-border" : "text-text-tertiary hover:text-text-secondary"}`}>Manufacturers</button>
           <button type="button" onClick={() => setOemTab("models")} className={`rounded-md px-4 py-1.5 text-xs font-medium transition-all ${oemTab === "models" ? "bg-surface-card text-text-primary shadow-sm border border-border" : "text-text-tertiary hover:text-text-secondary"}`}>Vehicle Models</button>
+          <button type="button" onClick={() => setOemTab("search")} className={`rounded-md px-4 py-1.5 text-xs font-medium transition-all ${oemTab === "search" ? "bg-surface-card text-text-primary shadow-sm border border-border" : "text-text-tertiary hover:text-text-secondary"}`}>Search</button>
         </div>
         {oemTab === "manufacturers" && <Button size="sm" onClick={() => { setManuOpen(true); setFormError(""); }}>+ Add Manufacturer</Button>}
       </div>
@@ -1044,6 +1090,22 @@ function OemAdminContent({ apiBase, apiKey }: { apiBase: string; apiKey: string 
                 </div>
               </div>
             </Card>
+          )}
+        </div>
+      )}
+
+      {oemTab === "search" && (
+        <div className="space-y-3">
+          <p className="text-xs text-text-secondary">Search across all makes, models, and years.</p>
+          <div className="flex flex-wrap gap-3">
+            <Input value={searchMake} onChange={(e) => setSearchMake(e.target.value)} placeholder="Make" className="max-w-[140px]" />
+            <Input value={searchModel} onChange={(e) => setSearchModel(e.target.value)} placeholder="Model" className="max-w-[140px]" />
+            <Input value={searchYear} onChange={(e) => setSearchYear(e.target.value)} placeholder="Year" className="max-w-[100px]" type="number" />
+          </div>
+          {searchMake || searchModel || searchYear ? (
+            <OemSearchResults apiBase={apiBase} apiKey={ak} make={searchMake} model={searchModel} year={searchYear} />
+          ) : (
+            <p className="text-xs text-text-tertiary">Enter a search term above to find OEM data.</p>
           )}
         </div>
       )}
