@@ -88,7 +88,7 @@ export default function AdminPage() {
   const [adminKeyInput, setAdminKeyInput] = useState(getStoredAdminKey());
   const [authenticated, setAuthenticated] = useState(false);
   const [trainingStatus, setTrainingStatus] = useState<any>(null);
-  const [trainingBusy, setTrainingBusy] = useState(false);
+  const [trainingModelBusy, setTrainingModelBusy] = useState<string | null>(null);
   const LOG_LIMIT = 50;
 
   const load = useCallback(async (keyOverride?: string) => {
@@ -357,12 +357,13 @@ export default function AdminPage() {
           {trainingStatus ? (
             <div className="grid gap-6 md:grid-cols-2">
               <ModelTrainingCard
+                key="onnx"
                 title="ONNX RandomForest"
                 description="Hand-crafted features (HOG, edges, color histograms) with a 100-tree RandomForest. Fast, low-memory, works without GPU."
                 info={trainingStatus.onnx}
-                busy={trainingBusy}
+                busy={trainingModelBusy === "onnx"}
                 onTrain={async () => {
-                  setTrainingBusy(true);
+                  setTrainingModelBusy("onnx");
                   try {
                     const key = getStoredAdminKey();
                     const res = await fetch(`${API_BASE}/admin/training/start?model_type=onnx`, { method: "POST", headers: { "X-API-Key": key } });
@@ -373,17 +374,18 @@ export default function AdminPage() {
                   } catch (e: any) {
                     alert(`Training failed: ${e.message}`);
                   } finally {
-                    setTrainingBusy(false);
+                    setTrainingModelBusy(null);
                   }
                 }}
               />
               <ModelTrainingCard
+                key="pytorch"
                 title="PyTorch MobileNetV3"
                 description="MobileNetV3-small CNN (~2.5M params). End-to-end learned features, higher accuracy with more data. Enable via Settings → Capabilities."
                 info={trainingStatus.pytorch}
-                busy={trainingBusy}
+                busy={trainingModelBusy === "pytorch"}
                 onTrain={async () => {
-                  setTrainingBusy(true);
+                  setTrainingModelBusy("pytorch");
                   try {
                     const key = getStoredAdminKey();
                     const res = await fetch(`${API_BASE}/admin/training/start?model_type=pytorch`, { method: "POST", headers: { "X-API-Key": key } });
@@ -394,7 +396,7 @@ export default function AdminPage() {
                   } catch (e: any) {
                     alert(`Training failed: ${e.message}`);
                   } finally {
-                    setTrainingBusy(false);
+                    setTrainingModelBusy(null);
                   }
                 }}
               />
