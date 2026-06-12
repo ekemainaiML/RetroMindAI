@@ -805,6 +805,10 @@ def run_assessment(intake_id: str) -> None:
                 if original_path:
                     base, ext = os.path.splitext(original_path)
                     enhanced_path = f"{base}_enhanced{ext}"
+                    if not os.path.exists(enhanced_path):
+                        downscaled_enhanced = f"{base}_downscaled_enhanced{ext}"
+                        if os.path.exists(downscaled_enhanced):
+                            enhanced_path = downscaled_enhanced
                     enhanced.append({
                         "view": view_name,
                         "original_url": original_path.replace("/app/uploads", "/uploads"),

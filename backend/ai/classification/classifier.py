@@ -249,7 +249,7 @@ class VehicleClassifier:
 
         alternatives = [
             {"type": CLASS_LABELS[i], "confidence": round(float(probs[i]), 4)}
-            for i in range(len(CLASS_LABELS))
+            for i in range(len(probs))
             if i != predicted_idx
         ]
         alternatives.sort(key=lambda x: x["confidence"], reverse=True)  # type: ignore[arg-type]
@@ -309,7 +309,7 @@ class VehicleClassifier:
 
         alternatives = [
             {"type": CLASS_LABELS[i], "confidence": round(float(probs[i]), 4)}
-            for i in range(len(CLASS_LABELS))
+            for i in range(len(probs))
             if i != predicted_idx
         ]
         alternatives.sort(key=lambda x: x["confidence"], reverse=True)  # type: ignore[arg-type]

@@ -42,10 +42,13 @@ function ValueDisplay({ value, label }: { value: unknown; label: string }) {
   if (typeof value === "boolean") {
     display = value ? "Yes" : "No";
   } else if (Array.isArray(value)) {
+    if (value.length === 0) return null;
     display = value
       .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
       .join(", ");
   } else if (typeof value === "object") {
+    const entries = Object.entries(value);
+    if (entries.length === 0) return null;
     display = formatValue(value);
   } else {
     display = String(value);

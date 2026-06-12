@@ -142,6 +142,7 @@ def build_report_sections(job: Job, intake: Intake | None, result: dict) -> list
             "attempts": dict(intake.attempts) if intake and intake.attempts else {},
             "occluded_views": list(intake.occluded_views) if intake and intake.occluded_views else [],
             "enhanced_views": list(intake.enhanced_views) if intake and intake.enhanced_views else [],
+            "safety_overrides": result.get("safety_overrides", []),
         },
     ))
 
