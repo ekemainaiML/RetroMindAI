@@ -1,0 +1,47 @@
+{
+  "confidence_weights": {
+    "best_params": {
+      "completeness": 0.46501951845856737,
+      "quality": 0.24749244421863117,
+      "visibility": 0.08363394076798011,
+      "classification": 0.14640804273989808,
+      "geometry": 0.0501967995979874,
+      "deviation_certainty": 0.0506222923940854
+    },
+    "best_value": 0.4,
+    "trials": 100
+  },
+  "classifier_signals": {
+    "best_params": {},
+    "best_value": 0.0,
+    "trials": 100
+  },
+  "deviation_thresholds": {
+    "best_params": {
+      "minor_cutoff": 2.214934535586714,
+      "moderate_cutoff": 3.4795321753082007
+    },
+    "best_value": 0.0568,
+    "trials": 100
+  },
+  "safety_overrides": {
+    "best_params": {
+      "class_floor": 23.376253843588355,
+      "geom_floor": 24.646376849460236
+    },
+    "best_value": 0.7162,
+    "trials": 100
+  },
+  "stage_timeouts": {
+    "best_params": {
+      "classif_timeout": 29,
+      "geometry_timeout": 23,
+      "deviation_timeout": 25,
+      "battery_timeout": 6,
+      "wiring_timeout": 9,
+      "twin_timeout": 7
+    },
+    "best_value": 0.0,
+    "trials": 100
+  }
+}
