@@ -23,11 +23,16 @@ jobs:
             exit 1
           fi
       - name: Validate required secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          DOMAIN: ${{ secrets.DOMAIN }}
         run: |
           MISSING=""
-          for secret in ORACLE_HOST ORACLE_USER ORACLE_SSH_KEY DOMAIN; do
-            if [ -z "${{ secrets[secret] }}" ]; then
-              MISSING="$MISSING $secret"
+          for var in ORACLE_HOST ORACLE_USER ORACLE_SSH_KEY DOMAIN; do
+            if [ -z "${!var}" ]; then
+              MISSING="$MISSING $var"
             fi
           done
           if [ -n "$MISSING" ]; then
