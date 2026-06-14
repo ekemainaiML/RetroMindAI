@@ -63,6 +63,7 @@ class Settings(BaseSettings):
 
     # Phase 0: Feature flags for optional capabilities
     # All default to False — no new code path active out of the box
+    compliance_region: str = "generic"  # "generic", "icat", or "arai"
     enable_optuna: bool = False
     enable_pytorch: bool = False
     enable_rl_recommendations: bool = False

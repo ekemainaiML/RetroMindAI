@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AssessmentData } from "@/types/assessment";
 import { API_BASE, BACKEND_URL, getApiKey } from "@/utils/api";
 import {
@@ -261,9 +261,15 @@ export default function AssessmentResult({
   intakeId,
   onConfirm,
 }: Props) {
-  const [showConfirm, setShowConfirm] = useState(
-    assessment.needs_confirmation
-  );
+  const [showConfirm, setShowConfirm] = useState(false);
+  const confirmedRef = useRef(false);
+
+  useEffect(() => {
+    if (assessment.needs_confirmation && !confirmedRef.current) {
+      setShowConfirm(true);
+    }
+  }, [assessment.needs_confirmation]);
+
   const [cadLoading, setCadLoading] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
   const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
@@ -300,7 +306,12 @@ export default function AssessmentResult({
 
   const handleConfirm = async (selection: string) => {
     if (!assessment.confirmation_required) return;
-    await onConfirm(assessment.confirmation_required.type, selection);
+    try {
+      await onConfirm(assessment.confirmation_required.type, selection);
+    } catch (e) {
+      console.error("Confirm failed:", e);
+    }
+    confirmedRef.current = true;
     setShowConfirm(false);
   };
 
@@ -317,6 +328,7 @@ export default function AssessmentResult({
     } catch {
       // Best-effort — result will show partial_assessment on next poll
     }
+    confirmedRef.current = true;
     setShowConfirm(false);
   };
 

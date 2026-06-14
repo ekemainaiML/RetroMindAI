@@ -1,5 +1,18 @@
-region          = "eu-frankfurt-1"
+# ── Required ────────────────────────────────────────────────
+region           = "eu-frankfurt-1"
 compartment_ocid = "ocid1.compartment.oc1..aaaaaaaa..."
-ssh_public_key  = "ssh-ed25519 AAAA..."
-admin_cidr      = "0.0.0.0/0"
-domain          = "retromind.example.com"
+ssh_public_key   = "ssh-ed25519 AAAA..."     # Your admin SSH key
+deploy_ssh_public_key = "ssh-ed25519 AAAA..." # SSH key for GitHub Actions deploy
+
+# ── Optional ────────────────────────────────────────────────
+admin_cidr       = "0.0.0.0/0"
+domain           = "retromind.example.com"
+admin_email      = "admin@example.com"
+repo_url         = "https://github.com/ekemainaiML/RetroMindAI.git"
+data_volume_size_gb = 50
+
+# ── After apply, set these outputs in GitHub Actions secrets ──
+# ORACLE_HOST     = (public_ip)
+# ORACLE_USER     = ubuntu
+# ORACLE_SSH_KEY  = (private key matching deploy_ssh_public_key)
+# Then populate /app/.env.prod on the VM with real secrets

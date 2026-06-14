@@ -67,6 +67,16 @@ def _try_set_job_cache(job_id: uuid.UUID, workshop_id: str, data: dict) -> None:
         pass
 
 
+def _try_delete_job_cache(job_id: uuid.UUID, workshop_id: str) -> None:
+    try:
+        from redis import Redis
+        r = Redis.from_url(settings.redis_url, socket_connect_timeout=1)
+        key = f"job_cache:{job_id}:{workshop_id}"
+        r.delete(key)
+    except Exception:
+        pass
+
+
 @router.get("/jobs/{job_id}", response_model=JobResponse)
 async def get_job(
     job_id: uuid.UUID,
@@ -269,6 +279,8 @@ async def confirm_job(
     job.updated_at = datetime.now(timezone.utc)
     db.commit()
 
+    _try_delete_job_cache(job_id, workshop_id)
+
     degradation = job.result.get("degradations", []) if isinstance(job.result, dict) else []
 
     return JobResponse(
@@ -322,6 +334,8 @@ async def confirm_timeout_job(
     job.updated_at = datetime.now(timezone.utc)
     db.commit()
 
+    _try_delete_job_cache(job_id, workshop_id)
+
     degradation = job.result.get("degradations", []) if isinstance(job.result, dict) else []
 
     return JobResponse(
@@ -330,27 +344,6 @@ async def confirm_timeout_job(
         current_stage=job.current_stage,
         progress_pct=job.progress_pct,
         assessment_state="partial_assessment",
-        completed_stages=list(job.completed_stages or []),
-        missing_stages=list(job.missing_stages or []),
-        result=job.result,
-        retry_count=job.retry_count,
-        retry_available=bool(
-            isinstance(job.max_retries, int)
-            and job.retry_count < job.max_retries
-        ),
-        error_message=job.error_message,
-        timed_out=False,
-        infrastructure_degradation=degradation,
-        created_at=_dt_iso(job.created_at),
-        updated_at=_dt_iso(job.updated_at),
-    )
-
-    return JobResponse(
-        job_id=str(job.id),
-        status=job.status,
-        current_stage=job.current_stage,
-        progress_pct=job.progress_pct,
-        assessment_state=state,
         completed_stages=list(job.completed_stages or []),
         missing_stages=list(job.missing_stages or []),
         result=job.result,

@@ -44,7 +44,9 @@ class GenerativeRefiner:
         if settings.openai_api_key:
             try:
                 from openai import OpenAI
-                self._backend = OpenAI(api_key=settings.openai_api_key, timeout=20.0, max_retries=1)
+                import httpx
+                http_client = httpx.Client(timeout=httpx.Timeout(5.0, connect=3.0))
+                self._backend = OpenAI(api_key=settings.openai_api_key, http_client=http_client, max_retries=0)
                 CapabilityRegistry.probe("genai", True, lambda: True)
                 logger.info("Generative refiner using OpenAI backend")
             except ImportError:
@@ -57,7 +59,9 @@ class GenerativeRefiner:
         elif settings.anthropic_api_key:
             try:
                 from anthropic import Anthropic
-                self._backend = Anthropic(api_key=settings.anthropic_api_key, timeout=20.0, max_retries=1)
+                import httpx
+                http_client = httpx.Client(timeout=httpx.Timeout(5.0, connect=3.0))
+                self._backend = Anthropic(api_key=settings.anthropic_api_key, http_client=http_client, max_retries=0)
                 CapabilityRegistry.probe("genai", True, lambda: True)
                 logger.info("Generative refiner using Anthropic backend")
             except ImportError:

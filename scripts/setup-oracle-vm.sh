@@ -33,10 +33,12 @@ if ! docker compose version &>/dev/null; then
     sudo apt-get install -y docker-compose-plugin
 fi
 
-REPO_DIR="/home/ubuntu/retromind"
+REPO_DIR="/app/retromind"
 if [ ! -d "$REPO_DIR" ]; then
     echo "Cloning repository..."
-    git clone https://github.com/YOUR_USER/retromind.git "$REPO_DIR"
+    sudo mkdir -p "$REPO_DIR"
+    sudo git clone https://github.com/ekemainaiML/RetroMindAI.git "$REPO_DIR"
+    sudo chown -R "$USER:$USER" "$REPO_DIR"
 fi
 
 cd "$REPO_DIR"
@@ -46,10 +48,26 @@ if [ ! -f .env ]; then
     cat > .env << EOF
 DOMAIN=$DOMAIN
 DB_PASSWORD=$(openssl rand -base64 32)
+REDIS_PASSWORD=$(openssl rand -base64 32)
 NEO4J_PASSWORD=$(openssl rand -base64 32)
+JWT_SECRET=$(openssl rand -base64 32)
 ADMIN_API_KEY=rm_admin_$(openssl rand -hex 32)
+OCI_REGION=eu-frankfurt-1
+OCI_NAMESPACE=
+OCI_ACCESS_KEY=
+OCI_SECRET_KEY=
+ENABLE_CAD_EXPORT=true
+FREECAD_HOST=http://freecad-worker:8100
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+AZURE_CLIENT_ID=
+AZURE_CLIENT_SECRET=
+AZURE_TENANT_ID=
+OPENAI_API_KEY=
+SENTRY_DSN=
+WORKSHOP_ID=default
 EOF
-    echo "Created .env"
+    echo "Created .env — edit it to add your actual secrets"
 fi
 
 echo "Obtaining SSL certificate..."
@@ -70,3 +88,8 @@ echo ""
 echo "=== Setup complete ==="
 echo "Admin API key: $(grep ADMIN_API_KEY .env | cut -d= -f2)"
 echo "Visit: https://$DOMAIN"
+echo ""
+echo "Next steps:"
+echo "  1. Edit /app/retromind/.env with your real secrets"
+echo "  2. Copy it to /app/.env.prod for CI/CD deployment"
+echo "  3. Set GitHub Actions secrets: ORACLE_HOST, ORACLE_USER, ORACLE_SSH_KEY"

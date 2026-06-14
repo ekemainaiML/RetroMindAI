@@ -5,6 +5,7 @@ terraform {
       version = ">= 6.0"
     }
   }
+  backend "local" {}
 }
 
 provider "oci" {
@@ -18,6 +19,7 @@ resource "oci_core_vcn" "main" {
   display_name   = "retromind-vcn"
   cidr_block     = "10.0.0.0/16"
   dns_label      = "retromind"
+  defined_tags   = var.default_tags
 }
 
 resource "oci_core_subnet" "public" {
@@ -28,12 +30,14 @@ resource "oci_core_subnet" "public" {
   dns_label         = "public"
   security_list_ids = [oci_core_security_list.public.id]
   route_table_id    = oci_core_route_table.public.id
+  defined_tags      = var.default_tags
 }
 
 resource "oci_core_internet_gateway" "main" {
   compartment_id = var.compartment_ocid
   vcn_id         = oci_core_vcn.main.id
   display_name   = "retromind-igw"
+  defined_tags   = var.default_tags
 }
 
 resource "oci_core_route_table" "public" {
@@ -44,6 +48,7 @@ resource "oci_core_route_table" "public" {
     network_entity_id = oci_core_internet_gateway.main.id
     destination       = "0.0.0.0/0"
   }
+  defined_tags = var.default_tags
 }
 
 resource "oci_core_security_list" "public" {
@@ -57,26 +62,41 @@ resource "oci_core_security_list" "public" {
   }
 
   ingress_security_rules {
-    protocol    = "6" # TCP
+    protocol    = "6"
     source      = "0.0.0.0/0"
     description = "HTTP"
-    tcp_options { max = 80; min = 80 }
+    tcp_options {
+      max = 80
+      min = 80
+    }
   }
   ingress_security_rules {
     protocol    = "6"
     source      = "0.0.0.0/0"
     description = "HTTPS"
-    tcp_options { max = 443; min = 443 }
+    tcp_options {
+      max = 443
+      min = 443
+    }
   }
   ingress_security_rules {
     protocol    = "6"
     source      = var.admin_cidr
     description = "SSH"
-    tcp_options { max = 22; min = 22 }
+    tcp_options {
+      max = 22
+      min = 22
+    }
   }
 }
 
 # ── Compute ─────────────────────────────────────────────────
+
+locals {
+  deploy_dir = "/app/retromind"
+  env_path   = "/app/.env.prod"
+  data_mount = "/app"
+}
 
 resource "oci_core_instance" "app" {
   compartment_id      = var.compartment_ocid
@@ -89,8 +109,8 @@ resource "oci_core_instance" "app" {
   }
 
   source_details {
-    source_type = "image"
-    source_id   = data.oci_core_images.ubuntu.images[0].id
+    source_type             = "image"
+    source_id               = data.oci_core_images.ubuntu.images[0].id
     boot_volume_size_in_gbs = 150
   }
 
@@ -101,10 +121,29 @@ resource "oci_core_instance" "app" {
   }
 
   metadata = {
-    ssh_authorized_keys = var.ssh_public_key
+    ssh_authorized_keys = join("\n", [var.ssh_public_key, var.deploy_ssh_public_key])
   }
 
+  agent_config {
+    is_monitoring_enabled = true
+    is_management_enabled = true
+  }
+
+  user_data = base64encode(templatefile("${path.module}/cloud-init.yaml", {
+    repo_url                 = var.repo_url
+    deploy_dir               = local.deploy_dir
+    env_path                 = local.env_path
+    data_mount               = local.data_mount
+    data_device              = oci_core_volume_attachment.data.device
+    domain                   = var.domain
+    admin_email              = var.admin_email
+    docker_compose_file      = "docker-compose.prod.yml"
+    region                   = var.region
+    object_storage_namespace = data.oci_objectstorage_namespace.ns.namespace
+  }))
+
   preserve_boot_volume = false
+  defined_tags         = var.default_tags
 }
 
 # ── Block Storage (uploads & models) ────────────────────────
@@ -113,7 +152,8 @@ resource "oci_core_volume" "data" {
   compartment_id      = var.compartment_ocid
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   display_name        = "retromind-data"
-  size_in_gbs         = 50
+  size_in_gbs         = var.data_volume_size_gb
+  defined_tags        = var.default_tags
 }
 
 resource "oci_core_volume_attachment" "data" {
@@ -121,6 +161,8 @@ resource "oci_core_volume_attachment" "data" {
   instance_id     = oci_core_instance.app.id
   volume_id       = oci_core_volume.data.id
   device          = "/dev/oracleoci/oraclevdb"
+  is_read_only    = false
+  is_shareable    = false
 }
 
 # ── Object Storage ──────────────────────────────────────────
@@ -131,6 +173,7 @@ resource "oci_objectstorage_bucket" "uploads" {
   name           = "retromind-uploads"
   access_type    = "NoPublicAccess"
   storage_tier   = "Standard"
+  defined_tags   = var.default_tags
 }
 
 resource "oci_objectstorage_bucket" "backups" {
@@ -139,23 +182,35 @@ resource "oci_objectstorage_bucket" "backups" {
   name           = "retromind-backups"
   access_type    = "NoPublicAccess"
   storage_tier   = "Archive"
+  auto_tiering   = "INFREQUENT_ACCESS_ACCESS"
+  defined_tags   = var.default_tags
+}
+
+resource "oci_objectstorage_preauthrequest" "backup_upload" {
+  count        = var.backup_access_duration_hours > 0 ? 1 : 0
+  namespace    = data.oci_objectstorage_namespace.ns.namespace
+  bucket       = oci_objectstorage_bucket.backups.name
+  name         = "backup-upload-key"
+  access_type  = "AnyObjectWrite"
+  time_expires = timeadd(timestamp(), "${var.backup_access_duration_hours}h")
+  object_name  = "pg_dumps/"
 }
 
 # ── DNS ─────────────────────────────────────────────────────
 
 resource "oci_dns_zone" "main" {
-  count        = var.domain != "" ? 1 : 0
+  count          = var.domain != "" ? 1 : 0
   compartment_id = var.compartment_ocid
-  name         = var.domain
-  zone_type    = "PRIMARY"
+  name           = var.domain
+  zone_type      = "PRIMARY"
+  defined_tags   = var.default_tags
 }
 
 resource "oci_dns_rrset" "app" {
-  count       = var.domain != "" ? 1 : 0
+  count           = var.domain != "" ? 1 : 0
   zone_name_or_id = oci_dns_zone.main[0].id
-  domain      = var.domain
-  rtype       = "A"
-  rtype_version = "1"
+  domain          = var.domain
+  rtype           = "A"
   items {
     domain = var.domain
     rtype  = "A"
@@ -165,11 +220,10 @@ resource "oci_dns_rrset" "app" {
 }
 
 resource "oci_dns_rrset" "api" {
-  count       = var.domain != "" ? 1 : 0
+  count           = var.domain != "" ? 1 : 0
   zone_name_or_id = oci_dns_zone.main[0].id
-  domain      = "api.${var.domain}"
-  rtype       = "A"
-  rtype_version = "1"
+  domain          = "api.${var.domain}"
+  rtype           = "A"
   items {
     domain = "api.${var.domain}"
     rtype  = "A"

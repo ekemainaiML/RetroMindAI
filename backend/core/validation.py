@@ -1,5 +1,22 @@
+import struct
+
 import cv2
 import numpy as np
+
+
+def validate_image_bytes(data: bytes) -> bool:
+    """Check that file bytes are a valid JPEG or PNG before saving."""
+    if len(data) < 12:
+        return False
+    if data[:2] == b'\xff\xd8':
+        if data[-2:] != b'\xff\xd9':
+            return False
+        return True
+    if data[:8] == b'\x89PNG\r\n\x1a\n':
+        if data[-3:] != b'IEND':
+            return False
+        return True
+    return False
 
 
 def compute_blur_score(image_path: str) -> float:

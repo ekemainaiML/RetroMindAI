@@ -19,7 +19,7 @@ from core.config import settings
 from core.database import get_db
 from core.degradation import get_degradation_manager
 from core.models import Intake, Job
-from core.validation import check_swap, compute_blur_score, is_blurry
+from core.validation import check_swap, compute_blur_score, is_blurry, validate_image_bytes
 from ai.classification.preprocess import check_occlusion
 
 from sqlalchemy import func
@@ -105,6 +105,12 @@ async def _process_uploaded_file(
     ext = os.path.splitext(file.filename or ".jpg")[1]
     file_path = os.path.join(intake_dir, f"{slot_name}{ext}")
     content = await file.read()
+    if not validate_image_bytes(content):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Uploaded file for '{slot_name}' is not a valid JPEG or PNG image. "
+                   "The file may be corrupt or truncated.",
+        )
     try:
         with open(file_path, "wb") as f:
             f.write(content)

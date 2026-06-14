@@ -69,7 +69,7 @@ def _make_graph():
 def generate():
     graph = _make_graph()
     model = helper.make_model(graph, producer_name="RetroMindAI", ir_version=9)
-    model.opset_import[0].version = 11
+    model.opset_import[0].version = 17
     onnx.checker.check_model(model)
     onnx.save(model, TARGET_PATH)
     print(f"Test ONNX model saved to {TARGET_PATH}")

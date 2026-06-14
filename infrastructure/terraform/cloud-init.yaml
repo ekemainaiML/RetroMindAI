@@ -1,0 +1,75 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+
+packages:
+  - docker.io
+  - docker-compose-plugin
+  - xfsprogs
+  - awscli
+
+runcmd:
+  # ── Mount data volume ──
+  - |
+    DEVICE="${data_device}"
+    MOUNT="${data_mount}"
+    if [ -b "$DEVICE" ] && ! mount | grep -q "$MOUNT"; then
+      FSTYPE=$(blkid -o value -s TYPE "$DEVICE" || echo "")
+      if [ -z "$FSTYPE" ]; then
+        mkfs.xfs "$DEVICE"
+      fi
+      mkdir -p "$MOUNT"
+      mount "$DEVICE" "$MOUNT"
+      echo "$DEVICE $MOUNT xfs defaults,_netdev,nofail 0 2" >> /etc/fstab
+    fi
+
+  # ── Clone repository ──
+  - |
+    if [ ! -d "${deploy_dir}" ]; then
+      mkdir -p "${deploy_dir}"
+      git clone "${repo_url}" "${deploy_dir}"
+    fi
+
+  # ── Add ubuntu user to docker group ──
+  - usermod -aG docker ubuntu
+
+  # ── Create .env.prod stub (operator must populate real secrets) ──
+  - |
+    if [ ! -f "${env_path}" ]; then
+      cat > "${env_path}" << 'EOF'
+DOMAIN=${domain}
+DB_PASSWORD=change_me
+REDIS_PASSWORD=change_me
+NEO4J_PASSWORD=change_me
+JWT_SECRET=change_me
+ADMIN_API_KEY=change_me
+OCI_REGION=${region}
+OCI_NAMESPACE=${object_storage_namespace}
+OCI_ACCESS_KEY=change_me
+OCI_SECRET_KEY=change_me
+ENABLE_CAD_EXPORT=true
+FREECAD_HOST=http://freecad-worker:8100
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+AZURE_CLIENT_ID=
+AZURE_CLIENT_SECRET=
+AZURE_TENANT_ID=
+OPENAI_API_KEY=
+SENTRY_DSN=
+WORKSHOP_ID=default
+EOF
+    fi
+
+  # ── Enable Docker on boot ──
+  - systemctl enable docker
+  - systemctl start docker
+
+  # ── Initial deployment (populated env required) ──
+  - |
+    cd ${deploy_dir}
+    if [ -f .env ] || [ -f "${env_path}" ]; then
+      cp "${env_path}" .env.prod 2>/dev/null || true
+      docker compose -f ${docker_compose_file} pull 2>/dev/null || true
+    fi
+
+final_message: "RetroMindAI VM provisioned in $UPTIME seconds"

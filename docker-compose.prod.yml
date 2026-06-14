@@ -178,8 +178,47 @@ services:
       - backend-api
     restart: always
 
+  prometheus:
+    image: prom/prometheus:latest
+    restart: always
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infra/prometheus/alerts.yml:/etc/prometheus/rules.yml
+      - prometheus_data:/prometheus
+    depends_on:
+      - backend-api
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: always
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_INSTALL_PLUGINS: ""
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+    volumes:
+      - ./infra/grafana/dashboard.json:/etc/grafana/provisioning/dashboards/retromind.json
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    secrets:
+      - grafana_admin_password
+
 volumes:
   postgres_data:
   neo4j_data:
   upload_data:
   caddy_data:
+  prometheus_data:
+  grafana_data:
+
+secrets:
+  grafana_admin_password:
+    file: ./secrets/grafana_admin_password.txt

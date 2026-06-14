@@ -83,3 +83,4 @@ jobs:
         run: curl -sfI https://${{ secrets.DOMAIN }} 2>&1 | head -5
       - name: Smoke test API
         run: curl -sf https://api.${{ secrets.DOMAIN }}/api/v1/health 2>&1 | head -5
+

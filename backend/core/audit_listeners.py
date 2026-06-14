@@ -61,7 +61,10 @@ def _log_audit(
         resource_id=resource_id,
         changes=changes,
     )
-    session.add(log)
+    try:
+        session.add(log)
+    except Exception:
+        pass
 
 
 def _extract_workshop_id(model) -> str:

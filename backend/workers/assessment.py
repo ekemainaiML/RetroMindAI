@@ -98,6 +98,8 @@ def _fetch_oem_specs(model_id: uuid.UUID | None, vehicle_type: str, db: DBSessio
             "overall_width_mm": spec.overall_width_mm,
             "ground_clearance_mm": spec.ground_clearance_mm,
             "cargo_length_mm": spec.cargo_length_mm,
+            "kerb_weight_kg": spec.kerb_weight_kg,
+            "gross_weight_kg": spec.gross_weight_kg,
         }
         logger.info("Hydrated deviation references from OEM specs for model %s", model_id)
         return result
@@ -938,6 +940,54 @@ def run_assessment(intake_id: str) -> None:
                     deg_mgr.register("neo4j", 1, "Neo4j connection failed — graph features unavailable")
             except Exception:
                 logger.exception("Neo4j integration failed (non-fatal)")
+
+        if job.result:
+            region = settings.compliance_region
+            if region in ("icat", "arai"):
+                try:
+                    _oem = {}
+                    if intake_model_id:
+                        try:
+                            from core.models import OEMSpecification
+                            _spec_row = db.query(OEMSpecification).filter(OEMSpecification.model_id == intake_model_id).first()
+                            if _spec_row:
+                                _oem["kerb_weight_kg"] = _spec_row.kerb_weight_kg
+                                _oem["gross_weight_kg"] = _spec_row.gross_weight_kg
+                                _oem["ground_clearance_mm"] = _spec_row.ground_clearance_mm
+                        except Exception:
+                            pass
+                    assessment_data = {
+                        "vehicle_classification": job.result.get("vehicle_classification", {}),
+                        "geometry_extraction": job.result.get("geometry_extraction", {}),
+                        "deviation_result": job.result.get("deviation_result", {}),
+                        "deviations": job.result.get("deviations", []),
+                        "risks": job.result.get("risks", []),
+                        "recommendations": job.result.get("recommendations", []),
+                        "battery_placement": job.result.get("battery_placement", {}),
+                        "wiring_guidance": job.result.get("wiring_guidance", {}),
+                        "oem": _oem,
+                    }
+                    from core.compliance import compute_compliance_detail
+                    detail = compute_compliance_detail(
+                        assessment_state=job.result.get("assessment_state", "reduced_confidence"),
+                        risk_state=risk_state,
+                        risk_counts={
+                            "critical": sum(1 for r in risks if r.get("severity") == "critical"),
+                            "high": sum(1 for r in risks if r.get("severity") == "high"),
+                            "medium": sum(1 for r in risks if r.get("severity") == "medium"),
+                            "low": sum(1 for r in risks if r.get("severity") == "low"),
+                        },
+                        missing_views=missing_views,
+                        critical_deviations=(deviation_result or {}).get("critical_delamination", False),
+                        deviation_count=(deviation_result or {}).get("deviation_count", 0),
+                        confidence_score=int(round(score)),
+                        region=region,
+                        assessment_data=assessment_data,
+                    )
+                    job.result["compliance_state"] = detail["compliance_state"]
+                    job.result["compliance_detail"] = detail
+                except Exception:
+                    logger.exception("Region compliance recomputation failed (non-fatal)")
 
         job.result = _make_json_safe(job.result)
         job.updated_at = datetime.now(tz.utc)
