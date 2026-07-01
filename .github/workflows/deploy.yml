@@ -46,7 +46,7 @@ jobs:
     needs: [secrets-check]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Deploy to Oracle Cloud VM
         uses: appleboy/ssh-action@v1.0.3
